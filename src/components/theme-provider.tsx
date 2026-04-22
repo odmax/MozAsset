@@ -8,7 +8,7 @@ interface ThemeProviderProps {
   defaultMode?: 'light' | 'dark' | 'system';
 }
 
-export function ThemeProvider({ children, defaultMode = 'system' }: ThemeProviderProps) {
+export function ThemeProvider({ children, defaultMode = 'light' }: ThemeProviderProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -16,7 +16,11 @@ export function ThemeProvider({ children, defaultMode = 'system' }: ThemeProvide
   }, []);
 
   if (!mounted) {
-    return <>{children}</>;
+    return (
+      <NextThemesProvider attribute="class" defaultTheme={defaultMode} enableSystem>
+        {children}
+      </NextThemesProvider>
+    );
   }
 
   return (
