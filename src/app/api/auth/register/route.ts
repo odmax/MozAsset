@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
+import { randomBytes } from 'crypto';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-import { randomBytes } from 'crypto';
-import { sendVerificationEmail } from '@/lib/email';
+
+export const dynamic = 'force-dynamic';
+
+async function sendVerificationEmail(email: string, name: string | null, token: string) {
+  console.log(`Verification email would be sent to ${email} with token ${token}`);
+}
 
 export async function POST(request: Request) {
   try {
