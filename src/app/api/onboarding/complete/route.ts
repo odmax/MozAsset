@@ -1,0 +1,53 @@
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import prisma from '@/lib/prisma';
+
+function getSessionUser() {
+  const sessionCookie = cookies().get('session');
+  if (sessionCookie?.value) {
+    try {
+      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
+      return JSON.parse(decoded);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+export async function POST(request: Request) {
+  try {
+    const user = getSessionUser();
+    if (!user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: { onBoardingComplete: true },
+      select: { id: true, email: true, name: true, role: true, plan: true, assetLimit: true, onBoardingComplete: true },
+    });
+
+    const newSessionData = {
+      ...user,
+      onBoardingComplete: true,
+    };
+
+    const newSessionToken = Buffer.from(JSON.stringify(newSessionData)).toString('base64');
+
+    const response = NextResponse.json({ success: true, redirect: '/dashboard' });
+
+    response.cookies.set('session', newSessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    });
+
+    return response;
+  } catch (error) {
+    console.error('Onboarding complete error:', error);
+    return NextResponse.json({ error: 'Failed to complete onboarding' }, { status: 500 });
+  }
+}
