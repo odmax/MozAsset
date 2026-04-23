@@ -74,32 +74,42 @@ export function getPayfastBaseUrl(): string {
 export function generateSignature(data: Record<string, string>): string {
   const config = getPayfastConfig();
   
-  // Filter out empty values and sort alphabetically
-  const validData = Object.fromEntries(
-    Object.entries(data).filter(([_, v]) => v !== undefined && v !== null && v !== '')
-  );
-  
-  const sortedKeys = Object.keys(validData).sort();
-  let signatureString = sortedKeys
-    .map(key => `${key}=${encodeURIComponent(validData[key]).replace(/%20/g, '+')}`)
-    .join('&');
-  
-  // Add passphrase only if it exists and is not empty
-  if (config.passphrase && config.passphrase.trim()) {
-    signatureString += `&passphrase=${encodeURIComponent(config.passphrase).replace(/%20/g, '+')}`;
+  // Filter out empty values, undefined, null, and signature itself
+  const validData: Record<string, string> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (key === 'signature') continue;
+    if (value !== undefined && value !== null && value !== '') {
+      validData[key] = value;
+    }
   }
   
-  const sig = crypto
-    .createHash('md5')
-    .update(signatureString)
-    .digest('hex');
+  // Sort alphabetically
+  const sortedKeys = Object.keys(validData).sort();
   
-  console.log('[Payfast] Signature debug:', {
+  // Build signature string with proper encoding
+  const pairs: string[] = [];
+  for (const key of sortedKeys) {
+    const value = validData[key];
+    // Encode and replace spaces with plus signs (Payfast requirement)
+    const encoded = encodeURIComponent(value).replace(/%20/g, '+');
+    pairs.push(`${key}=${encoded}`);
+  }
+  
+  let signatureString = pairs.join('&');
+  
+  // Append passphrase if configured (sandbox may not require it)
+  if (config.passphrase && config.passphrase.length > 0) {
+    const passEnc = encodeURIComponent(config.passphrase).replace(/%20/g, '+');
+    signatureString += `&passphrase=${passEnc}`;
+  }
+  
+  const sig = crypto.createHash('md5').update(signatureString).digest('hex');
+  
+  console.log('[Payfast] Signature generated:', {
     mode: config.mode,
-    hasPassphrase: Boolean(config.passphrase && config.passphrase.trim()),
-    fieldCount: sortedKeys.length,
+    hasPassphrase: !!(config.passphrase && config.passphrase.length > 0),
     fields: sortedKeys,
-    signatureLength: sig.length,
+    sigPrefix: sig.substring(0, 8),
   });
   
   return sig;
