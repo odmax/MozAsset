@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { UpgradePlanModal } from '@/components/plan/UpgradePlanModal';
 import { 
   User, 
   Mail, 
@@ -71,6 +72,8 @@ export default function SettingsPage() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState(false);
+
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   useEffect(() => {
     fetch('/api/user/profile')
@@ -619,8 +622,8 @@ export default function SettingsPage() {
                 </div>
               </div>
               {user?.plan === 'FREE' && (
-                <Button asChild className="w-full bg-purple-600 hover:bg-purple-700">
-                  <a href="/upgrade">Upgrade to Pro</a>
+                <Button onClick={() => setShowUpgradeModal(true)} className="w-full bg-purple-600 hover:bg-purple-700">
+                  Upgrade to Pro
                 </Button>
               )}
               {user?.plan === 'PRO' && (
@@ -637,6 +640,7 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      <UpgradePlanModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} currentPlan={(user?.plan as 'FREE' | 'PRO' | 'ENTERPRISE') || 'FREE'} />
     </div>
   );
 }
