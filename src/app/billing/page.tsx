@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { UpgradePlanModal } from '@/components/plan/UpgradePlanModal';
-import type { Plan } from '@prisma/client';
 import { 
   Package, 
   Crown, 
@@ -92,8 +91,6 @@ export default function BillingPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
-
-  const plan = (billingData?.plan || 'FREE') as Plan;
 
   useEffect(() => {
     fetch('/api/billing')
