@@ -62,7 +62,8 @@ export async function POST(request: Request) {
           plan as Plan
         );
 
-        const payfastUrl = `${getPayfastBaseUrl()}/onsite/process`;
+        // Use redirect form (works in sandbox and live)
+        const payfastUrl = `${getPayfastBaseUrl()}/eng/process`;
 
         return NextResponse.json({
           success: true,

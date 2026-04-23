@@ -87,16 +87,15 @@ export function createCheckoutPayload(
 ): PayfastCheckoutData {
   const config = getPayfastConfig();
   const planPrice = plan === 'PRO' ? 149 : plan === 'ENTERPRISE' ? 599 : 0;
-  const planPriceFormatted = planPrice.toFixed(2); // Rands, not cents
+  const planPriceFormatted = planPrice.toFixed(2);
   
   console.log('[Payfast] Creating checkout payload:', {
     plan,
-    planPrice,
-    planPriceFormatted,
-    amount: planPriceFormatted,
-    recurring_amount: planPriceFormatted,
+    planPrice: planPriceFormatted,
+    mode: config.mode,
   });
   
+  // For ad-hoc payments, use simple form fields only
   const baseData = {
     merchant_id: config.merchantId,
     merchant_key: config.merchantKey,
@@ -112,11 +111,6 @@ export function createCheckoutPayload(
     item_description: `Monthly subscription to MozAssets ${plan} Plan`,
     custom_int1: userId,
     custom_str1: plan,
-    subscription_type: '1',
-    billing_date: new Date().toISOString().split('T')[0],
-    recurring_amount: planPriceFormatted,
-    frequency: '3',
-    cycles: '0',
   };
 
   const signature = generateSignature(baseData);
