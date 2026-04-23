@@ -24,8 +24,10 @@ export interface PayfastCheckoutData {
   amount: string;
   item_name: string;
   item_description: string;
-  custom_int1: string;
-  custom_str1: string;
+  custom_int1?: string;
+  custom_str1?: string;
+  custom_str2?: string;
+  custom_str3?: string;
   subscription_type?: string;
   billing_date?: string;
   recurring_amount?: string;
@@ -41,8 +43,10 @@ export interface PayfastPaymentData {
   item_name: string;
   item_description: string;
   amount: string;
-  custom_str1: string;
-  custom_int1: string;
+  custom_str1?: string;
+  custom_str2?: string;
+  custom_str3?: string;
+  custom_int1?: string;
   name_first: string;
   name_last: string;
   email_address: string;
@@ -93,6 +97,8 @@ export function createCheckoutPayload(
     plan,
     planPrice: planPriceFormatted,
     mode: config.mode,
+    amount: planPriceFormatted,
+    item_name: `MozAssets ${plan} Plan - Monthly Subscription`,
   });
   
   // For ad-hoc payments, use simple form fields only
@@ -109,8 +115,9 @@ export function createCheckoutPayload(
     amount: planPriceFormatted,
     item_name: `MozAssets ${plan} Plan - Monthly Subscription`,
     item_description: `Monthly subscription to MozAssets ${plan} Plan`,
-    custom_int1: userId,
-    custom_str1: plan,
+    custom_str1: userId,
+    custom_str2: plan,
+    custom_str3: 'monthly',
   };
 
   const signature = generateSignature(baseData);
@@ -137,8 +144,9 @@ export async function handleITN(
   paymentData: PayfastPaymentData
 ): Promise<{ success: boolean; userId?: string; plan?: Plan; error?: string }> {
   try {
-    const userId = paymentData.custom_int1;
-    const planStr = paymentData.custom_str1 as string;
+    const userId = paymentData.custom_str1 as string;
+    const planStr = paymentData.custom_str2 as string;
+    const billingCycle = paymentData.custom_str3 as string;
     const plan: Plan = planStr === 'PRO' ? 'PRO' : planStr === 'ENTERPRISE' ? 'ENTERPRISE' : 'FREE';
     
     if (!userId) {
