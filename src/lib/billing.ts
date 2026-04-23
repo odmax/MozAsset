@@ -123,13 +123,82 @@ export function canAddAssets(plan: Plan, currentCount: number): { allowed: boole
     if (plan === 'FREE') {
       return {
         allowed: false,
-        message: `You have reached your asset limit (${limit}). Upgrade to PRO to add more assets.`,
+        message: `You've hit the wall! Your FREE plan caps at ${limit} assets. Time to level up to PRO for unlimited assets!`,
       };
     }
     if (plan === 'PRO') {
       return {
         allowed: false,
-        message: `You have reached your asset limit (${limit}). Contact sales for Enterprise.`,
+        message: `Asset cap reached (${limit}). Go Enterprise for unlimited!`,
+      };
+    }
+  }
+  return { allowed: true };
+}
+
+export function canAddCategories(plan: Plan, currentCount: number): { allowed: boolean; message?: string } {
+  const limit = PLAN_CONFIG[plan].departments;
+  if (limit === -1) return { allowed: true };
+  if (currentCount >= limit) {
+    if (plan === 'FREE') {
+      return {
+        allowed: false,
+        message: `FREE tier = ${limit} category max. PRO unlocks unlimited!`,
+      };
+    }
+  }
+  return { allowed: true };
+}
+
+export function canAddDepartments(plan: Plan, currentCount: number): { allowed: boolean; message?: string } {
+  const limit = PLAN_CONFIG[plan].departments;
+  if (limit === -1) return { allowed: true };
+  if (currentCount >= limit) {
+    if (plan === 'FREE') {
+      return {
+        allowed: false,
+        message: `Your FREE plan allows only ${limit} department. PRO = unlimited departments!`,
+      };
+    }
+  }
+  return { allowed: true };
+}
+
+export function canAddLocations(plan: Plan, currentCount: number): { allowed: boolean; message?: string } {
+  const limit = PLAN_CONFIG[plan].locations;
+  if (limit === -1) return { allowed: true };
+  if (currentCount >= limit) {
+    if (plan === 'FREE') {
+      return {
+        allowed: false,
+        message: `${limit} location max on FREE. PRO unlocks infinite locations!`,
+      };
+    }
+  }
+  return { allowed: true };
+}
+
+export function canAddVendors(plan: Plan, currentCount: number): { allowed: boolean; message?: string } {
+  const limit = 50;
+  if (currentCount >= limit) {
+    if (plan === 'FREE') {
+      return {
+        allowed: false,
+        message: `${limit} vendors max on FREE. Need more? PRO has you covered!`,
+      };
+    }
+  }
+  return { allowed: true };
+}
+
+export function canAddUsers(plan: Plan, currentCount: number): { allowed: boolean; message?: string } {
+  const limit = PLAN_CONFIG[plan].users;
+  if (limit === -1) return { allowed: true };
+  if (currentCount >= limit) {
+    if (plan === 'FREE') {
+      return {
+        allowed: false,
+        message: `FREE tier limited. Need more team members? PRO has no limits!`,
       };
     }
   }

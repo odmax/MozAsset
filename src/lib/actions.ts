@@ -3,8 +3,8 @@
 import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { Prisma } from '@prisma/client';
-import { getPlanLimits, canAddAssets } from '@/lib/billing';
+import { Prisma, type Plan } from '@prisma/client';
+import { getPlanLimits, canAddAssets, canAddCategories, canAddDepartments, canAddLocations, canAddVendors, canAddUsers } from '@/lib/billing';
 
 function getSessionUser() {
   const sessionCookie = cookies().get('session');
@@ -33,6 +33,14 @@ export async function createCategory(data: { name: string; description?: string;
   const user = getSessionUser();
   if (!user || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(user.role)) {
     throw new Error('Unauthorized');
+  }
+
+  const plan = (user.plan || 'FREE') as Plan;
+  const currentCount = await prisma.category.count();
+  const limitCheck = canAddCategories(plan, currentCount);
+  
+  if (!limitCheck.allowed) {
+    throw new Error(limitCheck.message || 'Category limit reached');
   }
 
   const category = await prisma.category.create({
@@ -123,15 +131,12 @@ export async function createDepartment(data: { name: string; code: string; descr
   }
 
   const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
-  const plan = dbUser?.plan || 'FREE';
-  const limits = getPlanLimits(plan);
+  const plan = (dbUser?.plan || 'FREE') as Plan;
   const currentCount = await prisma.department.count();
+  const limitCheck = canAddDepartments(plan, currentCount);
   
-  if (limits.departmentLimit !== -1 && currentCount >= limits.departmentLimit) {
-    if (plan === 'FREE') {
-      throw new Error(`You have reached your department limit. Upgrade to PRO for unlimited departments.`);
-    }
-    throw new Error(`You have reached your department limit.`);
+  if (!limitCheck.allowed) {
+    throw new Error(limitCheck.message || 'Department limit reached');
   }
 
   const department = await prisma.department.create({ data });
@@ -222,15 +227,12 @@ export async function createLocation(data: { name: string; address?: string; bui
   }
 
   const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
-  const plan = dbUser?.plan || 'FREE';
-  const limits = getPlanLimits(plan);
+  const plan = (dbUser?.plan || 'FREE') as Plan;
   const currentCount = await prisma.location.count();
+  const limitCheck = canAddLocations(plan, currentCount);
   
-  if (limits.locationLimit !== -1 && currentCount >= limits.locationLimit) {
-    if (plan === 'FREE') {
-      throw new Error(`You have reached your location limit. Upgrade to PRO for unlimited locations.`);
-    }
-    throw new Error(`You have reached your location limit.`);
+  if (!limitCheck.allowed) {
+    throw new Error(limitCheck.message || 'Location limit reached');
   }
 
   const location = await prisma.location.create({ data });
@@ -310,6 +312,15 @@ export async function createVendor(data: { name: string; contactName?: string; e
   const user = getSessionUser();
   if (!user || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(user.role)) {
     throw new Error('Unauthorized');
+  }
+
+  const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+  const plan = (dbUser?.plan || 'FREE') as Plan;
+  const currentCount = await prisma.vendor.count();
+  const limitCheck = canAddVendors(plan, currentCount);
+  
+  if (!limitCheck.allowed) {
+    throw new Error(limitCheck.message || 'Vendor limit reached');
   }
 
   const vendor = await prisma.vendor.create({ data });
@@ -392,6 +403,15 @@ export async function createUser(data: { name: string; email: string; password?:
   const user = getSessionUser();
   if (!user || user.role !== 'SUPER_ADMIN') {
     throw new Error('Unauthorized');
+  }
+
+  const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+  const plan = (dbUser?.plan || 'FREE') as Plan;
+  const currentCount = await prisma.user.count();
+  const limitCheck = canAddUsers(plan, currentCount);
+  
+  if (!limitCheck.allowed) {
+    throw new Error(limitCheck.message || 'User limit reached');
   }
 
   const { default: bcrypt } = await import('bcryptjs');
