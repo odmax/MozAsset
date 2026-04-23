@@ -87,6 +87,15 @@ export function createCheckoutPayload(
 ): PayfastCheckoutData {
   const config = getPayfastConfig();
   const planPrice = plan === 'PRO' ? 149 : plan === 'ENTERPRISE' ? 599 : 0;
+  const planPriceFormatted = planPrice.toFixed(2); // Rands, not cents
+  
+  console.log('[Payfast] Creating checkout payload:', {
+    plan,
+    planPrice,
+    planPriceFormatted,
+    amount: planPriceFormatted,
+    recurring_amount: planPriceFormatted,
+  });
   
   const baseData = {
     merchant_id: config.merchantId,
@@ -98,14 +107,14 @@ export function createCheckoutPayload(
     name_last: userName.split(' ').slice(1).join(' ') || '',
     email_address: userEmail,
     m_payment_id: `${userId}_${plan}_${Date.now()}`,
-    amount: (planPrice * 100).toFixed(0),
+    amount: planPriceFormatted,
     item_name: `MozAssets ${plan} Plan - Monthly Subscription`,
     item_description: `Monthly subscription to MozAssets ${plan} Plan`,
     custom_int1: userId,
     custom_str1: plan,
     subscription_type: '1',
     billing_date: new Date().toISOString().split('T')[0],
-    recurring_amount: (planPrice * 100).toFixed(0),
+    recurring_amount: planPriceFormatted,
     frequency: '3',
     cycles: '0',
   };
