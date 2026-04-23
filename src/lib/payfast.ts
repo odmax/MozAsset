@@ -26,11 +26,11 @@ export interface PayfastCheckoutData {
   item_description: string;
   custom_int1: string;
   custom_str1: string;
-  subscription_type: string;
-  billing_date: string;
-  recurring_amount: string;
-  frequency: string;
-  cycles: string;
+  subscription_type?: string;
+  billing_date?: string;
+  recurring_amount?: string;
+  frequency?: string;
+  cycles?: string;
   signature?: string;
 }
 
