@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { Sidebar } from '@/components/layout/sidebar';
 import { UpgradeBanner } from '@/components/dashboard/ads';
 import SupportWidget from '@/components/support-widget';
+import { DashboardClient } from '@/components/dashboard/DashboardClient';
 
 function getSessionUser() {
   const sessionCookie = cookies().get('session');
@@ -54,15 +55,17 @@ export default async function DashboardLayout({
   const companyLogoUrl = await getUserLogo(user.id);
 
   return (
-    <div className="min-h-screen bg-background">
-      <Sidebar userRole={userRole} userPlan={userPlan} companyLogoUrl={companyLogoUrl} />
-      <main className="lg:pl-64">
-        <div className="container mx-auto p-6 space-y-6">
-          {userPlan === 'FREE' && <UpgradeBanner userPlan={userPlan} />}
-          {children}
-        </div>
-      </main>
-      <SupportWidget userPlan={userPlan} />
-    </div>
+    <DashboardClient userPlan={userPlan}>
+      <div className="min-h-screen bg-background">
+        <Sidebar userRole={userRole} userPlan={userPlan} companyLogoUrl={companyLogoUrl} />
+        <main className="lg:pl-64">
+          <div className="container mx-auto p-6 space-y-6">
+            {userPlan === 'FREE' && <UpgradeBanner userPlan={userPlan} />}
+            {children}
+          </div>
+        </main>
+        <SupportWidget userPlan={userPlan} />
+      </div>
+    </DashboardClient>
   );
 }

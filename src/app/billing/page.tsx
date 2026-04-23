@@ -7,6 +7,8 @@ import { getPlanDetails, formatLimit, getUpgradeTarget } from '@/lib/billing';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { UpgradePlanModal } from '@/components/plan/UpgradePlanModal';
+import type { Plan } from '@prisma/client';
 import { 
   Package, 
   Crown, 
@@ -89,6 +91,9 @@ export default function BillingPage() {
   const [canceling, setCanceling] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+
+  const plan = (billingData?.plan || 'FREE') as Plan;
 
   useEffect(() => {
     fetch('/api/billing')
@@ -103,63 +108,6 @@ export default function BillingPage() {
       .catch(() => setError('Failed to load billing data'))
       .finally(() => setLoading(false));
   }, []);
-
-  const handleUpgrade = async (upgradePlan: 'PRO' | 'ENTERPRISE') => {
-    setLoading(true);
-    setError('');
-
-    try {
-      const res = await fetch('/api/billing', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'checkout', plan: upgradePlan }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || data.error) {
-        setError(data.error || 'Failed to start checkout');
-        setLoading(false);
-        return;
-      }
-
-      if (data.checkoutUrl && data.checkoutData) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = data.checkoutUrl;
-
-        Object.entries(data.checkoutData).forEach(([key, value]) => {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = key;
-          input.value = value as string;
-          form.appendChild(input);
-        });
-
-        document.body.appendChild(form);
-        form.submit();
-      } else {
-        const upgradeRes = await fetch('/api/billing', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'upgrade', plan: upgradePlan }),
-        });
-
-        const upgradeData = await upgradeRes.json();
-
-        if (!upgradeRes.ok) {
-          setError(upgradeData.error || 'Failed to upgrade');
-        } else {
-          setSuccess(`Successfully upgraded to ${upgradePlan} plan!`);
-          router.refresh();
-        }
-        setLoading(false);
-      }
-    } catch {
-      setError('Failed to process upgrade');
-      setLoading(false);
-    }
-  };
 
   const handleCancel = async () => {
     if (!confirm('Are you sure you want to cancel your subscription? You will lose access at the end of your billing period.')) {
@@ -327,21 +275,21 @@ export default function BillingPage() {
             {plan === 'FREE' && upgradeTarget && (
               <Button 
                 className="bg-primary"
-                onClick={() => handleUpgrade('PRO')}
+                onClick={() => setUpgradeModalOpen(true)}
                 disabled={loading}
               >
                 <Zap className="h-4 w-4 mr-2" />
-                {loading ? 'Processing...' : 'Upgrade to Pro — R149/mo'}
+                Upgrade Plan
               </Button>
             )}
             {plan === 'PRO' && (
               <Button 
                 className="bg-primary"
-                onClick={() => handleUpgrade('ENTERPRISE')}
+                onClick={() => setUpgradeModalOpen(true)}
                 disabled={loading}
               >
                 <Zap className="h-4 w-4 mr-2" />
-                {loading ? 'Processing...' : 'Upgrade to Enterprise — R599/mo'}
+                Upgrade to Enterprise
               </Button>
             )}
             {plan === 'ENTERPRISE' && (
@@ -379,8 +327,8 @@ export default function BillingPage() {
               </div>
               <p className="text-2xl font-bold mb-1">R0<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
               <p className="text-sm text-muted-foreground mb-4">50 assets, 1 dept, 1 loc</p>
-              {plan !== 'FREE' && (
-                <Button variant="outline" size="sm" className="w-full" onClick={() => handleUpgrade('PRO')}>
+              {plan !== 'FREE' && plan !== 'PRO' && plan !== 'ENTERPRISE' && (
+                <Button variant="outline" size="sm" className="w-full" onClick={() => setUpgradeModalOpen(true)}>
                   Upgrade
                 </Button>
               )}
@@ -395,16 +343,14 @@ export default function BillingPage() {
               <p className="text-2xl font-bold mb-1">R149<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
               <p className="text-sm text-muted-foreground mb-4">1,000 assets, unlimited depts & locs</p>
               {plan === 'FREE' && (
-                <Button size="sm" className="w-full" onClick={() => handleUpgrade('PRO')}>
+                <Button size="sm" className="w-full" onClick={() => setUpgradeModalOpen(true)}>
                   Upgrade
                 </Button>
               )}
               {plan === 'ENTERPRISE' && (
-                <Link href="/contact">
-                  <Button variant="outline" size="sm" className="w-full">
-                    Contact Sales
-                  </Button>
-                </Link>
+                <Button variant="outline" size="sm" className="w-full" onClick={() => setUpgradeModalOpen(true)}>
+                  Upgrade to Enterprise
+                </Button>
               )}
             </div>
 
@@ -417,12 +363,12 @@ export default function BillingPage() {
               <p className="text-2xl font-bold mb-1">R599<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
               <p className="text-sm text-muted-foreground mb-4">Unlimited everything</p>
               {plan === 'FREE' && (
-                <Button size="sm" className="w-full" onClick={() => handleUpgrade('ENTERPRISE')}>
+                <Button size="sm" className="w-full" onClick={() => setUpgradeModalOpen(true)}>
                   Upgrade
                 </Button>
               )}
               {plan === 'PRO' && (
-                <Button size="sm" className="w-full" onClick={() => handleUpgrade('ENTERPRISE')}>
+                <Button size="sm" className="w-full" onClick={() => setUpgradeModalOpen(true)}>
                   Upgrade
                 </Button>
               )}
@@ -509,6 +455,12 @@ export default function BillingPage() {
           </CardContent>
         </Card>
       )}
+
+      <UpgradePlanModal
+        isOpen={upgradeModalOpen}
+        onClose={() => setUpgradeModalOpen(false)}
+        currentPlan={plan}
+      />
     </div>
   );
 }

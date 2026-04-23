@@ -18,6 +18,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { AssetStatus } from '@prisma/client';
 import { StatusPieChart, DepartmentBarChart, CategoryBarChart } from '@/components/dashboard/charts';
+import { UpgradeBanner } from '@/components/dashboard/UpgradeButton';
 
 function getSessionUser() {
   const sessionCookie = cookies().get('session');
@@ -180,27 +181,7 @@ export default async function DashboardPage() {
       )}
 
       {showAds && (
-        <Card className="border-purple-200 bg-gradient-to-r from-purple-50 to-blue-50">
-          <CardContent className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
-                <Crown className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <p className="font-semibold text-purple-900">Upgrade to Pro</p>
-                <p className="text-sm text-purple-700">
-                  Get unlimited assets, advanced reports, and export features
-                </p>
-              </div>
-            </div>
-            <Link href="/dashboard/upgrade">
-              <Button className="bg-purple-600 hover:bg-purple-700">
-                <Sparkles className="h-4 w-4 mr-2" />
-                Upgrade
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+        <UpgradeBanner userPlan={plan} />
       )}
 
       {data.expiringWarranties > 0 && (
