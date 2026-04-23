@@ -16,9 +16,9 @@ export function formatCurrency(amount: number | string | any): string {
   } else {
     num = 0;
   }
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-ZA', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'ZAR',
   }).format(num);
 }
 

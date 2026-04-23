@@ -8,19 +8,27 @@ function getSessionUser() {
   const sessionCookie = cookies().get('session');
   if (sessionCookie?.value) {
     try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
-    } catch {
-      return null;
-    }
+      return JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString('utf-8'));
+    } catch { return null; }
+  }
+  return null;
+}
+
+function getAdminSession() {
+  const adminCookie = cookies().get('adminSession');
+  if (adminCookie?.value) {
+    try {
+      return JSON.parse(Buffer.from(adminCookie.value, 'base64').toString('utf-8'));
+    } catch { return null; }
   }
   return null;
 }
 
 export async function GET() {
   const user = getSessionUser();
+  const admin = getAdminSession();
   
-  if (!user || !user.isPlatformAdmin) {
+  if (!user?.isPlatformAdmin && !admin?.isInternalAdmin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 

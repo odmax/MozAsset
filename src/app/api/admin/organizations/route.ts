@@ -8,24 +8,32 @@ function getSessionUser() {
   const sessionCookie = cookies().get('session');
   if (sessionCookie?.value) {
     try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
-    } catch {
-      return null;
-    }
+      return JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString('utf-8'));
+    } catch { return null; }
+  }
+  return null;
+}
+
+function getAdminSession() {
+  const adminCookie = cookies().get('adminSession');
+  if (adminCookie?.value) {
+    try {
+      return JSON.parse(Buffer.from(adminCookie.value, 'base64').toString('utf-8'));
+    } catch { return null; }
   }
   return null;
 }
 
 export async function GET() {
   const user = getSessionUser();
+  const admin = getAdminSession();
   
-  if (!user || !user.isPlatformAdmin) {
+  if (!user?.isPlatformAdmin && !admin?.isInternalAdmin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
   try {
-    const organizations = await prisma.department.findMany({
+    const departments = await prisma.department.findMany({
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -49,13 +57,13 @@ export async function GET() {
       },
     });
 
-    const formatted = organizations.map(org => ({
-      id: org.id,
-      name: org.name,
-      code: org.code,
-      createdAt: org.createdAt,
-      owner: org.manager || { name: null, email: 'Unknown', plan: 'FREE' },
-      _count: org._count,
+    const formatted = departments.map(dept => ({
+      id: dept.id,
+      name: dept.name,
+      code: dept.code,
+      createdAt: dept.createdAt,
+      owner: dept.manager || { name: null, email: 'Unknown', plan: 'FREE' },
+      _count: dept._count,
     }));
 
     return NextResponse.json(formatted);

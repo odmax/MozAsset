@@ -238,7 +238,7 @@ export default function PricingPage() {
                 </ul>
                 <Link href="/signup?plan=pro" className="block">
                   <Button className="w-full">
-                    Start Free Trial
+                    Upgrade to Pro
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
@@ -331,7 +331,7 @@ export default function PricingPage() {
                 </ul>
                 <Link href="/contact" className="block">
                   <Button variant="outline" className="w-full">
-                    Contact Sales
+                    Upgrade to Enterprise
                   </Button>
                 </Link>
               </CardContent>

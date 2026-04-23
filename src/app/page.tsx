@@ -50,7 +50,7 @@ const features = [
 const plans = [
   {
     name: 'Free',
-    price: '$0',
+    price: 'R0',
     description: 'Perfect for getting started',
     features: [
       'Up to 50 assets',
@@ -65,7 +65,7 @@ const plans = [
   },
   {
     name: 'Pro',
-    price: '$29',
+    price: 'R149',
     period: '/mo',
     description: 'For growing businesses',
     features: [
@@ -77,13 +77,14 @@ const plans = [
       'Stock verification',
       'Priority support'
     ],
-    cta: 'Start Free Trial',
+    cta: 'Upgrade to Pro',
     href: '/signup?plan=pro',
     popular: true
   },
   {
     name: 'Enterprise',
-    price: 'Custom',
+    price: 'R599',
+    period: '/mo',
     description: 'For large organizations',
     features: [
       'Unlimited assets',
@@ -94,7 +95,7 @@ const plans = [
       'SLA guarantee',
       'On-premise option'
     ],
-    cta: 'Contact Sales',
+    cta: 'Upgrade to Enterprise',
     href: '/contact',
     popular: false
   }
@@ -275,7 +276,7 @@ export default function LandingPage() {
               Simple, Transparent Pricing
             </h2>
             <p className="text-lg text-muted-foreground">
-              Choose the plan that fits your needs. All plans include a 14-day free trial.
+              Choose the plan that fits your needs. Start free, upgrade anytime.
             </p>
           </div>
 

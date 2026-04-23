@@ -4,6 +4,9 @@ import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
 import type { Role, Plan } from '@prisma/client';
 
+const AUTH_SECRET = process.env.AUTH_SECRET || 'fallback-secret-change-in-production';
+const AUTH_URL = process.env.AUTH_URL || process.env.NEXTAUTH_URL || 'http://localhost:3070';
+
 declare module 'next-auth' {
   interface Session {
     user: {
@@ -35,6 +38,8 @@ declare module 'next-auth' {
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  secret: AUTH_SECRET,
+  trustHost: true,
   session: {
     strategy: 'jwt',
   },
@@ -50,30 +55,41 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            throw new Error('Email and password required');
+          }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
-        });
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email as string },
+          });
 
-        if (!user || !user.password || !user.isActive) return null;
+          if (!user || !user.password || !user.isActive) {
+            throw new Error('Invalid credentials');
+          }
 
-        const isValid = await bcrypt.compare(
-          credentials.password as string,
-          user.password
-        );
+          const isValid = await bcrypt.compare(
+            credentials.password as string,
+            user.password
+          );
 
-        if (!isValid) return null;
-        
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          plan: user.plan,
-          assetLimit: user.assetLimit,
-          onBoardingComplete: user.onBoardingComplete,
-        };
+          if (!isValid) {
+            throw new Error('Invalid credentials');
+          }
+          
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            plan: user.plan,
+            assetLimit: user.assetLimit,
+            onBoardingComplete: user.onBoardingComplete,
+          };
+        } catch (error) {
+          console.error('Auth authorize error:', error);
+          return null;
+        }
       },
     }),
   ],

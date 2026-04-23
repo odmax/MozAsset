@@ -8,11 +8,18 @@ function getSessionUser() {
   const sessionCookie = cookies().get('session');
   if (sessionCookie?.value) {
     try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
-    } catch {
-      return null;
-    }
+      return JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString('utf-8'));
+    } catch { return null; }
+  }
+  return null;
+}
+
+function getAdminSession() {
+  const adminCookie = cookies().get('adminSession');
+  if (adminCookie?.value) {
+    try {
+      return JSON.parse(Buffer.from(adminCookie.value, 'base64').toString('utf-8'));
+    } catch { return null; }
   }
   return null;
 }
@@ -20,9 +27,13 @@ function getSessionUser() {
 export async function POST(request: Request) {
   try {
     const user = getSessionUser();
-    if (!user) {
+    const admin = getAdminSession();
+    if (!user && !admin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const sessionUser = user || admin;
+    const userId = sessionUser?.id;
 
     const { action, plan } = await request.json();
 
@@ -32,12 +43,12 @@ export async function POST(request: Request) {
           return NextResponse.json({ error: 'Plan is required' }, { status: 400 });
         }
 
-        if (plan !== 'PRO') {
+        if (plan !== 'PRO' && plan !== 'ENTERPRISE') {
           return NextResponse.json({ error: 'Invalid plan for checkout' }, { status: 400 });
         }
 
         const dbUser = await prisma.user.findUnique({
-          where: { id: user.id },
+          where: { id: userId },
         });
 
         if (!dbUser) {
@@ -65,16 +76,16 @@ export async function POST(request: Request) {
           return NextResponse.json({ error: 'Plan is required' }, { status: 400 });
         }
 
-        if (plan !== 'PRO') {
+        if (plan !== 'PRO' && plan !== 'ENTERPRISE') {
           return NextResponse.json({ 
-            error: 'For Enterprise plans, please contact us' ,
+            error: 'Invalid plan' ,
             contactUrl: '/contact'
           }, { status: 400 });
         }
 
         const provider = 'PAYSTACK' as BillingProvider;
         
-        const result = await createCheckoutSession(user.id, plan as Plan, provider);
+        const result = await createCheckoutSession(userId, plan as Plan, provider);
         
         if (!result.success) {
           return NextResponse.json({ error: result.error }, { status: 400 });
@@ -84,8 +95,8 @@ export async function POST(request: Request) {
           data: {
             action: 'UPDATE',
             entityType: 'User',
-            entityId: user.id,
-            userId: user.id,
+            entityId: userId,
+            userId: userId,
             changes: { plan: plan, action: 'upgrade_initiated' },
           },
         });
@@ -95,21 +106,21 @@ export async function POST(request: Request) {
 
       case 'cancel': {
         const dbUser = await prisma.user.findUnique({
-          where: { id: user.id },
+          where: { id: userId },
         });
 
         if (!dbUser || dbUser.plan === 'FREE') {
           return NextResponse.json({ error: 'No active subscription' }, { status: 400 });
         }
 
-        const result = await cancelSubscription(user.id, dbUser.billingProvider as BillingProvider);
+        const result = await cancelSubscription(userId, dbUser.billingProvider as BillingProvider);
 
         if (!result.success) {
           return NextResponse.json({ error: result.error }, { status: 400 });
         }
 
         await prisma.user.update({
-          where: { id: user.id },
+          where: { id: userId },
           data: { 
             canceledAt: new Date(),
             subscriptionStatus: 'CANCELED',
@@ -120,8 +131,8 @@ export async function POST(request: Request) {
           data: {
             action: 'UPDATE',
             entityType: 'User',
-            entityId: user.id,
-            userId: user.id,
+            entityId: userId,
+            userId: userId,
             changes: { action: 'cancel_subscription' },
           },
         });
@@ -131,11 +142,11 @@ export async function POST(request: Request) {
 
       case 'portal': {
         const dbUser = await prisma.user.findUnique({
-          where: { id: user.id },
+          where: { id: userId },
         });
 
         const provider = dbUser?.billingProvider || 'PAYSTACK';
-        const result = await createPortalSession(user.id, provider as BillingProvider);
+        const result = await createPortalSession(userId, provider as BillingProvider);
 
         if (!result.success) {
           return NextResponse.json({ error: result.error }, { status: 400 });
@@ -156,12 +167,16 @@ export async function POST(request: Request) {
 export async function GET() {
   try {
     const user = getSessionUser();
-    if (!user) {
+    const admin = getAdminSession();
+    if (!user && !admin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const sessionUser = user || admin;
+    const userId = sessionUser?.id;
+
     const profile = await prisma.user.findUnique({
-      where: { id: user.id },
+      where: { id: userId },
       select: {
         plan: true,
         subscriptionStatus: true,
@@ -189,7 +204,7 @@ export async function GET() {
 
     let providerStatus = null;
     if (profile.billingProvider && profile.billingProvider !== 'NONE') {
-      providerStatus = await getSubscriptionStatus(user.id, profile.billingProvider as BillingProvider);
+      providerStatus = await getSubscriptionStatus(userId, profile.billingProvider as BillingProvider);
     }
 
     return NextResponse.json({
