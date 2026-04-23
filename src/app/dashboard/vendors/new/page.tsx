@@ -1,11 +1,24 @@
-import { auth } from '@/lib/auth';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { VendorForm } from '@/components/dashboard/vendor-form';
 import { BackLink } from '@/components/ui/back-button';
 
+function getSessionUser() {
+  const sessionCookie = cookies().get('session');
+  if (sessionCookie?.value) {
+    try {
+      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
+      return JSON.parse(decoded);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 export default async function NewVendorPage() {
-  const session = await auth();
-  if (!session?.user) redirect('/login');
+  const user = getSessionUser();
+  if (!user) redirect('/login');
 
   return (
     <div className="space-y-6">
