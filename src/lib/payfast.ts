@@ -73,14 +73,36 @@ export function getPayfastBaseUrl(): string {
 
 export function generateSignature(data: Record<string, string>): string {
   const config = getPayfastConfig();
-  const sortedKeys = Object.keys(data).sort();
-  const signatureString = sortedKeys
-    .map(key => `${key}=${encodeURIComponent(data[key]).replace(/%20/g, '+')}`)
+  
+  // Filter out empty values and sort alphabetically
+  const validData = Object.fromEntries(
+    Object.entries(data).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+  );
+  
+  const sortedKeys = Object.keys(validData).sort();
+  let signatureString = sortedKeys
+    .map(key => `${key}=${encodeURIComponent(validData[key]).replace(/%20/g, '+')}`)
     .join('&');
-  return crypto
+  
+  // Add passphrase only if it exists and is not empty
+  if (config.passphrase && config.passphrase.trim()) {
+    signatureString += `&passphrase=${encodeURIComponent(config.passphrase).replace(/%20/g, '+')}`;
+  }
+  
+  const sig = crypto
     .createHash('md5')
-    .update(signatureString + `&passphrase=${config.passphrase}`)
+    .update(signatureString)
     .digest('hex');
+  
+  console.log('[Payfast] Signature debug:', {
+    mode: config.mode,
+    hasPassphrase: Boolean(config.passphrase && config.passphrase.trim()),
+    fieldCount: sortedKeys.length,
+    fields: sortedKeys,
+    signatureLength: sig.length,
+  });
+  
+  return sig;
 }
 
 export function createCheckoutPayload(
