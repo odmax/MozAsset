@@ -1,4 +1,5 @@
 import { auth } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import { AssetForm } from '@/components/dashboard/asset-form';
 import { BackLink } from '@/components/ui/back-button';
@@ -7,7 +8,7 @@ export const metadata = { title: 'Add Asset | Asset Manager' };
 
 export default async function NewAssetPage() {
   const session = await auth();
-  if (!session?.user) return null;
+  if (!session?.user) redirect('/login');
 
   const [categories, departments, locations, vendors, users] = await Promise.all([
     prisma.category.findMany({ orderBy: { name: 'asc' } }),

@@ -87,11 +87,14 @@ export default function SettingsPage() {
           if (data.appearanceMode) {
             setTheme(data.appearanceMode.toLowerCase());
           }
+          if (data.themeColor) {
+            document.documentElement.style.setProperty('--theme-color', data.themeColor);
+          }
         }
       })
       .catch(() => setError('Failed to load profile'))
       .finally(() => setLoading(false));
-  }, [setTheme]);
+  }, []);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -443,7 +446,10 @@ export default function SettingsPage() {
                       key={mode}
                       variant={appearanceMode === mode ? 'default' : 'outline'}
                       size="sm"
-                      onClick={() => setAppearanceMode(mode)}
+                      onClick={() => {
+                        setAppearanceMode(mode);
+                        setTheme(mode.toLowerCase());
+                      }}
                     >
                       {mode.charAt(0) + mode.slice(1).toLowerCase()}
                     </Button>

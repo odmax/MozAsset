@@ -18,6 +18,7 @@ import {
   PackageX
 } from 'lucide-react';
 import { BackLink } from '@/components/ui/back-button';
+import { formatCurrency } from '@/lib/utils';
 import { StatusPieChart, DepartmentBarChart, CategoryBarChart } from '@/components/dashboard/charts';
 
 interface OverviewData {
@@ -127,9 +128,7 @@ export default function AssetOverviewPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              ${data.totalValue.toLocaleString()}
-            </div>
+            <div className="text-2xl font-bold">{formatCurrency(data.totalValue)}</div>
           </CardContent>
         </Card>
         <Card>
