@@ -105,6 +105,11 @@ export async function POST(request: Request) {
     return response;
   } catch (error) {
     console.error('Login error:', error);
-    return NextResponse.json({ error: 'Invalid email or password' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    
+    if (message.includes('database') || message.includes('Prisma')) {
+      return NextResponse.json({ error: 'Database connection failed. Please try again later.' }, { status: 503 });
+    }
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
