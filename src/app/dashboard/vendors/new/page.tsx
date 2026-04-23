@@ -1,10 +1,11 @@
 import { auth } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 import { VendorForm } from '@/components/dashboard/vendor-form';
 import { BackLink } from '@/components/ui/back-button';
 
 export default async function NewVendorPage() {
   const session = await auth();
-  if (!session?.user) return null;
+  if (!session?.user) redirect('/login');
 
   return (
     <div className="space-y-6">

@@ -1,10 +1,11 @@
 import { auth } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 import { DepartmentForm } from '@/components/dashboard/department-form';
 import { BackLink } from '@/components/ui/back-button';
 
 export default async function NewDepartmentPage() {
   const session = await auth();
-  if (!session?.user) return null;
+  if (!session?.user) redirect('/login');
 
   return (
     <div className="space-y-6">

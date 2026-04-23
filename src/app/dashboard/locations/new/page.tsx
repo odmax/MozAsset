@@ -1,11 +1,12 @@
 import { auth } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import { LocationForm } from '@/components/dashboard/location-form';
 import { BackLink } from '@/components/ui/back-button';
 
 export default async function NewLocationPage() {
   const session = await auth();
-  if (!session?.user) return null;
+  if (!session?.user) redirect('/login');
 
   const departments = await prisma.department.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } });
 
