@@ -1,8 +1,21 @@
-import { auth } from '@/lib/auth';
+import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { TransferForm } from '@/components/dashboard/transfer-form';
 import { BackLink } from '@/components/ui/back-button';
+
+function getSessionUser() {
+  const sessionCookie = cookies().get('session');
+  if (sessionCookie?.value) {
+    try {
+      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
+      return JSON.parse(decoded);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
 
 export const metadata = { title: 'Transfer Asset | Asset Manager' };
 
@@ -11,8 +24,8 @@ export default async function TransferAssetPage({
 }: {
   params: { id: string };
 }) {
-  const session = await auth();
-  if (!session?.user) return null;
+  const user = getSessionUser();
+  if (!user) redirect('/login');
 
   const asset = await prisma.asset.findUnique({
     where: { id: params.id },
