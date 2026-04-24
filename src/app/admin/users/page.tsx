@@ -80,19 +80,27 @@ export default function AdminUsersPage() {
   };
 
   const handleChangePlan = async (userId: string, newPlan: string) => {
+    const currentUsers = [...users];
+    setUsers(users.map(u => 
+      u.id === userId ? { ...u, plan: newPlan } : u
+    ));
+    
     try {
       const res = await fetch(`/api/admin/users/${userId}/change-plan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan: newPlan }),
       });
-      if (res.ok) {
-        setUsers(users.map(u => 
-          u.id === userId ? { ...u, plan: newPlan } : u
-        ));
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        console.error('Change plan failed:', data.error);
+        setUsers(currentUsers);
       }
     } catch (e) {
-      console.error('Failed to change plan');
+      console.error('Failed to change plan:', e);
+      setUsers(currentUsers);
     }
   };
 
@@ -213,8 +221,12 @@ export default function AdminUsersPage() {
                         </Button>
                         <select
                           value={user.plan}
-                          onChange={(e) => handleChangePlan(user.id, e.target.value)}
+                          onChange={(e) => {
+                            console.log('Plan changed:', user.id, e.target.value);
+                            handleChangePlan(user.id, e.target.value);
+                          }}
                           className="text-xs border rounded px-2 py-1"
+                          disabled={loading}
                         >
                           <option value="FREE">FREE</option>
                           <option value="PRO">PRO</option>
