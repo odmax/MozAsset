@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import type { Plan } from '@prisma/client';
 import { FinancialReportClient } from '@/components/dashboard/financial-report-client';
+import { BackLink } from '@/components/ui/back-button';
 
 function getSessionUser() {
   const sessionCookie = cookies().get('session');
@@ -24,5 +25,10 @@ export default async function FinancialReportsPage() {
 
   const userPlan = (user.plan || 'FREE') as Plan;
 
-  return <FinancialReportClient userPlan={userPlan} />;
+  return (
+    <div className="space-y-6">
+      <BackLink href="/dashboard/reports" />
+      <FinancialReportClient userPlan={userPlan} />
+    </div>
+  );
 }

@@ -1,4 +1,5 @@
-import { auth } from '@/lib/auth';
+import { cookies } from 'next/headers';
+import type { Plan } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,19 @@ import Link from 'next/link';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { getPlanDetails } from '@/lib/billing';
 import { BackLink } from '@/components/ui/back-button';
+
+function getSessionUser() {
+  const sessionCookie = cookies().get('session');
+  if (sessionCookie?.value) {
+    try {
+      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
+      return JSON.parse(decoded);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
 
 const statusColors: Record<string, string> = {
   AVAILABLE: 'bg-green-100 text-green-800',
@@ -23,31 +37,37 @@ export default async function AssetReportsPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const session = await auth();
-  if (!session?.user) return null;
+  const user = getSessionUser();
+  if (!user) return null;
 
-  const canAccess = ['SUPER_ADMIN', 'ASSET_MANAGER'].includes(session.user.role);
+  const canAccess = ['SUPER_ADMIN', 'ASSET_MANAGER'].includes(user.role);
   if (!canAccess) return null;
 
-  const planDetails = getPlanDetails(session.user.plan || 'FREE');
+  const userPlan = (user.plan || 'FREE') as Plan;
+  const planDetails = getPlanDetails(userPlan);
   const canExport = planDetails.features.exports;
 
+  // FREE users see locked card
   if (!canExport) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Asset Report</h1>
-          <p className="text-muted-foreground">Complete asset inventory report</p>
-        </div>
-        <Card className="border-purple-200 bg-purple-50">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <Crown className="h-12 w-12 text-purple-600 mb-4" />
-            <h2 className="text-xl font-semibold text-purple-900 mb-2">Export Restricted</h2>
-            <p className="text-purple-700 text-center max-w-md mb-6">
-              Export functionality is available for PRO and Enterprise plans.
+        <BackLink href="/dashboard/reports" />
+        <Card className="border-dashed border-2 bg-slate-50/50">
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+              <Crown className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <CardTitle className="text-xl">Advanced Asset Reports</CardTitle>
+            <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
+              Get detailed asset analysis including status breakdowns, category summaries, and export capabilities.
             </p>
-            <Link href="/dashboard/upgrade">
-              <Button className="bg-purple-600 hover:bg-purple-700">Upgrade to Pro</Button>
+          </CardHeader>
+          <CardContent className="text-center pt-0">
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-6">
+              <span>Available on PRO and above</span>
+            </div>
+            <Link href="/billing">
+              <Button>Upgrade to PRO</Button>
             </Link>
           </CardContent>
         </Card>
@@ -55,6 +75,7 @@ export default async function AssetReportsPage({
     );
   }
 
+  // PRO/ENTERPRISE users see full report
   const page = Number(searchParams.page) || 1;
   const limit = 50;
   const status = searchParams.status as string || '';

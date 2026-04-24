@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Download, Wrench, Calendar, DollarSign } from 'lucide-react';
 import Link from 'next/link';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { BackLink } from '@/components/ui/back-button';
 
 function getSessionUser() {
   const sessionCookie = cookies().get('session');
@@ -58,6 +59,7 @@ export default async function MaintenanceReportsPage({
 
   return (
     <div className="space-y-6">
+      <BackLink href="/dashboard/reports" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Maintenance Report</h1>
