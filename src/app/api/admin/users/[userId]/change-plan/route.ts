@@ -38,28 +38,33 @@ export async function POST(
     console.log('[change-plan] Request body:', body);
     console.log('[change-plan] Target user ID:', params.userId);
 
-    if (!['FREE', 'PRO', 'ENTERPRISE'].includes(plan)) {
+    if (!plan || !['FREE', 'PRO', 'ENTERPRISE'].includes(plan)) {
+      console.log('[change-plan] Invalid plan:', plan);
       return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
     }
 
+    // Find target user first
     const targetUser = await prisma.user.findUnique({
       where: { id: params.userId },
     });
 
     if (!targetUser) {
+      console.log('[change-plan] User not found:', params.userId);
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    console.log('[change-plan] Current plan:', targetUser.plan, 'New plan:', plan);
+    console.log('[change-plan] Current plan:', targetUser.plan, '-> New plan:', plan);
 
+    // Update user plan
     const updated = await prisma.user.update({
       where: { id: params.userId },
       data: { 
         plan: plan as Plan,
+        subscriptionStatus: plan === 'FREE' ? 'ACTIVE' : 'ACTIVE',
       },
     });
 
-    console.log('[change-plan] Updated plan:', updated.plan);
+    console.log('[change-plan] Successfully updated to:', updated.plan);
 
     return NextResponse.json({ success: true, plan: updated.plan });
   } catch (error) {

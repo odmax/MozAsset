@@ -94,9 +94,20 @@ export default function AdminUsersPage() {
       
       const data = await res.json();
       
+      console.log('Change plan response:', res.status, data);
+      
       if (!res.ok) {
         console.error('Change plan failed:', data.error);
         setUsers(currentUsers);
+        alert(`Failed: ${data.error}`);
+      } else {
+        console.log('Plan updated to:', data.plan);
+        // Refetch to ensure sync
+        const refetch = await fetch('/api/admin/users');
+        if (refetch.ok) {
+          const fresh = await refetch.json();
+          setUsers(fresh);
+        }
       }
     } catch (e) {
       console.error('Failed to change plan:', e);
