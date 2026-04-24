@@ -75,60 +75,6 @@ const plans = [
   }
 ];
 
-const plans = [
-  {
-    name: 'Free',
-    price: 'R0',
-    description: 'Perfect for getting started',
-    features: [
-      'Up to 50 assets',
-      '1 department',
-      '1 location',
-      'Basic reports',
-      'Community support'
-    ],
-    cta: 'Start Free',
-    href: '/signup',
-    popular: false
-  },
-  {
-    name: 'Pro',
-    price: 'R149',
-    period: '/mo',
-    description: 'For growing businesses',
-    features: [
-      'Up to 1,000 assets',
-      'Unlimited departments',
-      'Unlimited locations',
-      'Full reports & exports',
-      'Maintenance tracking',
-      'Stock verification',
-      'Priority support'
-    ],
-    cta: 'Upgrade to Pro',
-    href: '/signup?plan=pro',
-    popular: true
-  },
-  {
-    name: 'Enterprise',
-    price: 'R599',
-    period: '/mo',
-    description: 'For large organizations',
-    features: [
-      'Unlimited assets',
-      'Multi-branch support',
-      'API access',
-      'Advanced controls',
-      'Dedicated support',
-      'SLA guarantee',
-      'On-premise option'
-    ],
-    cta: 'Upgrade to Enterprise',
-    href: '/contact',
-    popular: false
-  }
-];
-
 const howItWorks = [
   {
     step: '01',
