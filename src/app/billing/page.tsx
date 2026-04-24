@@ -194,11 +194,16 @@ export default function BillingPage() {
       </Button>
 
       {/* A. Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Billing</h1>
-        <p className="text-muted-foreground">
-          {planDetails.name} Plan — {plan === 'FREE' ? 'Free forever' : plan === 'PRO' ? 'R149/month' : 'R599/month'}
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Billing</h1>
+          <p className="text-muted-foreground">
+            {plan === 'FREE' ? 'Free forever' : plan === 'PRO' ? 'R149/month' : 'R599/month'}
+          </p>
+        </div>
+        <Badge variant={plan === 'FREE' ? 'secondary' : plan === 'PRO' ? 'default' : 'outline'} className="text-sm px-3 py-1">
+          {plan === 'FREE' ? 'Free Plan' : plan === 'PRO' ? 'Pro Plan' : 'Enterprise'}
+        </Badge>
       </div>
 
       {/* Success Message */}
@@ -301,7 +306,7 @@ export default function BillingPage() {
         <CardHeader>
           <CardTitle>Current Usage</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           <UsageBar label="Assets" used={usage.assets} limit={billingData?.assetLimit ?? planDetails.assets} />
           <UsageBar label="Departments" used={usage.departments} limit={billingData?.departmentLimit ?? planDetails.departments} />
           <UsageBar label="Locations" used={usage.locations} limit={billingData?.locationLimit ?? planDetails.locations} />
@@ -324,29 +329,32 @@ export default function BillingPage() {
               </div>
               <p className="text-2xl font-bold mb-1">R0<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
               <p className="text-sm text-muted-foreground mb-4">50 assets, 1 dept, 1 loc</p>
-              {plan !== 'FREE' && plan !== 'PRO' && plan !== 'ENTERPRISE' && (
+              {plan !== 'FREE' && (
                 <Button variant="outline" size="sm" className="w-full" onClick={() => setUpgradeModalOpen(true)}>
-                  Upgrade
+                  Downgrade
                 </Button>
               )}
             </div>
 
             {/* Pro */}
-            <div className={`p-4 rounded-lg border-2 ${plan === 'PRO' ? 'border-primary bg-muted/50' : 'border-muted'}`}>
+            <div className={`p-4 rounded-lg border-2 ${plan === 'PRO' ? 'border-primary bg-muted/50' : plan === 'FREE' ? 'border-purple-300 ring-2 ring-purple-100' : 'border-muted'}`}>
+              {plan === 'FREE' && (
+                <div className="text-xs font-medium text-purple-600 mb-2">Recommended</div>
+              )}
               <div className="flex items-center justify-between mb-2">
                 <h3 className="font-semibold">Pro</h3>
                 {plan === 'PRO' && <Badge variant="default">Current</Badge>}
               </div>
               <p className="text-2xl font-bold mb-1">R149<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
-              <p className="text-sm text-muted-foreground mb-4">1,000 assets, unlimited depts & locs</p>
+              <p className="text-sm text-muted-foreground mb-4">1,000 assets, unlimited</p>
               {plan === 'FREE' && (
-                <Button size="sm" className="w-full" onClick={() => setUpgradeModalOpen(true)}>
+                <Button size="sm" className="w-full bg-purple-600 hover:bg-purple-700" onClick={() => setUpgradeModalOpen(true)}>
                   Upgrade
                 </Button>
               )}
               {plan === 'ENTERPRISE' && (
                 <Button variant="outline" size="sm" className="w-full" onClick={() => setUpgradeModalOpen(true)}>
-                  Upgrade to Enterprise
+                  Downgrade
                 </Button>
               )}
             </div>
