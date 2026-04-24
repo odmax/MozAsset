@@ -22,7 +22,7 @@ export default function SecurityPage() {
         <h1 className="text-4xl font-bold mb-8">Security Policy</h1>
         
         <p className="text-muted-foreground mb-8">
-          Last updated: April 2026
+          Last updated: 24 April 2026
         </p>
 
         <div className="space-y-8">

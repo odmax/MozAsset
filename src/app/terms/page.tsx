@@ -22,7 +22,7 @@ export default function TermsPage() {
         <h1 className="text-4xl font-bold mb-8">Terms of Service</h1>
         
         <p className="text-muted-foreground mb-8">
-          Last updated: April 2026
+          Last updated: 24 April 2026
         </p>
 
         <div className="space-y-8">
@@ -217,7 +217,23 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">15. Changes to Terms</h2>
+            <h2 className="text-2xl font-semibold mb-4">15. Service Availability</h2>
+            <p className="text-muted-foreground mb-4">
+              We strive to keep MozAssets available 24 hours a day, 7 days a week. However, we do not guarantee uninterrupted service. The Service may be unavailable due to:
+            </p>
+            <ul className="list-disc list-inside text-muted-foreground space-y-2">
+              <li>Planned maintenance windows</li>
+              <li>Emergency security patches</li>
+              <li>Factors beyond our control (internet outages, force majeure)</li>
+              <li>Third-party service disruptions</li>
+            </ul>
+            <p className="text-muted-foreground mt-4">
+              We will provide reasonable notice of planned maintenance when possible.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">16. Changes to Terms</h2>
             <p className="text-muted-foreground">
               We may modify these Terms at any time. We will notify you of material 
               changes via email or through the Service. Continued use after changes 
