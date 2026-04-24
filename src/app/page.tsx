@@ -1,49 +1,77 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { 
-  Package, 
-  TrendingUp, 
-  Shield, 
-  Users, 
-  BarChart3, 
-  Download,
-  Check,
-  ChevronRight,
-  Star,
-  ArrowRight
-} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Package, Star, Check, ArrowRight, Settings2 } from 'lucide-react';
 
 const features = [
+  { icon: Package, title: 'Asset Tracking', description: 'Track all your assets in one centralized location with detailed information and history.' },
+  { icon: Check, title: 'Asset Assignments', description: 'Assign assets to employees or teams with full accountability and audit trails.' },
+  { icon: Settings2, title: 'Maintenance', description: 'Schedule and track maintenance tasks to extend asset lifespan and reduce downtime.' },
+  { icon: Check, title: 'Reporting', description: 'Generate detailed reports on asset usage, value, and depreciation.' },
+  { icon: Check, title: 'Export Data', description: 'Export your data to CSV for analysis in Excel or other tools.' },
+  { icon: Check, title: 'Stock Verification', description: 'Regular stock counts to verify asset presence and condition.' },
+];
+
+const plans = [
   {
-    icon: Package,
-    title: 'Full Asset Tracking',
-    description: 'Track every asset from acquisition to disposal with complete lifecycle management.'
+    name: 'Free',
+    price: 'R0',
+    description: 'Perfect for getting started',
+    features: [
+      'Up to 50 assets',
+      '1 department',
+      '1 location',
+      'Basic reports',
+      'Community support'
+    ],
+    cta: 'Start Free',
+    href: '/signup',
+    popular: false
   },
   {
-    icon: BarChart3,
-    title: 'Advanced Analytics',
-    description: 'Get insights with detailed reports on asset utilization, costs, and more.'
+    name: 'Pro',
+    price: 'R149',
+    priceYearly: 'R1,490',
+    period: '/mo',
+    periodYearly: '/yr',
+    saveMsg: 'Save R298/yr',
+    description: 'For growing businesses',
+    features: [
+      'Up to 1,000 assets',
+      'Unlimited departments',
+      'Unlimited locations',
+      'Full reports & exports',
+      'Maintenance tracking',
+      'Stock verification',
+      'Priority support'
+    ],
+    cta: 'Upgrade to Pro',
+    href: '/signup?plan=pro',
+    popular: true
   },
   {
-    icon: TrendingUp,
-    title: 'Maintenance Scheduling',
-    description: 'Schedule and track maintenance to extend asset lifespan and reduce downtime.'
-  },
-  {
-    icon: Users,
-    title: 'Team Collaboration',
-    description: 'Assign assets to team members with full audit trail and accountability.'
-  },
-  {
-    icon: Shield,
-    title: 'Security & Compliance',
-    description: 'Maintain compliance with detailed audit logs and access controls.'
-  },
-  {
-    icon: Download,
-    title: 'Export & Integration',
-    description: 'Export data to CSV or integrate with your existing systems.'
+    name: 'Enterprise',
+    price: 'R599',
+    priceYearly: 'R5,990',
+    period: '/mo',
+    periodYearly: '/yr',
+    saveMsg: 'Save R1,198/yr',
+    description: 'For large organizations',
+    features: [
+      'Unlimited assets',
+      'Multi-branch support',
+      'API access',
+      'Advanced controls',
+      'Dedicated support',
+      'SLA guarantee',
+      'On-premise option'
+    ],
+    cta: 'Upgrade to Enterprise',
+    href: '/contact',
+    popular: false
   }
 ];
 
@@ -139,6 +167,8 @@ const faqs = [
 ];
 
 export default function LandingPage() {
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+
   return (
     <div className="min-h-screen">
       {/* Navigation */}
@@ -271,13 +301,42 @@ export default function LandingPage() {
       {/* Pricing Section */}
       <section id="pricing" className="py-20 bg-white">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
+          <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Simple, Transparent Pricing
             </h2>
             <p className="text-lg text-muted-foreground">
               Choose the plan that fits your needs. Start free, upgrade anytime.
             </p>
+          </div>
+
+          {/* Billing Toggle */}
+          <div className="flex items-center justify-center mb-12">
+            <div className="inline-flex items-center bg-muted p-1 rounded-full">
+              <button
+                onClick={() => setBillingCycle('monthly')}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                  billingCycle === 'monthly'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setBillingCycle('yearly')}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                  billingCycle === 'yearly'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Yearly
+                <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                  Save 2 months
+                </span>
+              </button>
+            </div>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
@@ -297,11 +356,16 @@ export default function LandingPage() {
                   <div className="text-center mb-6">
                     <h3 className="text-xl font-semibold mb-2">{plan.name}</h3>
                     <div className="flex items-baseline justify-center gap-1">
-                      <span className="text-4xl font-bold">{plan.price}</span>
-                      {plan.period && (
-                        <span className="text-muted-foreground">{plan.period}</span>
-                      )}
+                      <span className="text-4xl font-bold">
+                        {billingCycle === 'yearly' && plan.priceYearly ? plan.priceYearly : plan.price}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {billingCycle === 'yearly' && plan.periodYearly ? plan.periodYearly : plan.period}
+                      </span>
                     </div>
+                    {billingCycle === 'yearly' && plan.saveMsg && (
+                      <p className="text-sm text-green-600 font-medium">{plan.saveMsg}</p>
+                    )}
                     <p className="text-muted-foreground mt-2">{plan.description}</p>
                   </div>
                   
