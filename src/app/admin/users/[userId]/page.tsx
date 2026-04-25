@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { 
   Loader2, 
   ArrowLeft,
@@ -16,7 +15,8 @@ import {
   Shield,
   Calendar,
   CheckCircle,
-  XCircle
+  XCircle,
+  AlertCircle
 } from 'lucide-react';
 
 interface UserDetail {
@@ -38,8 +38,10 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
   const [error, setError] = useState('');
 
   useEffect(() => {
+    console.log('[user-detail] Fetching user:', params.userId);
     fetch(`/api/admin/users/${params.userId}`)
       .then(res => {
+        console.log('[user-detail] Response status:', res.status);
         if (res.status === 401 || res.status === 403) {
           router.push('/admin');
           return null;
@@ -47,13 +49,17 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
         return res.json();
       })
       .then(data => {
+        console.log('[user-detail] Response data:', data);
         if (data?.error) {
           setError(data.error);
         } else {
           setUser(data);
         }
       })
-      .catch(() => setError('Failed to load user'))
+      .catch(err => {
+        console.error('[user-detail] Fetch error:', err);
+        setError('Failed to load user');
+      })
       .finally(() => setLoading(false));
   }, [params.userId, router]);
 
@@ -76,7 +82,11 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
         </Button>
         <Card>
           <CardContent className="py-12 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <p className="text-red-500">{error || 'User not found'}</p>
+            <Button asChild className="mt-4">
+              <Link href="/admin/users">Back to Users List</Link>
+            </Button>
           </CardContent>
         </Card>
       </div>

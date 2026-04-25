@@ -32,11 +32,17 @@ export async function GET(
   const user = getSessionUser();
   const admin = getAdminSession();
   
+  console.log('[admin-user-get] Params userId:', params.userId);
+  console.log('[admin-user-get] Session user:', user?.email, 'isPlatformAdmin:', user?.isPlatformAdmin);
+  console.log('[admin-user-get] Admin user:', admin?.email, 'isInternalAdmin:', admin?.isInternalAdmin);
+  
   if (!user?.isPlatformAdmin && !admin?.isInternalAdmin) {
+    console.log('[admin-user-get] Unauthorized');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
   try {
+    console.log('[admin-user-get] Finding user:', params.userId);
     const targetUser = await prisma.user.findUnique({
       where: { id: params.userId },
       select: {
@@ -65,8 +71,12 @@ export async function GET(
     });
 
     if (!targetUser) {
+      console.log('[admin-user-get] User not found:', params.userId);
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
+
+    console.log('[admin-user-get] Found user:', targetUser.email);
+    return NextResponse.json(targetUser);
 
     return NextResponse.json(targetUser);
   } catch (error) {
