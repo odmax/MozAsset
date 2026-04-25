@@ -8,11 +8,18 @@ function getSessionUser() {
   const sessionCookie = cookies().get('session');
   if (sessionCookie?.value) {
     try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
-    } catch {
-      return null;
-    }
+      return JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString('utf-8'));
+    } catch { return null; }
+  }
+  return null;
+}
+
+function getAdminSession() {
+  const adminCookie = cookies().get('adminSession');
+  if (adminCookie?.value) {
+    try {
+      return JSON.parse(Buffer.from(adminCookie.value, 'base64').toString('utf-8'));
+    } catch { return null; }
   }
   return null;
 }
@@ -21,9 +28,17 @@ export async function POST(
   request: Request,
   { params }: { params: { userId: string } }
 ) {
-  const user = getSessionUser();
+  const sessionUser = getSessionUser();
+  const adminUser = getAdminSession();
   
-  if (!user || !user.isPlatformAdmin) {
+  // Check both session formats
+  const isPlatformAdmin = sessionUser?.isPlatformAdmin === true;
+  const isInternalAdmin = adminUser?.isInternalAdmin === true || sessionUser?.isInternalAdmin === true;
+  
+  console.log('[toggle-active] Auth check:', { isPlatformAdmin, isInternalAdmin });
+  
+  if (!isPlatformAdmin && !isInternalAdmin) {
+    console.log('[toggle-active] Unauthorized');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
@@ -43,7 +58,7 @@ export async function POST(
 
     return NextResponse.json({ success: true, isActive: updated.isActive });
   } catch (error) {
-    console.error('Toggle user active error:', error);
+    console.error('[toggle-active] Error:', error);
     return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
   }
 }

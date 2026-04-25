@@ -28,11 +28,21 @@ export async function GET() {
   const sessionUser = getSessionUser();
   const adminUser = getAdminSession();
   
-  console.log('[admin-users] Session user:', sessionUser?.email, 'isPlatformAdmin:', sessionUser?.isPlatformAdmin);
-  console.log('[admin-users] Admin user:', adminUser?.email, 'isInternalAdmin:', adminUser?.isInternalAdmin);
+  // Check both session formats
+  const isPlatformAdmin = sessionUser?.isPlatformAdmin === true;
+  const isInternalAdmin = adminUser?.isInternalAdmin === true || sessionUser?.isInternalAdmin === true;
   
-  if (!sessionUser?.isPlatformAdmin && !adminUser?.isInternalAdmin) {
-    console.log('[admin-users] Unauthorized - no valid admin session');
+  console.log('[admin-users] Session check:', {
+    sessionEmail: sessionUser?.email,
+    hasSession: !!sessionUser,
+    isPlatformAdmin,
+    adminEmail: adminUser?.email,
+    hasAdminSession: !!adminUser,
+    isInternalAdmin,
+  });
+  
+  if (!isPlatformAdmin && !isInternalAdmin) {
+    console.log('[admin-users] Unauthorized - admin check failed');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 

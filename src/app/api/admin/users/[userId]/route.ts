@@ -29,14 +29,16 @@ export async function GET(
   request: Request,
   { params }: { params: { userId: string } }
 ) {
-  const user = getSessionUser();
-  const admin = getAdminSession();
+  const sessionUser = getSessionUser();
+  const adminUser = getAdminSession();
   
-  console.log('[admin-user-get] Params userId:', params.userId);
-  console.log('[admin-user-get] Session user:', user?.email, 'isPlatformAdmin:', user?.isPlatformAdmin);
-  console.log('[admin-user-get] Admin user:', admin?.email, 'isInternalAdmin:', admin?.isInternalAdmin);
+  // Check both session formats
+  const isPlatformAdmin = sessionUser?.isPlatformAdmin === true;
+  const isInternalAdmin = adminUser?.isInternalAdmin === true || sessionUser?.isInternalAdmin === true;
   
-  if (!user?.isPlatformAdmin && !admin?.isInternalAdmin) {
+  console.log('[admin-user-get] Auth check:', { isPlatformAdmin, isInternalAdmin });
+  
+  if (!isPlatformAdmin && !isInternalAdmin) {
     console.log('[admin-user-get] Unauthorized');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
@@ -89,10 +91,17 @@ export async function PATCH(
   request: Request,
   { params }: { params: { userId: string } }
 ) {
-  const user = getSessionUser();
-  const admin = getAdminSession();
+  const sessionUser = getSessionUser();
+  const adminUser = getAdminSession();
   
-  if (!user?.isPlatformAdmin && !admin?.isInternalAdmin) {
+  // Check both session formats
+  const isPlatformAdmin = sessionUser?.isPlatformAdmin === true;
+  const isInternalAdmin = adminUser?.isInternalAdmin === true || sessionUser?.isInternalAdmin === true;
+  
+  console.log('[admin-user-patch] Auth check:', { isPlatformAdmin, isInternalAdmin });
+  
+  if (!isPlatformAdmin && !isInternalAdmin) {
+    console.log('[admin-user-patch] Unauthorized');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
