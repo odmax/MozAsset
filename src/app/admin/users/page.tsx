@@ -36,22 +36,33 @@ interface User {
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
 
   useEffect(() => {
+    console.log('[admin-users-page] Fetching users...');
     fetch('/api/admin/users')
       .then(res => {
+        console.log('[admin-users-page] Response status:', res.status);
         if (res.status === 401 || res.status === 403) {
           redirect('/dashboard');
         }
         return res.json();
       })
       .then(data => {
-        setUsers(data);
-        setFilteredUsers(data);
+        console.log('[admin-users-page] Response data:', data);
+        if (data?.error) {
+          setError(data.error);
+        } else {
+          setUsers(data);
+          setFilteredUsers(data);
+        }
       })
-      .catch(() => redirect('/dashboard'))
+      .catch(err => {
+        console.error('[admin-users-page] Fetch error:', err);
+        setError('Failed to load users');
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -135,6 +146,25 @@ export default function AdminUsersPage() {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Users</h1>
+          <p className="text-muted-foreground">Manage all registered users on the platform</p>
+        </div>
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-red-500">{error}</p>
+            <Button onClick={() => window.location.reload()} className="mt-4">
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }

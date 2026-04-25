@@ -25,14 +25,20 @@ function getAdminSession() {
 }
 
 export async function GET() {
-  const user = getSessionUser();
-  const admin = getAdminSession();
+  const sessionUser = getSessionUser();
+  const adminUser = getAdminSession();
   
-  if (!user?.isPlatformAdmin && !admin?.isInternalAdmin) {
+  console.log('[admin-users] Session user:', sessionUser?.email, 'isPlatformAdmin:', sessionUser?.isPlatformAdmin);
+  console.log('[admin-users] Admin user:', adminUser?.email, 'isInternalAdmin:', adminUser?.isInternalAdmin);
+  
+  if (!sessionUser?.isPlatformAdmin && !adminUser?.isInternalAdmin) {
+    console.log('[admin-users] Unauthorized - no valid admin session');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
   try {
+    console.log('[admin-users] Fetching all users from database...');
+    
     const users = await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
       select: {
@@ -48,9 +54,12 @@ export async function GET() {
       },
     });
 
+    console.log('[admin-users] Found users:', users.length);
+    console.log('[admin-users] First few emails:', users.slice(0, 3).map(u => u.email));
+
     return NextResponse.json(users);
   } catch (error) {
-    console.error('Admin users GET error:', error);
+    console.error('[admin-users] Error:', error);
     return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
   }
 }
