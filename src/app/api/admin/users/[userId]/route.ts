@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
-import type { Plan, Role } from '@prisma/client';
+import type { Plan, Role, SubscriptionStatus } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,7 +48,19 @@ export async function GET(
         isActive: true,
         emailVerified: true,
         createdAt: true,
-        department: { select: { name: true } },
+        department: { select: { id: true, name: true } },
+        departmentId: true,
+        subscriptionStatus: true,
+        assetLimit: true,
+        departmentLimit: true,
+        locationLimit: true,
+        userLimit: true,
+        onBoardingComplete: true,
+        billingProvider: true,
+        billingPeriodStart: true,
+        billingPeriodEnd: true,
+        canceledAt: true,
+        isPlatformAdmin: true,
       },
     });
 
@@ -76,7 +88,20 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const { name, role, plan, isActive } = body;
+    const { 
+      name, 
+      role, 
+      plan, 
+      isActive,
+      emailVerified,
+      departmentId,
+      subscriptionStatus,
+      assetLimit,
+      departmentLimit,
+      locationLimit,
+      userLimit,
+      onBoardingComplete,
+    } = body;
 
     // Validate plan if provided
     if (plan && !['FREE', 'PRO', 'ENTERPRISE'].includes(plan)) {
@@ -88,11 +113,31 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
     }
 
+    // Validate subscription status
+    if (subscriptionStatus && !['ACTIVE', 'CANCELED', 'PAST_DUE', 'PAUSED'].includes(subscriptionStatus)) {
+      return NextResponse.json({ error: 'Invalid subscription status' }, { status: 400 });
+    }
+
     const updateData: any = {};
     if (name !== undefined) updateData.name = name || null;
     if (role) updateData.role = role as Role;
     if (plan) updateData.plan = plan as Plan;
     if (isActive !== undefined) updateData.isActive = isActive;
+    if (emailVerified !== undefined) {
+      updateData.emailVerified = emailVerified ? new Date(emailVerified) : null;
+      if (emailVerified) {
+        updateData.emailVerificationToken = null;
+      }
+    }
+    if (departmentId !== undefined) updateData.departmentId = departmentId;
+    if (subscriptionStatus) updateData.subscriptionStatus = subscriptionStatus as SubscriptionStatus;
+    if (assetLimit !== undefined) updateData.assetLimit = assetLimit;
+    if (departmentLimit !== undefined) updateData.departmentLimit = departmentLimit;
+    if (locationLimit !== undefined) updateData.locationLimit = locationLimit;
+    if (userLimit !== undefined) updateData.userLimit = userLimit;
+    if (onBoardingComplete !== undefined) updateData.onBoardingComplete = onBoardingComplete;
+
+    console.log('[admin-user-patch] Update data:', updateData);
 
     const updated = await prisma.user.update({
       where: { id: params.userId },
