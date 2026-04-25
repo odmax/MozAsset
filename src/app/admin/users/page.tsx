@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +16,9 @@ import {
   UserX,
   Crown,
   Mail,
-  Calendar
+  Calendar,
+  Eye,
+  Pencil
 } from 'lucide-react';
 
 interface User {
@@ -65,17 +68,30 @@ export default function AdminUsersPage() {
   }, [search, users]);
 
   const handleToggleActive = async (userId: string, currentStatus: boolean) => {
+    const currentUsers = [...users];
+    setUsers(users.map(u => 
+      u.id === userId ? { ...u, isActive: !currentStatus } : u
+    ));
+    
     try {
       const res = await fetch(`/api/admin/users/${userId}/toggle-active`, {
         method: 'POST',
       });
-      if (res.ok) {
-        setUsers(users.map(u => 
-          u.id === userId ? { ...u, isActive: !currentStatus } : u
-        ));
+      
+      const data = await res.json();
+      
+      console.log('Toggle active response:', res.status, data);
+      
+      if (!res.ok) {
+        console.error('Toggle active failed:', data.error);
+        setUsers(currentUsers);
+        alert(`Failed: ${data.error}`);
+      } else {
+        console.log('User is now:', data.isActive ? 'Active' : 'Inactive');
       }
     } catch (e) {
-      console.error('Failed to toggle user status');
+      console.error('Failed to toggle user status:', e);
+      setUsers(currentUsers);
     }
   };
 
@@ -218,7 +234,25 @@ export default function AdminUsersPage() {
                       {new Date(user.createdAt).toLocaleDateString()}
                     </td>
                     <td className="p-3">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          asChild
+                        >
+                          <Link href={`/admin/users/${user.id}`}>
+                            <Eye className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          asChild
+                        >
+                          <Link href={`/admin/users/${user.id}/edit`}>
+                            <Pencil className="h-4 w-4" />
+                          </Link>
+                        </Button>
                         <Button 
                           variant="ghost" 
                           size="sm"
