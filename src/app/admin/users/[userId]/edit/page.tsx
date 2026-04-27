@@ -30,7 +30,7 @@ interface UserData {
   plan: string;
   isActive: boolean;
   emailVerified: Date | null;
-  createdAt: Date;
+  createdAt: string;
   department: { id: string; name: string } | null;
   departmentId: string | null;
   subscriptionStatus: string;
@@ -39,12 +39,6 @@ interface UserData {
   locationLimit: number;
   userLimit: number;
   onBoardingComplete: boolean;
-  billingProvider: string;
-  billingPeriodStart: Date | null;
-  billingPeriodEnd: Date | null;
-  canceledAt: Date | null;
-  isPlatformAdmin: boolean;
-  createdAt: string;
 }
 
 export default function AdminUserEditPage({ params }: { params: { userId: string } }) {
