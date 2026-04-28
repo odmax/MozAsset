@@ -242,7 +242,7 @@ export default async function DashboardPage() {
                 {data.recentActivity.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">No recent activity</p>
                 ) : (
-                  data.recentActivity.map((log: any) => (
+                  data.recentActivity.slice(0, 10).map((log: any) => (
                     <div key={log.id} className="flex items-start gap-3 pb-4 border-b last:border-0">
                       <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center shrink-0">
                         <span className="text-xs font-medium">
