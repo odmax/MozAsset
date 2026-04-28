@@ -109,7 +109,8 @@ export function generateSignature(data: Record<string, string>): string {
     mode: config.mode,
     hasPassphrase: !!(config.passphrase && config.passphrase.length > 0),
     fields: sortedKeys,
-    sigPrefix: sig.substring(0, 8),
+    signatureString: signatureString,
+    sig: sig,
   });
   
   return sig;
