@@ -132,165 +132,175 @@ async function getDashboardData() {
 
 export default async function DashboardPage() {
   const user = getSessionUser();
-  if (!user) return null;
-
+  
+  if (!user) {
+    redirect('/login');
+  }
+  
   const plan = user.plan || 'FREE';
   const showAds = plan === 'FREE';
-  const data = await getDashboardData();
-
-  const stats = [
-    { title: 'Total Assets', value: data.totalAssets, icon: Package, color: 'text-blue-600' },
-    { title: 'Available', value: data.availableAssets, icon: CheckCircle, color: 'text-green-600' },
-    { title: 'Assigned', value: data.assignedAssets, icon: TrendingUp, color: 'text-blue-600' },
-    { title: 'In Repair', value: data.inRepairAssets, icon: Wrench, color: 'text-yellow-600' },
-    { title: 'Retired', value: data.retiredAssets, icon: Archive, color: 'text-gray-600' },
-    { title: 'Total Value', value: formatCurrency(data.totalValue), icon: DollarSign, color: 'text-purple-600' },
-  ];
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Welcome back, {user.name || user.email}
-          </p>
+  
+  try {
+    const data = await getDashboardData();
+    
+    const stats = [
+      { title: 'Total Assets', value: data.totalAssets, icon: Package, color: 'text-blue-600' },
+      { title: 'Available', value: data.availableAssets, icon: CheckCircle, color: 'text-green-600' },
+      { title: 'Assigned', value: data.assignedAssets, icon: TrendingUp, color: 'text-blue-600' },
+      { title: 'In Repair', value: data.inRepairAssets, icon: Wrench, color: 'text-yellow-600' },
+      { title: 'Retired', value: data.retiredAssets, icon: Archive, color: 'text-gray-600' },
+      { title: 'Total Value', value: formatCurrency(data.totalValue), icon: DollarSign, color: 'text-purple-600' },
+    ];
+    
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+            <p className="text-muted-foreground">
+              Welcome back, {user.name || user.email}
+            </p>
+          </div>
+          <Link href="/dashboard/assets/new">
+            <Button>
+              <Package className="mr-2 h-4 w-4" />
+              Add Asset
+            </Button>
+          </Link>
         </div>
-        <Link href="/dashboard/assets/new">
-          <Button>
-            <Package className="mr-2 h-4 w-4" />
-            Add Asset
-          </Button>
-        </Link>
-      </div>
 
-      {!showAds && plan !== 'FREE' && (
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="flex items-center gap-4 p-4">
-            <Crown className="h-5 w-5 text-green-600" />
-            <div>
-              <p className="font-medium text-green-800">
-                {plan === 'ENTERPRISE' ? 'Enterprise Plan' : 'Pro Plan'} Active
-              </p>
-              <p className="text-sm text-green-700">
-                You have access to all premium features
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+        {!showAds && plan !== 'FREE' && (
+          <Card className="border-green-200 bg-green-50">
+            <CardContent className="flex items-center gap-4 p-4">
+              <Crown className="h-5 w-5 text-green-600" />
+              <div>
+                <p className="font-medium text-green-800">
+                  {plan === 'ENTERPRISE' ? 'Enterprise Plan' : 'Pro Plan'} Active
+                </p>
+                <p className="text-sm text-green-700">
+                  You have access to all premium features
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-      {showAds && (
-        <UpgradeBanner userPlan={plan} />
-      )}
+        {showAds && <UpgradeBanner />}
 
-      {data.expiringWarranties > 0 && (
-        <Card className="border-yellow-200 bg-yellow-50">
-          <CardContent className="flex items-center gap-4 p-4">
-            <AlertCircle className="h-5 w-5 text-yellow-600" />
-            <div>
-              <p className="font-medium text-yellow-800">
-                {data.expiringWarranties} warranty{data.expiringWarranties > 1 ? 'ies' : ''} expiring soon
-              </p>
-              <p className="text-sm text-yellow-700">
-                Check assets with warranties expiring within 30 days
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={stat.title}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {stat.title}
-                </CardTitle>
-                <Icon className={`h-4 w-4 ${stat.color}`} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
+        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+          {stats.map((stat, i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                  <span className="text-sm text-muted-foreground">{stat.title}</span>
+                </div>
+                <p className="text-2xl font-bold mt-2">{stat.value}</p>
               </CardContent>
             </Card>
-          );
-        })}
-      </div>
+          ))}
+        </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Assets by Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <StatusPieChart data={data.statusChartData} />
-          </CardContent>
-        </Card>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Assets by Category</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CategoryBarChart data={data.categoryChartData} />
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Assets by Department</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DepartmentBarChart data={data.departmentChartData} />
-          </CardContent>
-        </Card>
-      </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Assets by Department</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DepartmentBarChart data={data.departmentChartData} />
+            </CardContent>
+          </Card>
+        </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Assets by Category</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CategoryBarChart data={data.categoryChartData} />
-          </CardContent>
-        </Card>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Assets by Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <StatusPieChart data={data.statusChartData} />
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              Recent Activity
-              <Link href="/dashboard/audit-logs">
-                <Button variant="ghost" size="sm">View All</Button>
-              </Link>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {data.recentActivity.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No recent activity</p>
-              ) : (
-                data.recentActivity.map((log) => (
-                  <div key={log.id} className="flex items-start gap-3 text-sm">
-                    <div className="mt-1">
-                      <Badge variant="outline" className="text-xs">
-                        {log.action}
-                      </Badge>
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {data.recentActivity.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">No recent activity</p>
+                ) : (
+                  data.recentActivity.map((log: any) => (
+                    <div key={log.id} className="flex items-start gap-3 pb-4 border-b last:border-0">
+                      <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center shrink-0">
+                        <span className="text-xs font-medium">
+                          {log.user?.name?.charAt(0) || log.user?.email?.charAt(0) || '?'}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm">
+                          <span className="font-medium">{log.user?.name || log.user?.email}</span>
+                          {' '}{log.action.toLowerCase()} 
+                          {log.asset && (
+                            <Link href={`/dashboard/assets/${log.assetId}`} className="text-primary hover:underline">
+                              {log.asset.name}
+                            </Link>
+                          )}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(log.createdAt).toLocaleString()}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <p>
-                        <span className="font-medium">{log.user.name || log.user.email}</span>
-                        {' '}{log.action.toLowerCase()}{' '}
-                        {log.asset && (
-                          <span className="text-primary">
-                            {log.asset.assetTag}
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDate(log.createdAt)}
-                      </p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {data.expiringWarranties > 0 && (
+          <Card className="border-yellow-200 bg-yellow-50">
+            <CardContent className="flex items-center gap-4 p-4">
+              <AlertCircle className="h-5 w-5 text-yellow-600" />
+              <div>
+                <p className="font-medium text-yellow-800">
+                  {data.expiringWarranties} asset(s) have warranties expiring in the next 30 days
+                </p>
+                <Link href="/dashboard/assets?warranty=expiring" className="text-sm text-yellow-700 hover:underline">
+                  View assets
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    );
+  } catch (error) {
+    console.error('Dashboard error:', error);
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <Card>
+          <CardContent className="py-12 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <p className="text-red-500">Failed to load dashboard data</p>
+            <Button onClick={() => window.location.reload()} className="mt-4">
+              Retry
+            </Button>
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
+    );
+  }
 }
