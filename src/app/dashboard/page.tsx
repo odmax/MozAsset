@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,7 +19,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { AssetStatus } from '@prisma/client';
 import { StatusPieChart, DepartmentBarChart, CategoryBarChart } from '@/components/dashboard/charts';
-import { UpgradeBanner } from '@/components/dashboard/UpgradeButton';
+import { UpgradePlanModal } from '@/components/plan/UpgradePlanModal';
+import { UpgradeButton } from '@/components/dashboard/UpgradeButton';
 
 function getSessionUser() {
   const sessionCookie = cookies().get('session');
@@ -185,7 +187,7 @@ export default async function DashboardPage() {
           </Card>
         )}
 
-        {showAds && <UpgradeBanner />}
+        {showAds && <UpgradeButton userPlan={plan} />}
 
         <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
           {stats.map((stat, i) => (
