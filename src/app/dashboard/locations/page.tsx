@@ -1,33 +1,22 @@
-import { cookies } from 'next/headers';
-import prisma from '@/lib/prisma';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { LocationsClient } from '@/components/dashboard/locations-client';
-
-function getSessionUser() {
-  const sessionCookie = cookies().get('session');
-  if (sessionCookie?.value) {
-    try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
+import { getCurrentUserContext } from '@/lib/user-context';
+import prisma from '@/lib/prisma';
 
 export const metadata = { title: 'Locations | Asset Manager' };
 
 export default async function LocationsPage() {
-  const user = getSessionUser();
-  if (!user) return null;
+  const context = await getCurrentUserContext();
+  if (!context?.userId) return null;
 
-  const canManage = ['SUPER_ADMIN', 'ASSET_MANAGER'].includes(user.role);
+  const canManage = ['SUPER_ADMIN', 'ASSET_MANAGER'].includes(context.role);
+  const isPlatformAdmin = context.isPlatformAdmin || context.isInternalAdmin;
 
   const locations = await prisma.location.findMany({
+    where: isPlatformAdmin ? {} : { organizationId: context.organizationId },
     orderBy: { name: 'asc' },
     include: {
       department: { select: { id: true, name: true } },

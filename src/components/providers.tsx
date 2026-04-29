@@ -10,13 +10,18 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/user/theme')
-      .then(res => res.json())
+    fetch('/api/user/theme', { credentials: 'include' })
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch theme');
+        return res.json();
+      })
       .then(data => {
         if (data.theme) setUserTheme(data.theme);
         if (data.themeColor) setUserThemeColor(data.themeColor);
       })
-      .catch(() => {})
+      .catch(() => {
+        // Use defaults if fetch fails - don't crash
+      })
       .finally(() => setLoading(false));
   }, []);
 

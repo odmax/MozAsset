@@ -1,33 +1,22 @@
-import { cookies } from 'next/headers';
-import prisma from '@/lib/prisma';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Building2 } from 'lucide-react';
 import Link from 'next/link';
 import { DepartmentsClient } from '@/components/dashboard/departments-client';
-
-function getSessionUser() {
-  const sessionCookie = cookies().get('session');
-  if (sessionCookie?.value) {
-    try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
+import { getCurrentUserContext } from '@/lib/user-context';
+import prisma from '@/lib/prisma';
 
 export const metadata = { title: 'Departments | Asset Manager' };
 
 export default async function DepartmentsPage() {
-  const user = getSessionUser();
-  if (!user) return null;
+  const context = await getCurrentUserContext();
+  if (!context?.userId) return null;
 
-  const canManage = ['SUPER_ADMIN', 'ASSET_MANAGER'].includes(user.role);
+  const canManage = ['SUPER_ADMIN', 'ASSET_MANAGER'].includes(context.role);
+  const isPlatformAdmin = context.isPlatformAdmin || context.isInternalAdmin;
 
   const departments = await prisma.department.findMany({
+    where: isPlatformAdmin ? {} : { organizationId: context.organizationId },
     orderBy: { name: 'asc' },
     include: {
       _count: { select: { users: true, assets: true } },

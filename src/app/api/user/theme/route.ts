@@ -1,29 +1,23 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import prisma from '@/lib/prisma';
+import { getCurrentUserContext } from '@/lib/user-context';
 
 export const dynamic = 'force-dynamic';
 
-function getSessionUser() {
-  const sessionCookie = cookies().get('session');
-  if (sessionCookie?.value) {
-    try {
-      return JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString('utf-8'));
-    } catch { return null; }
-  }
-  return null;
-}
+const DEFAULT_THEME = { theme: 'system', themeColor: null };
 
 export async function GET() {
-  const user = getSessionUser();
-  
-  if (!user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const user = await getCurrentUserContext();
+
+  if (!user?.userId) {
+    // Return safe default instead of 401 - don't crash the dashboard
+    return NextResponse.json(DEFAULT_THEME);
   }
 
   try {
+    const { prisma } = await import('@/lib/prisma');
+
     const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
+      where: { id: user.userId },
       select: {
         appearanceMode: true,
         themeColor: true,
@@ -36,6 +30,7 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Theme GET error:', error);
-    return NextResponse.json({ error: 'Failed' }, { status: 500 });
+    // Return safe default on error
+    return NextResponse.json(DEFAULT_THEME);
   }
 }

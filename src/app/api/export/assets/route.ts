@@ -1,29 +1,16 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
-import { getPlanDetails, canAccessFeature } from '@/lib/billing';
-import { formatCurrency, formatDate } from '@/lib/utils';
-
-function getSessionUser() {
-  const sessionCookie = cookies().get('session');
-  if (sessionCookie?.value) {
-    try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
+import { getCurrentUserContext } from '@/lib/user-context';
+import { canAccessFeature } from '@/lib/billing';
+import { formatDate } from '@/lib/utils';
 
 export async function GET(request: Request) {
-  const user = getSessionUser();
-  if (!user) {
+  const context = await getCurrentUserContext();
+  if (!context?.userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  if (!canAccessFeature(user.plan || 'FREE', 'exports')) {
+  if (!canAccessFeature(context.plan, 'exports')) {
     return NextResponse.json(
       { error: 'PLAN_LIMIT_EXCEEDED', feature: 'csvExport' },
       { status: 403 }
@@ -35,7 +22,9 @@ export async function GET(request: Request) {
   const categoryId = searchParams.get('categoryId') || '';
   const financial = searchParams.get('financial');
 
-  const where: any = {};
+  // Platform admins can export all, others scoped to org
+  const isPlatformAdmin = context.isPlatformAdmin || context.isInternalAdmin;
+  const where: any = isPlatformAdmin ? {} : { organizationId: context.organizationId };
   if (status) where.status = status;
   if (categoryId) where.categoryId = categoryId;
 
@@ -52,7 +41,7 @@ export async function GET(request: Request) {
     take: 5000,
   });
 
-  const headers = financial 
+  const headers = financial
     ? ['AssetTag', 'Name', 'Category', 'Status', 'Condition', 'PurchaseDate', 'PurchaseCost', 'CurrentValue', 'Department', 'Location', 'AssignedTo', 'Vendor']
     : ['AssetTag', 'Name', 'SerialNumber', 'Brand', 'Model', 'Category', 'Status', 'Condition', 'Department', 'Location', 'AssignedTo', 'PurchaseDate', 'PurchaseCost', 'Vendor', 'WarrantyExpiry'];
 

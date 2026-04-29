@@ -1,46 +1,24 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getCurrentUserContext } from '@/lib/user-context';
 import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-function getSessionUser() {
-  const sessionCookie = cookies().get('session');
-  if (sessionCookie?.value) {
-    try {
-      return JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString('utf-8'));
-    } catch { return null; }
-  }
-  return null;
-}
-
-function getAdminSession() {
-  const adminCookie = cookies().get('adminSession');
-  if (adminCookie?.value) {
-    try {
-      return JSON.parse(Buffer.from(adminCookie.value, 'base64').toString('utf-8'));
-    } catch { return null; }
-  }
-  return null;
-}
-
 export async function GET() {
-  const user = getSessionUser();
-  const admin = getAdminSession();
+  const context = await getCurrentUserContext();
   
-  if (!user?.isPlatformAdmin && !admin?.isInternalAdmin) {
+  if (!context?.isPlatformAdmin && !context?.isInternalAdmin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
   try {
-    const departments = await prisma.department.findMany({
+    const organizations = await prisma.organization.findMany({
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
         name: true,
-        code: true,
         createdAt: true,
-        manager: {
+        owner: {
           select: {
             name: true,
             email: true,
@@ -52,18 +30,24 @@ export async function GET() {
             users: true,
             assets: true,
             locations: true,
+            departments: true,
           },
         },
       },
     });
 
-    const formatted = departments.map(dept => ({
-      id: dept.id,
-      name: dept.name,
-      code: dept.code,
-      createdAt: dept.createdAt,
-      owner: dept.manager || { name: null, email: 'Unknown', plan: 'FREE' },
-      _count: dept._count,
+    const formatted = organizations.map(org => ({
+      id: org.id,
+      name: org.name,
+      code: '',
+      createdAt: org.createdAt,
+      owner: org.owner || { name: null, email: 'Unknown', plan: 'FREE' },
+      _count: {
+        users: org._count.users,
+        assets: org._count.assets,
+        locations: org._count.locations,
+        departments: org._count.departments,
+      },
     }));
 
     return NextResponse.json(formatted);

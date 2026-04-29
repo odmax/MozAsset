@@ -33,6 +33,24 @@ async function getDashboardData(context: any) {
   const isPlatformAdmin = context.isPlatformAdmin || context.isInternalAdmin;
   const orgId = context.organizationId;
 
+  // If user has no organization and is not platform admin, show onboarding state
+  if (!orgId && !isPlatformAdmin) {
+    return {
+      totalAssets: 0,
+      availableAssets: 0,
+      assignedAssets: 0,
+      inRepairAssets: 0,
+      retiredAssets: 0,
+      categoryChartData: [],
+      departmentChartData: [],
+      statusChartData: [],
+      totalValue: 0,
+      expiringWarranties: 0,
+      recentActivity: [],
+      needsOnboarding: true,
+    };
+  }
+
   // Build where clause based on user type
   const buildWhere = (extra: any = {}) => {
     if (isPlatformAdmin) return { ...extra };
@@ -145,6 +163,31 @@ export default async function DashboardPage() {
   
   try {
     const data = await getDashboardData(user);
+
+    // Show onboarding state if user needs to complete setup
+    if ('needsOnboarding' in data && data.needsOnboarding) {
+      return (
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+            <p className="text-muted-foreground">
+              Welcome, {user.name || user.email}
+            </p>
+          </div>
+          <Card>
+            <CardContent className="py-12 text-center">
+              <h2 className="text-xl font-semibold mb-4">Complete Your Setup</h2>
+              <p className="text-muted-foreground mb-6">
+                You need to complete the onboarding process to start using the dashboard.
+              </p>
+              <Link href="/onboarding">
+                <Button>Go to Onboarding</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
     
     const stats = [
       { title: 'Total Assets', value: data.totalAssets, icon: Package, color: 'text-blue-600' },

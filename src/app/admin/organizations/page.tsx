@@ -6,9 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Search, 
-  Loader2, 
+import {
+  Search,
+  Loader2,
   Building2,
   Users,
   Package,
@@ -30,6 +30,7 @@ interface Organization {
     users: number;
     assets: number;
     locations: number;
+    departments: number;
   };
 }
 
@@ -57,9 +58,8 @@ export default function AdminOrganizationsPage() {
 
   useEffect(() => {
     if (search) {
-      const filtered = organizations.filter(org => 
-        org.name.toLowerCase().includes(search.toLowerCase()) ||
-        org.code.toLowerCase().includes(search.toLowerCase())
+      const filtered = organizations.filter(org =>
+        org.name.toLowerCase().includes(search.toLowerCase())
       );
       setFilteredOrgs(filtered);
     } else {
@@ -108,6 +108,7 @@ export default function AdminOrganizationsPage() {
                   <th className="text-left p-3 text-sm font-medium">Users</th>
                   <th className="text-left p-3 text-sm font-medium">Assets</th>
                   <th className="text-left p-3 text-sm font-medium">Locations</th>
+                  <th className="text-left p-3 text-sm font-medium">Depts</th>
                   <th className="text-left p-3 text-sm font-medium">Created</th>
                 </tr>
               </thead>
@@ -121,13 +122,13 @@ export default function AdminOrganizationsPage() {
                         </div>
                         <div>
                           <p className="text-sm font-medium">{org.name}</p>
-                          <p className="text-xs text-muted-foreground">{org.code}</p>
                         </div>
                       </div>
                     </td>
                     <td className="p-3">
                       <div>
                         <p className="text-sm">{org.owner.name || org.owner.email}</p>
+                        <p className="text-xs text-muted-foreground">{org.owner.email}</p>
                       </div>
                     </td>
                     <td className="p-3">
@@ -157,6 +158,9 @@ export default function AdminOrganizationsPage() {
                         {org._count.locations}
                       </div>
                     </td>
+                    <td className="p-3 text-sm">
+                      {org._count.departments}
+                    </td>
                     <td className="p-3 text-sm text-muted-foreground">
                       {new Date(org.createdAt).toLocaleDateString()}
                     </td>
@@ -164,7 +168,7 @@ export default function AdminOrganizationsPage() {
                 ))}
                 {filteredOrgs.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={8} className="p-8 text-center text-muted-foreground">
                       No organizations found
                     </td>
                   </tr>

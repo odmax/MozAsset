@@ -1,18 +1,16 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { auth } from '@/lib/auth';
+import { getCurrentUserContext } from '@/lib/user-context';
 
 export async function POST(request: Request) {
   try {
-    const session = await auth();
-    if (!session?.user) {
+    const context = await getCurrentUserContext();
+    if (!context?.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { name, address, building, floor, room } = await request.json();
 
-    const department = await prisma.department.findFirst();
-    
     const location = await prisma.location.create({
       data: {
         name,
@@ -20,7 +18,7 @@ export async function POST(request: Request) {
         building,
         floor,
         room,
-        departmentId: department?.id,
+        organizationId: context.organizationId,
       },
     });
 

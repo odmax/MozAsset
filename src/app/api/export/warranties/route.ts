@@ -1,30 +1,17 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
+import { getCurrentUserContext } from '@/lib/user-context';
 import { canAccessFeature } from '@/lib/billing';
 import type { Plan } from '@prisma/client';
 import { formatDate } from '@/lib/utils';
 
-function getSessionUser() {
-  const sessionCookie = cookies().get('session');
-  if (sessionCookie?.value) {
-    try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
-
 export async function GET(request: Request) {
-  const user = getSessionUser();
-  if (!user) {
+  const context = await getCurrentUserContext();
+  if (!context?.userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  if (!canAccessFeature((user.plan || 'FREE') as Plan, 'exports')) {
+  if (!canAccessFeature(context.plan, 'exports')) {
     return NextResponse.json(
       { error: 'PLAN_LIMIT_EXCEEDED', feature: 'exports' },
       { status: 403 }
@@ -35,13 +22,20 @@ export async function GET(request: Request) {
   const now = new Date();
   const future = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
 
-  const assets = await prisma.asset.findMany({
-    where: {
-      warrantyExpiry: {
-        gte: now,
-        lte: future,
-      },
+  // Platform admins can export all, others scoped to org
+  const isPlatformAdmin = context.isPlatformAdmin || context.isInternalAdmin;
+  const where: any = {
+    warrantyExpiry: {
+      gte: now,
+      lte: future,
     },
+  };
+  if (!isPlatformAdmin) {
+    where.organizationId = context.organizationId;
+  }
+
+  const assets = await prisma.asset.findMany({
+    where,
     include: {
       category: { select: { name: true } },
       department: { select: { name: true } },

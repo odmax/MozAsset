@@ -1,20 +1,20 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { auth } from '@/lib/auth';
+import { getCurrentUserContext } from '@/lib/user-context';
 import { generateAssetTag } from '@/lib/utils';
 
 export async function POST(request: Request) {
   try {
-    const session = await auth();
-    if (!session?.user) {
+    const context = await getCurrentUserContext();
+    if (!context?.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { name, serial, brand } = await request.json();
 
     const [department, location] = await Promise.all([
-      prisma.department.findFirst(),
-      prisma.location.findFirst(),
+      prisma.department.findFirst({ where: { organizationId: context.organizationId } }),
+      prisma.location.findFirst({ where: { organizationId: context.organizationId } }),
     ]);
 
     const asset = await prisma.asset.create({
@@ -25,6 +25,7 @@ export async function POST(request: Request) {
         brand,
         departmentId: department?.id,
         locationId: location?.id,
+        organizationId: context.organizationId,
         status: 'AVAILABLE',
         condition: 'GOOD',
       },
