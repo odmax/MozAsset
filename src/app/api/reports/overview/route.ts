@@ -1,32 +1,25 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { cookies } from 'next/headers';
-
-function getSessionUser() {
-  const sessionCookie = cookies().get('session');
-  if (sessionCookie?.value) {
-    try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
+import { getCurrentUserContext } from '@/lib/user-context';
 
 export async function GET() {
-  const user = getSessionUser();
-  if (!user) {
+  const context = await getCurrentUserContext();
+  if (!context?.userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const canAccess = ['SUPER_ADMIN', 'ASSET_MANAGER'].includes(user.role);
+  const canAccess = ['SUPER_ADMIN', 'ASSET_MANAGER'].includes(context.role);
   if (!canAccess) {
     return NextResponse.json({ error: 'Access denied' }, { status: 403 });
   }
 
+  // Platform admins can see all data, otherwise scope by organization
+  const isPlatformAdmin = context.isPlatformAdmin || context.isInternalAdmin;
+  const orgId = context.organizationId;
+
   try {
+    const whereClause = isPlatformAdmin ? undefined : { organizationId: orgId };
+
     const [
       totalAssets,
       totalValue,
@@ -37,38 +30,18 @@ export async function GET() {
       assetsByLocation,
       recentAssets,
     ] = await Promise.all([
-      prisma.asset.count(),
-      prisma.asset.aggregate({ _sum: { purchaseCost: true } }),
-      prisma.asset.groupBy({
-        by: ['status'],
-        _count: true,
-      }),
-      prisma.asset.groupBy({
-        by: ['condition'],
-        _count: true,
-      }),
-      prisma.asset.groupBy({
-        by: ['categoryId'],
-        _count: true,
-      }),
-      prisma.asset.groupBy({
-        by: ['departmentId'],
-        _count: true,
-      }),
-      prisma.asset.groupBy({
-        by: ['locationId'],
-        _count: true,
-      }),
+      prisma.asset.count({ where: whereClause }),
+      prisma.asset.aggregate({ where: whereClause, _sum: { purchaseCost: true } }),
+      prisma.asset.groupBy({ by: ['status'], _count: true, where: whereClause }),
+      prisma.asset.groupBy({ by: ['condition'], _count: true, where: whereClause }),
+      prisma.asset.groupBy({ by: ['categoryId'], _count: true, where: whereClause }),
+      prisma.asset.groupBy({ by: ['departmentId'], _count: true, where: whereClause }),
+      prisma.asset.groupBy({ by: ['locationId'], _count: true, where: whereClause }),
       prisma.asset.findMany({
+        ...(whereClause ? { where: whereClause } : {}),
         orderBy: { createdAt: 'desc' },
         take: 20,
-        select: {
-          id: true,
-          name: true,
-          assetTag: true,
-          createdAt: true,
-          status: true,
-        },
+        select: { id: true, name: true, assetTag: true, createdAt: true, status: true },
       }),
     ]);
 

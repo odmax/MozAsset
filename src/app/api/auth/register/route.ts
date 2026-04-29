@@ -33,27 +33,48 @@ export async function POST(request: Request) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const verificationToken = randomBytes(32).toString('hex');
+    const orgName = organization || name || 'My Organization';
 
-    const user = await prisma.user.create({
-      data: {
-        name: name || organization,
-        email,
-        password: hashedPassword,
-        role: 'SUPER_ADMIN',
-        plan: 'FREE',
-        assetLimit: 50,
-        onBoardingComplete: false,
-        isActive: true,
-        emailVerificationToken: verificationToken,
-      },
+    // Create user and organization in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Create user first
+      const user = await tx.user.create({
+        data: {
+          name: name || orgName,
+          email,
+          password: hashedPassword,
+          role: 'SUPER_ADMIN',
+          plan: 'FREE',
+          assetLimit: 50,
+          onBoardingComplete: false,
+          isActive: true,
+          emailVerificationToken: verificationToken,
+        },
+      });
+
+      // Create the organization with user as owner
+      const org = await tx.organization.create({
+        data: {
+          name: orgName,
+          ownerId: user.id,
+        },
+      });
+
+      // Link user to organization
+      await tx.user.update({
+        where: { id: user.id },
+        data: { organizationId: org.id },
+      });
+
+      return { user, org };
     });
 
-    await sendVerificationEmail(user.email, user.name, verificationToken);
+    await sendVerificationEmail(result.user.email, result.user.name, verificationToken);
 
     return NextResponse.json({
-      id: user.id,
-      name: user.name,
-      email: user.email,
+      id: result.user.id,
+      name: result.user.name,
+      email: result.user.email,
       needsVerification: true,
     });
   } catch (error) {

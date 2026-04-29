@@ -140,6 +140,10 @@ model User {
   themeColor     String?        @default("#222222")
   companyLogoUrl String?
 
+  organizationId   String?
+  organization     Organization? @relation(fields: [organizationId], references: [id])
+  ownedOrganization Organization? @relation("OrganizationOwner")
+
   accounts        Account[]
   sessions        Session[]
   assets          Asset[]          @relation("AssignedAssets")
@@ -153,6 +157,35 @@ model User {
 
   @@index([email])
   @@index([departmentId])
+  @@index([organizationId])
+}
+
+model Organization {
+  id              String    @id @default(cuid())
+  name            String    @unique
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  ownerId         String    @unique
+  owner           User       @relation("OrganizationOwner", fields: [ownerId], references: [id])
+
+  users           User[]
+  departments     Department[]
+  locations       Location[]
+  assets          Asset[]
+  categories      Category[]
+  vendors         Vendor[]
+
+  plan            Plan      @default(FREE)
+  subscriptionStatus SubscriptionStatus @default(ACTIVE)
+  billingProvider BillingProvider @default(NONE)
+  billingCustomerId String?
+  billingSubscriptionId String?
+  billingPeriodStart DateTime?
+  billingPeriodEnd   DateTime?
+  canceledAt       DateTime?
+
+  @@index([ownerId])
 }
 
 model Account {
@@ -192,15 +225,20 @@ model VerificationToken {
 
 model Category {
   id          String   @id @default(cuid())
-  name        String   @unique
+  name        String
   description String?
   icon        String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
   assets      Asset[]
 
+  @@unique([name, organizationId])
   @@index([name])
+  @@index([organizationId])
 }
 
 model Department {
@@ -213,12 +251,16 @@ model Department {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
   users       User[]
   locations   Location[]
   assets      Asset[]
 
   @@index([name])
   @@index([code])
+  @@index([organizationId])
 }
 
 model Location {
@@ -233,15 +275,19 @@ model Location {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
   assets       Asset[]
 
   @@unique([name, departmentId])
   @@index([departmentId])
+  @@index([organizationId])
 }
 
 model Vendor {
   id          String   @id @default(cuid())
-  name        String   @unique
+  name        String
   contactName String?
   email       String?
   phone       String?
@@ -251,9 +297,14 @@ model Vendor {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
   assets      Asset[]
 
+  @@unique([name, organizationId])
   @@index([name])
+  @@index([organizationId])
 }
 
 model Asset {
@@ -275,6 +326,9 @@ model Asset {
   
   departmentId    String?
   department      Department?    @relation(fields: [departmentId], references: [id])
+  
+  organizationId  String?
+  organization    Organization?  @relation(fields: [organizationId], references: [id])
   
   assignedToId    String?
   assignedTo      User?          @relation("AssignedAssets", fields: [assignedToId], references: [id])

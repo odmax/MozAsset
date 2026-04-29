@@ -1,25 +1,18 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { cookies } from 'next/headers';
-
-function getSessionUser() {
-  const sessionCookie = cookies().get('session');
-  if (sessionCookie?.value) {
-    try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
+import { getCurrentUserContext } from '@/lib/user-context';
 
 export async function GET() {
-  const user = getSessionUser();
-  if (!user) {
+  const context = await getCurrentUserContext();
+  if (!context?.userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  // Platform admins can see all data
+  const isPlatformAdmin = context.isPlatformAdmin || context.isInternalAdmin;
+  const orgId = context.organizationId;
+
+  const whereClause = isPlatformAdmin ? undefined : { organizationId: orgId };
 
   const [
     totalAssets,
@@ -30,22 +23,22 @@ export async function GET() {
     assetsByCondition,
     topValueAssets,
   ] = await Promise.all([
-    prisma.asset.count(),
-    prisma.asset.aggregate({ _sum: { purchaseCost: true } }),
+    prisma.asset.count({ where: whereClause }),
+    prisma.asset.aggregate({ where: whereClause, _sum: { purchaseCost: true } }),
     prisma.asset.groupBy({
       by: ['categoryId'],
       _sum: { purchaseCost: true },
-      where: { purchaseCost: { not: null } },
+      where: { ...whereClause, purchaseCost: { not: null } },
     }),
     prisma.asset.groupBy({
       by: ['departmentId'],
       _sum: { purchaseCost: true },
-      where: { purchaseCost: { not: null } },
+      where: { ...whereClause, purchaseCost: { not: null } },
     }),
-    prisma.asset.groupBy({ by: ['status'], _count: true }),
-    prisma.asset.groupBy({ by: ['condition'], _count: true }),
+    prisma.asset.groupBy({ by: ['status'], _count: true, where: whereClause }),
+    prisma.asset.groupBy({ by: ['condition'], _count: true, where: whereClause }),
     prisma.asset.findMany({
-      where: { purchaseCost: { not: null } },
+      where: { ...whereClause, purchaseCost: { not: null } },
       orderBy: { purchaseCost: 'desc' },
       take: 10,
       include: { category: true },

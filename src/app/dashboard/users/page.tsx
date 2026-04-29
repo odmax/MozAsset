@@ -1,23 +1,10 @@
-import { cookies } from 'next/headers';
-import prisma from '@/lib/prisma';
+﻿import prisma from '@/lib/prisma';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Users } from 'lucide-react';
 import Link from 'next/link';
 import { UsersClient } from '@/components/dashboard/users-client';
-
-function getSessionUser() {
-  const sessionCookie = cookies().get('session');
-  if (sessionCookie?.value) {
-    try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
+import { getCurrentUserContext } from '@/lib/user-context';
 
 export const metadata = { title: 'Users | Asset Manager' };
 
@@ -26,8 +13,8 @@ export default async function UsersPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const user = getSessionUser();
-  if (!user || user.role !== 'SUPER_ADMIN') return null;
+  const context = await getCurrentUserContext();
+  if (!context?.userId || context.role !== 'SUPER_ADMIN') return null;
 
   const page = Number(searchParams.page) || 1;
   const search = searchParams.search as string || '';
@@ -35,7 +22,9 @@ export default async function UsersPage({
   const sortOrder = searchParams.sortOrder as 'asc' | 'desc' || 'asc';
   const limit = 10;
 
-  const where: any = {};
+  const isPlatformAdmin = context.isPlatformAdmin || context.isInternalAdmin;
+
+  const where: any = isPlatformAdmin ? {} : { organizationId: context.organizationId };
   if (search) {
     where.OR = [
       { name: { contains: search, mode: 'insensitive' } },
@@ -56,6 +45,8 @@ export default async function UsersPage({
     }),
     prisma.user.count({ where }),
   ]);
+
+  const totalPages = Math.ceil(total / limit);
 
   return (
     <div className="space-y-6">
@@ -80,17 +71,9 @@ export default async function UsersPage({
       ) : (
         <UsersClient 
           initialUsers={users} 
-          currentUserId={user.id}
+          currentUserId={context.userId}
           totalCount={total}
         />
-      )}
-
-      {users.length === 0 && search && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <p className="text-muted-foreground">No users found matching "{search}"</p>
-          </CardContent>
-        </Card>
       )}
     </div>
   );

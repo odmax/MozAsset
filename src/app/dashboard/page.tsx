@@ -1,4 +1,3 @@
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,21 +20,24 @@ import { AssetStatus } from '@prisma/client';
 import { StatusPieChart, DepartmentBarChart, CategoryBarChart } from '@/components/dashboard/charts';
 import { UpgradePlanModal } from '@/components/plan/UpgradePlanModal';
 import { UpgradeButton } from '@/components/dashboard/UpgradeButton';
-
-function getSessionUser() {
-  const sessionCookie = cookies().get('session');
-  if (sessionCookie?.value) {
-    try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
+import { getCurrentUserContext } from '@/lib/user-context';
 
 async function getDashboardData() {
+  const context = await getCurrentUserContext();
+
+  if (!context?.userId) {
+    redirect('/login');
+  }
+
+  const isPlatformAdmin = context.isPlatformAdmin || context.isInternalAdmin;
+  const orgId = context.organizationId;
+
+  // Build where clause based on user type
+  const buildWhere = (extra: any = {}) => {
+    if (isPlatformAdmin) return { ...extra };
+    return { organizationId: orgId, ...extra };
+  };
+
   const [
     totalAssets,
     availableAssets,
@@ -49,39 +51,37 @@ async function getDashboardData() {
     expiringWarranties,
     recentActivity,
   ] = await Promise.all([
-    prisma.asset.count(),
-    prisma.asset.count({ where: { status: AssetStatus.AVAILABLE } }),
-    prisma.asset.count({ where: { status: AssetStatus.ASSIGNED } }),
-    prisma.asset.count({ where: { status: AssetStatus.IN_REPAIR } }),
-    prisma.asset.count({ where: { status: AssetStatus.RETIRED } }),
+    prisma.asset.count(buildWhere()),
+    prisma.asset.count(buildWhere({ status: AssetStatus.AVAILABLE })),
+    prisma.asset.count(buildWhere({ status: AssetStatus.ASSIGNED })),
+    prisma.asset.count(buildWhere({ status: AssetStatus.IN_REPAIR })),
+    prisma.asset.count(buildWhere({ status: AssetStatus.RETIRED })),
     prisma.asset.groupBy({
       by: ['categoryId'],
       _count: true,
-      where: { category: { isNot: null } },
+      where: buildWhere({ category: { isNot: null } }),
     }),
     prisma.asset.groupBy({
       by: ['departmentId'],
       _count: true,
-      where: { department: { isNot: null } },
+      where: buildWhere({ department: { isNot: null } }),
     }),
     prisma.asset.groupBy({
       by: ['status'],
       _count: true,
+      where: buildWhere(),
     }),
-    prisma.asset.aggregate({
-      _sum: { purchaseCost: true },
-    }),
-    prisma.asset.count({
-      where: {
-        warrantyExpiry: {
-          gte: new Date(),
-          lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        },
+    prisma.asset.aggregate({ ...buildWhere(), _sum: { purchaseCost: true } }),
+    prisma.asset.count(buildWhere({
+      warrantyExpiry: {
+        gte: new Date(),
+        lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       },
-    }),
+    })),
     prisma.auditLog.findMany({
       take: 10,
       orderBy: { createdAt: 'desc' },
+      where: isPlatformAdmin ? {} : { userId: context.userId },
       include: {
         user: { select: { name: true, email: true } },
         asset: { select: { assetTag: true, name: true } },
@@ -126,19 +126,19 @@ async function getDashboardData() {
     categoryChartData,
     departmentChartData,
     statusChartData,
-    totalValue: totalValue._sum.purchaseCost || 0,
+    totalValue: totalValue._sum?.purchaseCost ? Number(totalValue._sum.purchaseCost) : 0,
     expiringWarranties,
     recentActivity,
   };
 }
 
 export default async function DashboardPage() {
-  const user = getSessionUser();
-  
-  if (!user) {
+  const user = await getCurrentUserContext();
+
+  if (!user?.userId) {
     redirect('/login');
   }
-  
+
   const plan = user.plan || 'FREE';
   const showAds = plan === 'FREE';
   
@@ -171,7 +171,7 @@ export default async function DashboardPage() {
           </Link>
         </div>
 
-        {!showAds && plan !== 'FREE' && (
+        {!showAds && (
           <Card className="border-green-200 bg-green-50">
             <CardContent className="flex items-center gap-4 p-4">
               <Crown className="h-5 w-5 text-green-600" />
