@@ -1,5 +1,8 @@
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
+
+export const dynamic = 'force-dynamic';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -22,9 +25,7 @@ import { UpgradePlanModal } from '@/components/plan/UpgradePlanModal';
 import { UpgradeButton } from '@/components/dashboard/UpgradeButton';
 import { getCurrentUserContext } from '@/lib/user-context';
 
-async function getDashboardData() {
-  const context = await getCurrentUserContext();
-
+async function getDashboardData(context: any) {
   if (!context?.userId) {
     redirect('/login');
   }
@@ -143,7 +144,7 @@ export default async function DashboardPage() {
   const showAds = plan === 'FREE';
   
   try {
-    const data = await getDashboardData();
+    const data = await getDashboardData(user);
     
     const stats = [
       { title: 'Total Assets', value: data.totalAssets, icon: Package, color: 'text-blue-600' },
