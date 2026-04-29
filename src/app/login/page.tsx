@@ -37,6 +37,7 @@ export default function LoginPage() {
         return;
       }
 
+      console.log('Login success, redirecting to:', data.redirectUrl);
       router.push(data.redirectUrl || '/dashboard');
     } catch (err) {
       setError('An error occurred. Please try again.');

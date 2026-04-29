@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { prisma } from '@/lib/prisma';
 import type { Role, Plan } from '@prisma/client';
 
-interface UserContext {
+interface UserSession {
   userId: string;
   name: string | null;
   email: string;
@@ -14,65 +12,27 @@ interface UserContext {
   isInternalAdmin: boolean;
 }
 
-async function getCurrentUserContext(): Promise<UserContext | null> {
-  const cookieStore = cookies();
-
-  // Try custom session cookie first
-  const sessionCookie = cookieStore.get('session');
-  if (sessionCookie?.value) {
-    try {
-      const session = JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString('utf-8'));
-      if (session?.id) {
-        const user = await prisma.user.findUnique({
-          where: { id: session.id },
-          select: { id: true, name: true, email: true, role: true, plan: true, isPlatformAdmin: true, organizationId: true },
-        });
-        if (user) {
-          return {
-            userId: user.id,
-            name: user.name,
-            email: user.email,
-            organizationId: user.organizationId,
-            role: user.role,
-            plan: user.plan,
-            isPlatformAdmin: user.isPlatformAdmin || false,
-            isInternalAdmin: false,
-          };
-        }
-      }
-    } catch {}
-  }
-
-  // Try admin session cookie
-  const adminCookie = cookieStore.get('adminSession');
-  if (adminCookie?.value) {
-    try {
-      const admin = JSON.parse(Buffer.from(adminCookie.value, 'base64').toString('utf-8'));
-      if (admin?.id) {
-        const user = await prisma.user.findUnique({
-          where: { id: admin.id },
-          select: { name: true, email: true },
-        });
-        return {
-          userId: admin.id,
-          name: user?.name || null,
-          email: user?.email || '',
-          organizationId: null,
-          role: 'SUPER_ADMIN' as Role,
-          plan: 'ENTERPRISE' as Plan,
-          isPlatformAdmin: false,
-          isInternalAdmin: true,
-        };
-      }
-    } catch {}
-  }
-
+function parseSessionCookie(cookieValue: string): UserSession | null {
+  try {
+    const session = JSON.parse(Buffer.from(cookieValue, 'base64').toString('utf-8'));
+    if (session?.id) {
+      return {
+        userId: session.id,
+        name: session.name || null,
+        email: session.email || '',
+        organizationId: session.organizationId || null,
+        role: session.role || 'EMPLOYEE',
+        plan: session.plan || 'FREE',
+        isPlatformAdmin: session.isPlatformAdmin || false,
+        isInternalAdmin: session.isInternalAdmin || false,
+      };
+    }
+  } catch {}
   return null;
 }
 
 export async function middleware(request: Request) {
   const url = new URL(request.url);
-  const user = await getCurrentUserContext();
 
   const isAdminRoute = url.pathname.startsWith('/admin');
   const isDashboardRoute = url.pathname.startsWith('/dashboard');
@@ -81,6 +41,32 @@ export async function middleware(request: Request) {
   // Allow public routes
   if (!isAdminRoute && !isDashboardRoute && !isOnboardingRoute) {
     return NextResponse.next();
+  }
+
+  // Get session from cookie (middleware uses request.cookies, not next/headers)
+  const cookieHeader = request.headers.get('cookie') || '';
+  const cookies: Record<string, string> = {};
+  cookieHeader.split(';').forEach(cookie => {
+    const [name, value] = cookie.trim().split('=');
+    if (name && value) cookies[name] = value;
+  });
+
+  const sessionCookie = cookies['session'];
+  const adminCookie = cookies['adminSession'];
+
+  let user: UserSession | null = null;
+
+  if (sessionCookie) {
+    user = parseSessionCookie(sessionCookie);
+  }
+
+  if (!user && adminCookie) {
+    user = parseSessionCookie(adminCookie);
+    if (user) {
+      user.isInternalAdmin = true;
+      user.role = 'SUPER_ADMIN' as Role;
+      user.plan = 'ENTERPRISE' as Plan;
+    }
   }
 
   if (!user) {
@@ -93,26 +79,20 @@ export async function middleware(request: Request) {
   }
 
   if (user.isPlatformAdmin) {
-    if (isAdminRoute || isDashboardRoute || isOnboardingRoute) {
-      return NextResponse.redirect(new URL('/admin', request.url));
-    }
+    return NextResponse.redirect(new URL('/admin', request.url));
   }
 
-  if (isOnboardingRoute && user.userId) {
-    // Check if user needs onboarding
-    const dbUser = await prisma.user.findUnique({ where: { id: user.userId }, select: { onBoardingComplete: true } });
-    if (dbUser?.onBoardingComplete) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
-    }
-    return NextResponse.next();
+  // For regular users, check onboarding status from session
+  // The session cookie already contains onBoardingComplete
+  const sessionData = sessionCookie ? JSON.parse(Buffer.from(sessionCookie, 'base64').toString('utf-8')) : null;
+  const onBoardingComplete = sessionData?.onBoardingComplete || false;
+
+  if (isOnboardingRoute && onBoardingComplete) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  if (isDashboardRoute && user.userId) {
-    const dbUser = await prisma.user.findUnique({ where: { id: user.userId }, select: { onBoardingComplete: true } });
-    if (!dbUser?.onBoardingComplete) {
-      return NextResponse.redirect(new URL('/onboarding', request.url));
-    }
-    return NextResponse.next();
+  if (isDashboardRoute && !onBoardingComplete) {
+    return NextResponse.redirect(new URL('/onboarding', request.url));
   }
 
   return NextResponse.next();
