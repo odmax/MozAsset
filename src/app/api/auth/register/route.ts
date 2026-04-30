@@ -71,12 +71,38 @@ export async function POST(request: Request) {
 
     await sendVerificationEmail(result.user.email, result.user.name, verificationToken);
 
-    return NextResponse.json({
+    // Auto-login: set session cookie
+    const sessionData = {
+      id: result.user.id,
+      email: String(result.user.email),
+      name: String(result.user.name || ''),
+      role: 'SUPER_ADMIN',
+      plan: 'FREE',
+      assetLimit: 50,
+      onBoardingComplete: false,
+      isPlatformAdmin: false,
+      organizationId: result.org.id,
+    };
+
+    const sessionToken = Buffer.from(JSON.stringify(sessionData)).toString('base64');
+
+    const response = NextResponse.json({
       id: result.user.id,
       name: result.user.name,
       email: result.user.email,
       needsVerification: true,
+      redirectUrl: '/onboarding',
     });
+
+    response.cookies.set('session', sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    });
+
+    return response;
   } catch (error) {
     console.error('Registration error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';

@@ -25,12 +25,20 @@ export async function POST(request: Request) {
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: { onBoardingComplete: true },
-      select: { id: true, email: true, name: true, role: true, plan: true, assetLimit: true, onBoardingComplete: true },
+      select: { id: true, email: true, name: true, role: true, plan: true, assetLimit: true, onBoardingComplete: true, organizationId: true },
     });
 
+    // Build new session with updated data from DB (including organizationId)
     const newSessionData = {
-      ...user,
+      id: updatedUser.id,
+      email: updatedUser.email,
+      name: updatedUser.name || '',
+      role: String(updatedUser.role),
+      plan: String(updatedUser.plan),
+      assetLimit: updatedUser.assetLimit,
       onBoardingComplete: true,
+      isPlatformAdmin: false,
+      organizationId: updatedUser.organizationId,
     };
 
     const newSessionToken = Buffer.from(JSON.stringify(newSessionData)).toString('base64');
