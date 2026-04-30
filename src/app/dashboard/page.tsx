@@ -180,9 +180,9 @@ export default async function DashboardPage() {
               <p className="text-muted-foreground mb-6">
                 You need to complete the onboarding process to start using the dashboard.
               </p>
-              <Link href="/onboarding">
-                <Button>Go to Onboarding</Button>
-              </Link>
+              <Button asChild>
+                <Link href="/onboarding">Go to Onboarding</Link>
+              </Button>
             </CardContent>
           </Card>
         </div>

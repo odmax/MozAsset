@@ -88,7 +88,12 @@ export async function middleware(request: Request) {
   const onBoardingComplete = sessionData?.onBoardingComplete || false;
 
   if (isOnboardingRoute && onBoardingComplete) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    // Only redirect to dashboard if onboarding is TRULY complete (has org)
+    const hasOrg = sessionData?.organizationId != null;
+    if (hasOrg) {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+    // Otherwise, allow access to onboarding page (user still needs to complete it)
   }
 
   if (isDashboardRoute && !onBoardingComplete) {
