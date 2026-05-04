@@ -32,22 +32,11 @@ export async function GET() {
   const isPlatformAdmin = sessionUser?.isPlatformAdmin === true;
   const isInternalAdmin = adminUser?.isInternalAdmin === true || sessionUser?.isInternalAdmin === true;
   
-  console.log('[admin-users] Session check:', {
-    sessionEmail: sessionUser?.email,
-    hasSession: !!sessionUser,
-    isPlatformAdmin,
-    adminEmail: adminUser?.email,
-    hasAdminSession: !!adminUser,
-    isInternalAdmin,
-  });
-  
   if (!isPlatformAdmin && !isInternalAdmin) {
-    console.log('[admin-users] Unauthorized - admin check failed');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
   try {
-    console.log('[admin-users] Fetching all users from database...');
     
     const users = await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },

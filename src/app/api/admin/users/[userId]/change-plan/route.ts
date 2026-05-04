@@ -36,10 +36,7 @@ export async function POST(
   const isPlatformAdmin = sessionUser?.isPlatformAdmin === true;
   const isInternalAdmin = adminUser?.isInternalAdmin === true || sessionUser?.isInternalAdmin === true;
   
-  console.log('[change-plan] Auth check:', { isPlatformAdmin, isInternalAdmin });
-  
   if (!isPlatformAdmin && !isInternalAdmin) {
-    console.log('[change-plan] Unauthorized access');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
@@ -65,8 +62,6 @@ export async function POST(
         plan: plan as Plan,
       },
     });
-
-    console.log('[change-plan] Updated plan:', updated.plan);
 
     return NextResponse.json({ success: true, plan: updated.plan });
   } catch (error) {

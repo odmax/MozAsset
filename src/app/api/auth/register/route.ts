@@ -6,7 +6,7 @@ import bcrypt from 'bcryptjs';
 export const dynamic = 'force-dynamic';
 
 async function sendVerificationEmail(email: string, name: string | null, token: string) {
-  console.log(`Verification email would be sent to ${email} with token ${token}`);
+  // Email sending not implemented
 }
 
 export async function POST(request: Request) {

@@ -35,10 +35,7 @@ export async function POST(
   const isPlatformAdmin = sessionUser?.isPlatformAdmin === true;
   const isInternalAdmin = adminUser?.isInternalAdmin === true || sessionUser?.isInternalAdmin === true;
   
-  console.log('[toggle-active] Auth check:', { isPlatformAdmin, isInternalAdmin });
-  
   if (!isPlatformAdmin && !isInternalAdmin) {
-    console.log('[toggle-active] Unauthorized');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 

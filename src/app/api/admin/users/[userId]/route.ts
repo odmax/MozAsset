@@ -36,15 +36,11 @@ export async function GET(
   const isPlatformAdmin = sessionUser?.isPlatformAdmin === true;
   const isInternalAdmin = adminUser?.isInternalAdmin === true || sessionUser?.isInternalAdmin === true;
   
-  console.log('[admin-user-get] Auth check:', { isPlatformAdmin, isInternalAdmin });
-  
   if (!isPlatformAdmin && !isInternalAdmin) {
-    console.log('[admin-user-get] Unauthorized');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
   try {
-    console.log('[admin-user-get] Finding user:', params.userId);
     const targetUser = await prisma.user.findUnique({
       where: { id: params.userId },
       select: {
@@ -73,12 +69,8 @@ export async function GET(
     });
 
     if (!targetUser) {
-      console.log('[admin-user-get] User not found:', params.userId);
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-
-    console.log('[admin-user-get] Found user:', targetUser.email);
-    return NextResponse.json(targetUser);
 
     return NextResponse.json(targetUser);
   } catch (error) {
@@ -97,8 +89,6 @@ export async function PATCH(
   // Check both session formats
   const isPlatformAdmin = sessionUser?.isPlatformAdmin === true;
   const isInternalAdmin = adminUser?.isInternalAdmin === true || sessionUser?.isInternalAdmin === true;
-  
-  console.log('[admin-user-patch] Auth check:', { isPlatformAdmin, isInternalAdmin });
   
   if (!isPlatformAdmin && !isInternalAdmin) {
     console.log('[admin-user-patch] Unauthorized');
@@ -155,9 +145,7 @@ export async function PATCH(
     if (locationLimit !== undefined) updateData.locationLimit = locationLimit;
     if (userLimit !== undefined) updateData.userLimit = userLimit;
     if (onBoardingComplete !== undefined) updateData.onBoardingComplete = onBoardingComplete;
-
-    console.log('[admin-user-patch] Update data:', updateData);
-
+    
     const updated = await prisma.user.update({
       where: { id: params.userId },
       data: updateData,

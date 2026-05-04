@@ -33,8 +33,6 @@ async function getDashboardData(context: any) {
   const isPlatformAdmin = context.isPlatformAdmin || context.isInternalAdmin;
   const orgId = context.organizationId;
 
-  console.log('getDashboardData:', { orgId, onBoardingComplete: context.onBoardingComplete, isPlatformAdmin });
-
   // Build where clause based on user type
   // If no orgId, all queries will return empty (safe)
   const buildWhere = (extra: any = {}) => {
@@ -143,8 +141,6 @@ export default async function DashboardPage() {
   if (!user?.userId) {
     redirect('/login');
   }
-
-  console.log('Dashboard user:', { userId: user.userId, orgId: user.organizationId, onBoardingComplete: user.onBoardingComplete });
 
   const plan = user.plan || 'FREE';
   const showAds = plan === 'FREE';

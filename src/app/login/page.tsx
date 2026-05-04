@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Package, ArrowRight } from 'lucide-react';
+import { Package } from 'lucide-react';
 import { BackButton } from '@/components/ui/back-button';
 
 export default function LoginPage() {
@@ -35,8 +35,6 @@ export default function LoginPage() {
         return;
       }
 
-      console.log('Login success, redirecting to:', data.redirectUrl);
-      
       // Small delay to ensure cookie is set before redirect
       setTimeout(() => {
         window.location.href = data.redirectUrl || '/dashboard';
