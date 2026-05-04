@@ -66,7 +66,7 @@ function OrganizationStep({ onNext }: StepProps) {
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="orgName">Organization Name</Label>
-          <Input id="orgName" placeholder="Acme Corporation" />
+          <Input id="orgName" name="organization" autoComplete="organization" placeholder="Acme Corporation" />
         </div>
       </div>
       <Button onClick={onNext} className="w-full">
@@ -81,28 +81,23 @@ function DepartmentStep({ onNext, onSkip }: StepProps) {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Building2 className="h-6 w-6 text-blue-600" />
-        </div>
         <h2 className="text-2xl font-bold">Create Your First Department</h2>
         <p className="text-muted-foreground mt-2">
           Departments help you organize assets by team or location.
         </p>
       </div>
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="deptName">Department Name</Label>
-            <Input id="deptName" placeholder="Engineering" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="deptCode">Code (optional)</Label>
-            <Input id="deptCode" placeholder="ENG" />
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="deptName">Department Name</Label>
+          <Input id="deptName" name="department" autoComplete="organization" placeholder="Engineering" />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="deptCode">Code (optional)</Label>
+          <Input id="deptCode" name="department-code" placeholder="ENG" />
         </div>
         <div className="space-y-2">
           <Label htmlFor="deptDesc">Description (optional)</Label>
-          <Input id="deptDesc" placeholder="Software development team" />
+          <Input id="deptDesc" name="description" autoComplete="on" placeholder="Software development team" />
         </div>
       </div>
       <div className="flex gap-3">
@@ -134,28 +129,28 @@ function LocationStep({ onNext, onSkip }: StepProps) {
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="locName">Location Name</Label>
-          <Input id="locName" placeholder="Headquarters" />
+          <Input id="locName" name="location" autoComplete="organization" placeholder="Headquarters" />
         </div>
         <div className="space-y-2">
           <Label htmlFor="locAddress">Address (optional)</Label>
-          <Input id="locAddress" placeholder="123 Main St, City" />
+          <Input id="locAddress" name="address" autoComplete="street-address" placeholder="123 Main St, City" />
         </div>
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="locBuilding">Building</Label>
-            <Input id="locBuilding" placeholder="A" />
+            <Input id="locBuilding" name="building" autoComplete="on" placeholder="A" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="locFloor">Floor</Label>
-            <Input id="locFloor" placeholder="1" />
+            <Input id="locFloor" name="floor" autoComplete="on" placeholder="1" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="locRoom">Room</Label>
-            <Input id="locRoom" placeholder="101" />
+            <Input id="locRoom" name="room" autoComplete="on" placeholder="101" />
           </div>
         </div>
       </div>
-<div className="flex gap-3">
+    <div className="flex gap-3">
         <Button type="button" variant="outline" onClick={onSkip} className="flex-1">
           Skip
           <SkipForward className="ml-2 h-4 w-4" />
@@ -184,16 +179,16 @@ function AssetStep({ onNext, onSkip }: StepProps) {
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="assetName">Asset Name</Label>
-          <Input id="assetName" placeholder="MacBook Pro 16inch" />
+          <Input id="assetName" name="name" autoComplete="on" placeholder="MacBook Pro 16inch" />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="assetSerial">Serial Number</Label>
-            <Input id="assetSerial" placeholder="SN123456789" />
+            <Input id="assetSerial" name="serial" autoComplete="on" placeholder="SN123456789" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="assetBrand">Brand</Label>
-            <Input id="assetBrand" placeholder="Apple" />
+            <Input id="assetBrand" name="organization" autoComplete="organization" placeholder="Apple" />
           </div>
         </div>
       </div>
