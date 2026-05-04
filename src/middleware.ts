@@ -73,13 +73,6 @@ export async function middleware(request: Request) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  console.log('Middleware:', { 
-    isInternalAdmin: user.isInternalAdmin, 
-    isPlatformAdmin: user.isPlatformAdmin, 
-    role: user.role,
-    pathname: url.pathname 
-  });
-
   if (user.isInternalAdmin) {
     if (isAdminRoute) return NextResponse.next();
     return NextResponse.redirect(new URL('/admin', request.url));
