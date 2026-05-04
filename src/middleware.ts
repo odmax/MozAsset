@@ -47,8 +47,13 @@ export async function middleware(request: Request) {
   const cookieHeader = request.headers.get('cookie') || '';
   const cookies: Record<string, string> = {};
   cookieHeader.split(';').forEach(cookie => {
-    const [name, value] = cookie.trim().split('=');
-    if (name && value) cookies[name] = value;
+    const trimmed = cookie.trim();
+    const eqIndex = trimmed.indexOf('=');
+    if (eqIndex > 0) {
+      const name = trimmed.substring(0, eqIndex);
+      const value = trimmed.substring(eqIndex + 1);
+      cookies[name] = value;
+    }
   });
 
   const sessionCookie = cookies['session'];
