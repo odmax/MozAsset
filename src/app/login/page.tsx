@@ -36,12 +36,15 @@ export default function LoginPage() {
       }
 
       console.log('Login success, redirecting to:', data.redirectUrl);
-       window.location.href = data.redirectUrl || '/dashboard';
+      
+      // Small delay to ensure cookie is set before redirect
+      setTimeout(() => {
+        window.location.href = data.redirectUrl || '/dashboard';
+      }, 100);
     } catch (err) {
       setError('An error occurred. Please try again.');
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   return (
