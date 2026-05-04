@@ -41,17 +41,14 @@ export default function AdminUsersPage() {
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
 
   useEffect(() => {
-    console.log('[admin-users-page] Fetching users...');
     fetch('/api/admin/users')
       .then(res => {
-        console.log('[admin-users-page] Response status:', res.status);
         if (res.status === 401 || res.status === 403) {
           redirect('/dashboard');
         }
         return res.json();
       })
       .then(data => {
-        console.log('[admin-users-page] Response data:', data);
         if (data?.error) {
           setError(data.error);
         } else {
@@ -91,14 +88,9 @@ export default function AdminUsersPage() {
       
       const data = await res.json();
       
-      console.log('Toggle active response:', res.status, data);
-      
       if (!res.ok) {
-        console.error('Toggle active failed:', data.error);
         setUsers(currentUsers);
         alert(`Failed: ${data.error}`);
-      } else {
-        console.log('User is now:', data.isActive ? 'Active' : 'Inactive');
       }
     } catch (e) {
       console.error('Failed to toggle user status:', e);
@@ -121,14 +113,10 @@ export default function AdminUsersPage() {
       
       const data = await res.json();
       
-      console.log('Change plan response:', res.status, data);
-      
       if (!res.ok) {
-        console.error('Change plan failed:', data.error);
         setUsers(currentUsers);
         alert(`Failed: ${data.error}`);
       } else {
-        console.log('Plan updated to:', data.plan);
         // Refetch to ensure sync
         const refetch = await fetch('/api/admin/users');
         if (refetch.ok) {

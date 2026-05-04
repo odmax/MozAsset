@@ -52,6 +52,12 @@ export default function SignupPage() {
         return;
       }
 
+      // Redirect based on onboarding status from API
+      if (data.redirectUrl) {
+        window.location.href = data.redirectUrl;
+        return;
+      }
+
       setRegistered(true);
     } catch (err) {
       setError('Something went wrong');

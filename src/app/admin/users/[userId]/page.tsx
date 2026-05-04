@@ -38,10 +38,8 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
   const [error, setError] = useState('');
 
   useEffect(() => {
-    console.log('[user-detail] Fetching user:', params.userId);
     fetch(`/api/admin/users/${params.userId}`)
       .then(res => {
-        console.log('[user-detail] Response status:', res.status);
         if (res.status === 401 || res.status === 403) {
           router.push('/admin');
           return null;
@@ -49,7 +47,6 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
         return res.json();
       })
       .then(data => {
-        console.log('[user-detail] Response data:', data);
         if (data?.error) {
           setError(data.error);
         } else {
