@@ -32,20 +32,24 @@ async function getDashboardData(context: any) {
 
   const isPlatformAdmin = context.isPlatformAdmin || context.isInternalAdmin;
   const orgId = context.organizationId;
+  const onBoardingComplete = context.onBoardingComplete;
 
-  // If user has no organization and is not platform admin, show onboarding state
-  if (!orgId && !isPlatformAdmin) {
+  console.log('getDashboardData:', { orgId, onBoardingComplete, isPlatformAdmin });
+
+  // Show onboarding if user hasn't completed it OR has no org
+  // If user provided company name at signup, onBoardingComplete=true and orgId should be set
+  if ((!onBoardingComplete || !orgId) && !isPlatformAdmin) {
     return {
-      totalAssets: 0,
-      availableAssets: 0,
-      assignedAssets: 0,
-      inRepairAssets: 0,
-      retiredAssets: 0,
+      totalAssets:0,
+      availableAssets:0,
+      assignedAssets:0,
+      inRepairAssets:0,
+      retiredAssets:0,
       categoryChartData: [],
       departmentChartData: [],
       statusChartData: [],
-      totalValue: 0,
-      expiringWarranties: 0,
+      totalValue:0,
+      expiringWarranties:0,
       recentActivity: [],
       needsOnboarding: true,
     };
@@ -157,6 +161,8 @@ export default async function DashboardPage() {
   if (!user?.userId) {
     redirect('/login');
   }
+
+  console.log('Dashboard user:', { userId: user.userId, orgId: user.organizationId, onBoardingComplete: user.onBoardingComplete });
 
   const plan = user.plan || 'FREE';
   const showAds = plan === 'FREE';

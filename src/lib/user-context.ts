@@ -11,6 +11,7 @@ export interface UserContext {
   plan: Plan;
   isPlatformAdmin: boolean;
   isInternalAdmin: boolean;
+  onBoardingComplete: boolean;
 }
 
 /**
@@ -38,6 +39,7 @@ export async function getCurrentUserContext(): Promise<UserContext | null> {
             plan: true,
             isPlatformAdmin: true,
             organizationId: true,
+            onBoardingComplete: true,
           },
         });
         if (user) {
@@ -50,6 +52,7 @@ export async function getCurrentUserContext(): Promise<UserContext | null> {
             plan: user.plan,
             isPlatformAdmin: user.isPlatformAdmin || false,
             isInternalAdmin: false,
+            onBoardingComplete: user.onBoardingComplete || false,
           };
         }
       }
@@ -65,11 +68,11 @@ export async function getCurrentUserContext(): Promise<UserContext | null> {
       const admin = JSON.parse(
         Buffer.from(adminCookie.value, 'base64').toString('utf-8')
       );
-      if (admin?.id) {
+        if (admin?.id) {
         // Fetch full user details
         const user = await prisma.user.findUnique({
           where: { id: admin.id },
-          select: { name: true, email: true },
+          select: { name: true, email: true, onBoardingComplete: true },
         });
         return {
           userId: admin.id,
@@ -80,6 +83,7 @@ export async function getCurrentUserContext(): Promise<UserContext | null> {
           plan: 'ENTERPRISE' as Plan,
           isPlatformAdmin: false,
           isInternalAdmin: true,
+          onBoardingComplete: user?.onBoardingComplete || false,
         };
       }
     } catch {

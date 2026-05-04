@@ -34,6 +34,8 @@ export async function POST(request: Request) {
     const hashedPassword = await bcrypt.hash(password, 10);
     const verificationToken = randomBytes(32).toString('hex');
     const orgName = organization || name || 'My Organization';
+    // If user provided organization name at signup, onboarding is complete
+    const hasOrgName = organization && organization.trim() !== '';
 
     // Create user and organization in a transaction
     const result = await prisma.$transaction(async (tx) => {
@@ -46,7 +48,7 @@ export async function POST(request: Request) {
           role: 'SUPER_ADMIN',
           plan: 'FREE',
           assetLimit: 50,
-          onBoardingComplete: false,
+          onBoardingComplete: hasOrgName, // Skip onboarding if org name provided
           isActive: true,
           emailVerificationToken: verificationToken,
         },
@@ -79,7 +81,7 @@ export async function POST(request: Request) {
       role: 'SUPER_ADMIN',
       plan: 'FREE',
       assetLimit: 50,
-      onBoardingComplete: false,
+      onBoardingComplete: hasOrgName, // Skip onboarding if org name provided
       isPlatformAdmin: false,
       organizationId: result.org.id,
     };
