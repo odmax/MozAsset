@@ -86,6 +86,9 @@ export async function POST(request: Request) {
       organizationId: result.org.id,
     };
 
+    // Redirect based on onboarding status
+    const redirectUrl = hasOrgName ? '/dashboard' : '/onboarding';
+
     const sessionToken = Buffer.from(JSON.stringify(sessionData)).toString('base64');
 
     const response = NextResponse.json({
@@ -93,7 +96,7 @@ export async function POST(request: Request) {
       name: result.user.name,
       email: result.user.email,
       needsVerification: true,
-      redirectUrl: '/onboarding',
+      redirectUrl,
     });
 
     response.cookies.set('session', sessionToken, {
