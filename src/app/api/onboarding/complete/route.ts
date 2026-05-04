@@ -22,6 +22,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Get current user to check if they have an organization
+    const currentUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { organizationId: true },
+    });
+
+    // If user has no organization, they still need setup (but mark onboarding as complete)
+    // The dashboard will show a "repair setup" message
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: { onBoardingComplete: true },

@@ -281,6 +281,15 @@ export default function OnboardingPage() {
 
     const nextStep = currentStep + 1;
     
+    // Step 1: Create organization
+    if (currentStep === 1 && formData.organization) {
+      await fetch('/api/onboarding/organization', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: formData.organization }),
+      });
+    }
+    
     if (currentStep === 2 && formData.department.name) {
       await fetch('/api/onboarding/department', {
         method: 'POST',
