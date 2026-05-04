@@ -73,31 +73,21 @@ export async function middleware(request: Request) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
+  console.log('Middleware:', { 
+    isInternalAdmin: user.isInternalAdmin, 
+    isPlatformAdmin: user.isPlatformAdmin, 
+    role: user.role,
+    pathname: url.pathname 
+  });
+
   if (user.isInternalAdmin) {
     if (isAdminRoute) return NextResponse.next();
     return NextResponse.redirect(new URL('/admin', request.url));
   }
 
   if (user.isPlatformAdmin) {
+    if (isAdminRoute) return NextResponse.next();
     return NextResponse.redirect(new URL('/admin', request.url));
-  }
-
-  // For regular users, check onboarding status from session
-  // The session cookie already contains onBoardingComplete
-  const sessionData = sessionCookie ? JSON.parse(Buffer.from(sessionCookie, 'base64').toString('utf-8')) : null;
-  const onBoardingComplete = sessionData?.onBoardingComplete || false;
-
-  if (isOnboardingRoute && onBoardingComplete) {
-    // Only redirect to dashboard if onboarding is TRULY complete (has org)
-    const hasOrg = sessionData?.organizationId != null;
-    if (hasOrg) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
-    }
-    // Otherwise, allow access to onboarding page (user still needs to complete it)
-  }
-
-  if (isDashboardRoute && !onBoardingComplete) {
-    return NextResponse.redirect(new URL('/onboarding', request.url));
   }
 
   return NextResponse.next();
