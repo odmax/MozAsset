@@ -1,4 +1,3 @@
-import { cookies } from 'next/headers';
 import type { Plan } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,19 +8,7 @@ import Link from 'next/link';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { getPlanDetails } from '@/lib/billing';
 import { BackLink } from '@/components/ui/back-button';
-
-function getSessionUser() {
-  const sessionCookie = cookies().get('session');
-  if (sessionCookie?.value) {
-    try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
+import { getCurrentUserContext } from '@/lib/user-context';
 
 const statusColors: Record<string, string> = {
   AVAILABLE: 'bg-green-100 text-green-800',
@@ -37,13 +24,13 @@ export default async function AssetReportsPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const user = getSessionUser();
-  if (!user) return null;
+  const context = await getCurrentUserContext();
+  if (!context) return null;
 
-  const canAccess = ['SUPER_ADMIN', 'ASSET_MANAGER'].includes(user.role);
+  const canAccess = ['SUPER_ADMIN', 'ASSET_MANAGER'].includes(context.role);
   if (!canAccess) return null;
 
-  const userPlan = (user.plan || 'FREE') as Plan;
+  const userPlan = (context.plan || 'FREE') as Plan;
   const planDetails = getPlanDetails(userPlan);
   const canExport = planDetails.features.exports;
 
@@ -82,8 +69,16 @@ export default async function AssetReportsPage({
   const categoryId = searchParams.categoryId as string || '';
 
   const where: any = {};
+  if (!context.isInternalAdmin) {
+    where.organizationId = context.organizationId || 'never-match';
+  }
   if (status) where.status = status;
   if (categoryId) where.categoryId = categoryId;
+
+  const categoryWhere: any = {};
+  if (!context.isInternalAdmin) {
+    categoryWhere.organizationId = context.organizationId || 'never-match';
+  }
 
   const [assets, total, categories, totalValue] = await Promise.all([
     prisma.asset.findMany({
@@ -99,8 +94,8 @@ export default async function AssetReportsPage({
       take: limit,
     }),
     prisma.asset.count({ where }),
-    prisma.category.findMany({ orderBy: { name: 'asc' } }),
-    prisma.asset.aggregate({ _sum: { purchaseCost: true } }),
+    prisma.category.findMany({ where: categoryWhere, orderBy: { name: 'asc' } }),
+    prisma.asset.aggregate({ _sum: { purchaseCost: true }, where }),
   ]);
 
   const totalPages = Math.ceil(total / limit);

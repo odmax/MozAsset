@@ -1,24 +1,11 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { cookies } from 'next/headers';
-
-function getSessionUser() {
-  const sessionCookie = cookies().get('session');
-  if (sessionCookie?.value) {
-    try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
+import { getCurrentUserContext } from '@/lib/user-context';
 
 export async function POST(request: Request) {
   try {
-    const user = getSessionUser();
-    if (!user || !user.id) {
+    const context = await getCurrentUserContext();
+    if (!context || !context.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -28,15 +15,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Subject and message required' }, { status: 400 });
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { departmentId: true },
-    });
-
     const ticket = await prisma.supportTicket.create({
       data: {
-        userId: user.id,
-        organizationId: dbUser?.departmentId || null,
+        userId: context.userId,
+        organizationId: context.isInternalAdmin ? null : context.organizationId,
         subject,
         category,
         status: 'OPEN',
@@ -44,7 +26,7 @@ export async function POST(request: Request) {
         messages: {
           create: {
             senderType: 'USER',
-            senderUserId: user.id,
+            senderUserId: context.userId,
             message,
           },
         },
@@ -60,13 +42,18 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    const user = getSessionUser();
-    if (!user || !user.id) {
+    const context = await getCurrentUserContext();
+    if (!context || !context.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const where: any = { userId: context.userId };
+    if (!context.isInternalAdmin) {
+      where.organizationId = context.organizationId || 'never-match';
+    }
+
     const tickets = await prisma.supportTicket.findMany({
-      where: { userId: user.id },
+      where,
       include: {
         messages: {
           orderBy: { createdAt: 'asc' },

@@ -5,38 +5,41 @@ import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { Prisma, type Plan } from '@prisma/client';
 import { getPlanLimits, canAddAssets, canAddCategories, canAddDepartments, canAddLocations, canAddVendors, canAddUsers } from '@/lib/billing';
+import { getCurrentUserContext } from '@/lib/user-context';
 
-function getSessionUser() {
-  const sessionCookie = cookies().get('session');
-  if (sessionCookie?.value) {
-    try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
-    } catch {
-      return null;
-    }
+// Helper to build organization filter for non-platform admins
+function buildOrgFilter(context: Awaited<ReturnType<typeof getCurrentUserContext>>, baseWhere: any = {}) {
+  if (context?.isInternalAdmin) {
+    return baseWhere; // Platform admins can see all
   }
-  return null;
+  if (context?.organizationId) {
+    return { ...baseWhere, organizationId: context.organizationId };
+  }
+  return { ...baseWhere, organizationId: 'never-match' }; // No org = no data
 }
 
 export async function getCategories() {
-  const user = getSessionUser();
-  if (!user) throw new Error('Unauthorized');
+  const context = await getCurrentUserContext();
+  if (!context) throw new Error('Unauthorized');
 
+  const where = buildOrgFilter(context);
   return prisma.category.findMany({
+    where,
     orderBy: { name: 'asc' },
     include: { _count: { select: { assets: true } } },
   });
 }
 
 export async function createCategory(data: { name: string; description?: string; icon?: string }) {
-  const user = getSessionUser();
-  if (!user || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(user.role)) {
+  const context = await getCurrentUserContext();
+  if (!context || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(context.role)) {
     throw new Error('Unauthorized');
   }
 
-  const plan = (user.plan || 'FREE') as Plan;
-  const currentCount = await prisma.category.count();
+  const plan = (context.plan || 'FREE') as Plan;
+  const currentCount = await prisma.category.count({
+    where: buildOrgFilter(context),
+  });
   const limitCheck = canAddCategories(plan, currentCount);
   
   if (!limitCheck.allowed) {
@@ -44,7 +47,10 @@ export async function createCategory(data: { name: string; description?: string;
   }
 
   const category = await prisma.category.create({
-    data,
+    data: {
+      ...data,
+      organizationId: context.isInternalAdmin ? undefined : context.organizationId,
+    },
   });
 
   await prisma.auditLog.create({
@@ -52,7 +58,7 @@ export async function createCategory(data: { name: string; description?: string;
       action: 'CREATE',
       entityType: 'Category',
       entityId: category.id,
-      userId: user.id,
+      userId: context.userId,
       changes: data as Prisma.InputJsonValue,
     },
   });
@@ -62,13 +68,13 @@ export async function createCategory(data: { name: string; description?: string;
 }
 
 export async function updateCategory(id: string, data: { name?: string; description?: string; icon?: string }) {
-  const user = getSessionUser();
-  if (!user || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(user.role)) {
+  const context = await getCurrentUserContext();
+  if (!context || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(context.role)) {
     throw new Error('Unauthorized');
   }
 
   const category = await prisma.category.update({
-    where: { id },
+    where: { id, ...buildOrgFilter(context) },
     data,
   });
 
@@ -77,7 +83,7 @@ export async function updateCategory(id: string, data: { name?: string; descript
       action: 'UPDATE',
       entityType: 'Category',
       entityId: id,
-      userId: user.id,
+      userId: context.userId,
       changes: data as Prisma.InputJsonValue,
     },
   });
@@ -87,24 +93,24 @@ export async function updateCategory(id: string, data: { name?: string; descript
 }
 
 export async function deleteCategory(id: string) {
-  const user = getSessionUser();
-  if (!user || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(user.role)) {
+  const context = await getCurrentUserContext();
+  if (!context || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(context.role)) {
     throw new Error('Unauthorized');
   }
 
-  const assetCount = await prisma.asset.count({ where: { categoryId: id } });
+  const assetCount = await prisma.asset.count({ where: { categoryId: id, ...buildOrgFilter(context) } });
   if (assetCount > 0) {
     throw new Error(`Cannot delete category - ${assetCount} asset(s) are linked to this category. Please reassign or delete the assets first.`);
   }
 
-  await prisma.category.delete({ where: { id } });
+  await prisma.category.delete({ where: { id, ...buildOrgFilter(context) } });
 
   await prisma.auditLog.create({
     data: {
       action: 'DELETE',
       entityType: 'Category',
       entityId: id,
-      userId: user.id,
+      userId: context.userId,
     },
   });
 
@@ -112,10 +118,11 @@ export async function deleteCategory(id: string) {
 }
 
 export async function getDepartments() {
-  const user = getSessionUser();
-  if (!user) throw new Error('Unauthorized');
+  const context = await getCurrentUserContext();
+  if (!context) throw new Error('Unauthorized');
 
   return prisma.department.findMany({
+    where: buildOrgFilter(context),
     orderBy: { name: 'asc' },
     include: {
       _count: { select: { users: true, assets: true } },
@@ -125,28 +132,34 @@ export async function getDepartments() {
 }
 
 export async function createDepartment(data: { name: string; code: string; description?: string }) {
-  const user = getSessionUser();
-  if (!user || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(user.role)) {
+  const context = await getCurrentUserContext();
+  if (!context || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(context.role)) {
     throw new Error('Unauthorized');
   }
 
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
-  const plan = (dbUser?.plan || 'FREE') as Plan;
-  const currentCount = await prisma.department.count();
+  const plan = (context.plan || 'FREE') as Plan;
+  const currentCount = await prisma.department.count({
+    where: buildOrgFilter(context),
+  });
   const limitCheck = canAddDepartments(plan, currentCount);
   
   if (!limitCheck.allowed) {
     throw new Error(limitCheck.message || 'Department limit reached');
   }
 
-  const department = await prisma.department.create({ data });
+  const department = await prisma.department.create({
+    data: {
+      ...data,
+      organizationId: context.isInternalAdmin ? undefined : context.organizationId,
+    },
+  });
 
   await prisma.auditLog.create({
     data: {
       action: 'CREATE',
       entityType: 'Department',
       entityId: department.id,
-      userId: user.id,
+      userId: context.userId,
       changes: data as Prisma.InputJsonValue,
     },
   });
@@ -156,19 +169,19 @@ export async function createDepartment(data: { name: string; code: string; descr
 }
 
 export async function updateDepartment(id: string, data: { name?: string; code?: string; description?: string }) {
-  const user = getSessionUser();
-  if (!user || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(user.role)) {
+  const context = await getCurrentUserContext();
+  if (!context || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(context.role)) {
     throw new Error('Unauthorized');
   }
 
-  const department = await prisma.department.update({ where: { id }, data });
+  const department = await prisma.department.update({ where: { id, ...buildOrgFilter(context) }, data });
 
   await prisma.auditLog.create({
     data: {
       action: 'UPDATE',
       entityType: 'Department',
       entityId: id,
-      userId: user.id,
+      userId: context.userId,
       changes: data as Prisma.InputJsonValue,
     },
   });
@@ -178,13 +191,13 @@ export async function updateDepartment(id: string, data: { name?: string; code?:
 }
 
 export async function deleteDepartment(id: string) {
-  const user = getSessionUser();
-  if (!user || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(user.role)) {
+  const context = await getCurrentUserContext();
+  if (!context || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(context.role)) {
     throw new Error('Unauthorized');
   }
 
-  const assetCount = await prisma.asset.count({ where: { departmentId: id } });
-  const userCount = await prisma.user.count({ where: { departmentId: id } });
+  const assetCount = await prisma.asset.count({ where: { departmentId: id, ...buildOrgFilter(context) } });
+  const userCount = await prisma.user.count({ where: { departmentId: id, ...buildOrgFilter(context) } });
   
   if (assetCount > 0 || userCount > 0) {
     const reasons = [];
@@ -193,14 +206,14 @@ export async function deleteDepartment(id: string) {
     throw new Error(`Cannot delete department - ${reasons.join(' and ')} are linked to this department. Please reassign them first.`);
   }
 
-  await prisma.department.delete({ where: { id } });
+  await prisma.department.delete({ where: { id, ...buildOrgFilter(context) } });
 
   await prisma.auditLog.create({
     data: {
       action: 'DELETE',
       entityType: 'Department',
       entityId: id,
-      userId: user.id,
+      userId: context.userId,
     },
   });
 
@@ -208,10 +221,11 @@ export async function deleteDepartment(id: string) {
 }
 
 export async function getLocations() {
-  const user = getSessionUser();
-  if (!user) throw new Error('Unauthorized');
+  const context = await getCurrentUserContext();
+  if (!context) throw new Error('Unauthorized');
 
   return prisma.location.findMany({
+    where: buildOrgFilter(context),
     orderBy: { name: 'asc' },
     include: {
       department: { select: { id: true, name: true } },
@@ -221,28 +235,34 @@ export async function getLocations() {
 }
 
 export async function createLocation(data: { name: string; address?: string; building?: string; floor?: string; room?: string; departmentId?: string }) {
-  const user = getSessionUser();
-  if (!user || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(user.role)) {
+  const context = await getCurrentUserContext();
+  if (!context || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(context.role)) {
     throw new Error('Unauthorized');
   }
 
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
-  const plan = (dbUser?.plan || 'FREE') as Plan;
-  const currentCount = await prisma.location.count();
+  const plan = (context.plan || 'FREE') as Plan;
+  const currentCount = await prisma.location.count({
+    where: buildOrgFilter(context),
+  });
   const limitCheck = canAddLocations(plan, currentCount);
   
   if (!limitCheck.allowed) {
     throw new Error(limitCheck.message || 'Location limit reached');
   }
 
-  const location = await prisma.location.create({ data });
+  const location = await prisma.location.create({
+    data: {
+      ...data,
+      organizationId: context.isInternalAdmin ? undefined : context.organizationId,
+    },
+  });
 
   await prisma.auditLog.create({
     data: {
       action: 'CREATE',
       entityType: 'Location',
       entityId: location.id,
-      userId: user.id,
+      userId: context.userId,
       changes: data as Prisma.InputJsonValue,
     },
   });
@@ -252,19 +272,19 @@ export async function createLocation(data: { name: string; address?: string; bui
 }
 
 export async function updateLocation(id: string, data: { name?: string; address?: string; building?: string; floor?: string; room?: string; departmentId?: string }) {
-  const user = getSessionUser();
-  if (!user || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(user.role)) {
+  const context = await getCurrentUserContext();
+  if (!context || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(context.role)) {
     throw new Error('Unauthorized');
   }
 
-  const location = await prisma.location.update({ where: { id }, data });
+  const location = await prisma.location.update({ where: { id, ...buildOrgFilter(context) }, data });
 
   await prisma.auditLog.create({
     data: {
       action: 'UPDATE',
       entityType: 'Location',
       entityId: id,
-      userId: user.id,
+      userId: context.userId,
       changes: data as Prisma.InputJsonValue,
     },
   });
@@ -274,24 +294,24 @@ export async function updateLocation(id: string, data: { name?: string; address?
 }
 
 export async function deleteLocation(id: string) {
-  const user = getSessionUser();
-  if (!user || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(user.role)) {
+  const context = await getCurrentUserContext();
+  if (!context || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(context.role)) {
     throw new Error('Unauthorized');
   }
 
-  const assetCount = await prisma.asset.count({ where: { locationId: id } });
+  const assetCount = await prisma.asset.count({ where: { locationId: id, ...buildOrgFilter(context) } });
   if (assetCount > 0) {
     throw new Error(`Cannot delete location - ${assetCount} asset(s) are linked to this location. Please reassign or delete the assets first.`);
   }
 
-  await prisma.location.delete({ where: { id } });
+  await prisma.location.delete({ where: { id, ...buildOrgFilter(context) } });
 
   await prisma.auditLog.create({
     data: {
       action: 'DELETE',
       entityType: 'Location',
       entityId: id,
-      userId: user.id,
+      userId: context.userId,
     },
   });
 
@@ -299,38 +319,45 @@ export async function deleteLocation(id: string) {
 }
 
 export async function getVendors() {
-  const user = getSessionUser();
-  if (!user) throw new Error('Unauthorized');
+  const context = await getCurrentUserContext();
+  if (!context) throw new Error('Unauthorized');
 
   return prisma.vendor.findMany({
+    where: buildOrgFilter(context),
     orderBy: { name: 'asc' },
     include: { _count: { select: { assets: true } } },
   });
 }
 
 export async function createVendor(data: { name: string; contactName?: string; email?: string; phone?: string; address?: string; website?: string; notes?: string }) {
-  const user = getSessionUser();
-  if (!user || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(user.role)) {
+  const context = await getCurrentUserContext();
+  if (!context || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(context.role)) {
     throw new Error('Unauthorized');
   }
 
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
-  const plan = (dbUser?.plan || 'FREE') as Plan;
-  const currentCount = await prisma.vendor.count();
+  const plan = (context.plan || 'FREE') as Plan;
+  const currentCount = await prisma.vendor.count({
+    where: buildOrgFilter(context),
+  });
   const limitCheck = canAddVendors(plan, currentCount);
   
   if (!limitCheck.allowed) {
     throw new Error(limitCheck.message || 'Vendor limit reached');
   }
 
-  const vendor = await prisma.vendor.create({ data });
+  const vendor = await prisma.vendor.create({
+    data: {
+      ...data,
+      organizationId: context.isInternalAdmin ? undefined : context.organizationId,
+    },
+  });
 
   await prisma.auditLog.create({
     data: {
       action: 'CREATE',
       entityType: 'Vendor',
       entityId: vendor.id,
-      userId: user.id,
+      userId: context.userId,
       changes: data as Prisma.InputJsonValue,
     },
   });
@@ -340,19 +367,19 @@ export async function createVendor(data: { name: string; contactName?: string; e
 }
 
 export async function updateVendor(id: string, data: { name?: string; contactName?: string; email?: string; phone?: string; address?: string; website?: string; notes?: string }) {
-  const user = getSessionUser();
-  if (!user || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(user.role)) {
+  const context = await getCurrentUserContext();
+  if (!context || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(context.role)) {
     throw new Error('Unauthorized');
   }
 
-  const vendor = await prisma.vendor.update({ where: { id }, data });
+  const vendor = await prisma.vendor.update({ where: { id, ...buildOrgFilter(context) }, data });
 
   await prisma.auditLog.create({
     data: {
       action: 'UPDATE',
       entityType: 'Vendor',
       entityId: id,
-      userId: user.id,
+      userId: context.userId,
       changes: data as Prisma.InputJsonValue,
     },
   });
@@ -362,24 +389,24 @@ export async function updateVendor(id: string, data: { name?: string; contactNam
 }
 
 export async function deleteVendor(id: string) {
-  const user = getSessionUser();
-  if (!user || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(user.role)) {
+  const context = await getCurrentUserContext();
+  if (!context || !['SUPER_ADMIN', 'ASSET_MANAGER'].includes(context.role)) {
     throw new Error('Unauthorized');
   }
 
-  const assetCount = await prisma.asset.count({ where: { vendorId: id } });
+  const assetCount = await prisma.asset.count({ where: { vendorId: id, ...buildOrgFilter(context) } });
   if (assetCount > 0) {
     throw new Error(`Cannot delete vendor - ${assetCount} asset(s) are linked to this vendor. Please reassign or delete the assets first.`);
   }
 
-  await prisma.vendor.delete({ where: { id } });
+  await prisma.vendor.delete({ where: { id, ...buildOrgFilter(context) } });
 
   await prisma.auditLog.create({
     data: {
       action: 'DELETE',
       entityType: 'Vendor',
       entityId: id,
-      userId: user.id,
+      userId: context.userId,
     },
   });
 
@@ -387,10 +414,11 @@ export async function deleteVendor(id: string) {
 }
 
 export async function getUsers() {
-  const user = getSessionUser();
-  if (!user) throw new Error('Unauthorized');
+  const context = await getCurrentUserContext();
+  if (!context) throw new Error('Unauthorized');
 
   return prisma.user.findMany({
+    where: buildOrgFilter(context),
     orderBy: { name: 'asc' },
     include: {
       department: { select: { id: true, name: true } },
@@ -400,14 +428,15 @@ export async function getUsers() {
 }
 
 export async function createUser(data: { name: string; email: string; password?: string; role: string; departmentId?: string; isActive?: boolean }) {
-  const user = getSessionUser();
-  if (!user || user.role !== 'SUPER_ADMIN') {
+  const context = await getCurrentUserContext();
+  if (!context || context.role !== 'SUPER_ADMIN') {
     throw new Error('Unauthorized');
   }
 
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
-  const plan = (dbUser?.plan || 'FREE') as Plan;
-  const currentCount = await prisma.user.count();
+  const plan = (context.plan || 'FREE') as Plan;
+  const currentCount = await prisma.user.count({
+    where: buildOrgFilter(context),
+  });
   const limitCheck = canAddUsers(plan, currentCount);
   
   if (!limitCheck.allowed) {
@@ -427,6 +456,7 @@ export async function createUser(data: { name: string; email: string; password?:
       isActive: data.isActive ?? true,
       onBoardingComplete: true,
       emailVerified: new Date(),
+      organizationId: context.isInternalAdmin ? undefined : context.organizationId,
     },
   });
 
@@ -435,7 +465,7 @@ export async function createUser(data: { name: string; email: string; password?:
       action: 'CREATE',
       entityType: 'User',
       entityId: newUser.id,
-      userId: user.id,
+      userId: context.userId,
       changes: { ...data, password: undefined } as Prisma.InputJsonValue,
     },
   });
@@ -445,8 +475,8 @@ export async function createUser(data: { name: string; email: string; password?:
 }
 
 export async function updateUser(id: string, data: { name?: string; email?: string; password?: string; role?: string; departmentId?: string; isActive?: boolean }) {
-  const user = getSessionUser();
-  if (!user || user.role !== 'SUPER_ADMIN') {
+  const context = await getCurrentUserContext();
+  if (!context || context.role !== 'SUPER_ADMIN') {
     throw new Error('Unauthorized');
   }
 
@@ -456,14 +486,14 @@ export async function updateUser(id: string, data: { name?: string; email?: stri
     updateData.password = await bcrypt.hash(data.password, 12);
   }
 
-  const updated = await prisma.user.update({ where: { id }, data: updateData });
+  const updated = await prisma.user.update({ where: { id, ...buildOrgFilter(context) }, data: updateData });
 
   await prisma.auditLog.create({
     data: {
       action: 'UPDATE',
       entityType: 'User',
       entityId: id,
-      userId: user.id,
+      userId: context.userId,
       changes: { ...data, password: undefined } as Prisma.InputJsonValue,
     },
   });
@@ -473,19 +503,19 @@ export async function updateUser(id: string, data: { name?: string; email?: stri
 }
 
 export async function deleteUser(id: string) {
-  const user = getSessionUser();
-  if (!user || user.role !== 'SUPER_ADMIN') {
+  const context = await getCurrentUserContext();
+  if (!context || context.role !== 'SUPER_ADMIN') {
     throw new Error('Unauthorized');
   }
 
-  await prisma.user.delete({ where: { id } });
+  await prisma.user.delete({ where: { id, ...buildOrgFilter(context) } });
 
   await prisma.auditLog.create({
     data: {
       action: 'DELETE',
       entityType: 'User',
       entityId: id,
-      userId: user.id,
+      userId: context.userId,
     },
   });
 
@@ -493,16 +523,16 @@ export async function deleteUser(id: string) {
 }
 
 export async function toggleUserActive(id: string) {
-  const user = getSessionUser();
-  if (!user || user.role !== 'SUPER_ADMIN') {
+  const context = await getCurrentUserContext();
+  if (!context || context.role !== 'SUPER_ADMIN') {
     throw new Error('Unauthorized');
   }
 
-  const dbUser = await prisma.user.findUnique({ where: { id } });
+  const dbUser = await prisma.user.findUnique({ where: { id, ...buildOrgFilter(context) } });
   if (!dbUser) throw new Error('User not found');
 
   const updated = await prisma.user.update({
-    where: { id },
+    where: { id, ...buildOrgFilter(context) },
     data: { isActive: !dbUser.isActive },
   });
 
@@ -511,7 +541,7 @@ export async function toggleUserActive(id: string) {
       action: updated.isActive ? 'ACTIVATE' : 'DEACTIVATE',
       entityType: 'User',
       entityId: id,
-      userId: user.id,
+      userId: context.userId,
       changes: { isActive: updated.isActive } as Prisma.InputJsonValue,
     },
   });
@@ -521,8 +551,8 @@ export async function toggleUserActive(id: string) {
 }
 
 export async function resetUserPassword(id: string, newPassword: string) {
-  const user = getSessionUser();
-  if (!user || user.role !== 'SUPER_ADMIN') {
+  const context = await getCurrentUserContext();
+  if (!context || context.role !== 'SUPER_ADMIN') {
     throw new Error('Unauthorized');
   }
 
@@ -530,7 +560,7 @@ export async function resetUserPassword(id: string, newPassword: string) {
   const hashedPassword = await bcrypt.hash(newPassword, 12);
 
   await prisma.user.update({
-    where: { id },
+    where: { id, ...buildOrgFilter(context) },
     data: { password: hashedPassword },
   });
 
@@ -539,7 +569,7 @@ export async function resetUserPassword(id: string, newPassword: string) {
       action: 'PASSWORD_RESET',
       entityType: 'User',
       entityId: id,
-      userId: user.id,
+      userId: context.userId,
     },
   });
 
@@ -547,12 +577,12 @@ export async function resetUserPassword(id: string, newPassword: string) {
 }
 
 export async function getAuditLogs(params?: { page?: number; limit?: number; action?: string; entityType?: string }) {
-  const user = getSessionUser();
-  if (!user) throw new Error('Unauthorized');
+  const context = await getCurrentUserContext();
+  if (!context) throw new Error('Unauthorized');
 
   const { page = 1, limit = 50, action, entityType } = params || {};
 
-  const where: any = {};
+  const where: any = buildOrgFilter(context);
   if (action) where.action = action;
   if (entityType) where.entityType = entityType;
 

@@ -1,4 +1,3 @@
-import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,19 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Activity, Download, Search } from 'lucide-react';
 import { formatDateTime } from '@/lib/utils';
 import Link from 'next/link';
-
-function getSessionUser() {
-  const sessionCookie = cookies().get('session');
-  if (sessionCookie?.value) {
-    try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
+import { getCurrentUserContext } from '@/lib/user-context';
 
 export const metadata = { title: 'Audit Logs | Asset Manager' };
 
@@ -44,8 +31,8 @@ export default async function AuditLogsPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const user = getSessionUser();
-  if (!user) return null;
+  const context = await getCurrentUserContext();
+  if (!context) return null;
 
   const page = Number(searchParams.page) || 1;
   const limit = 25;
@@ -54,6 +41,9 @@ export default async function AuditLogsPage({
   const entityType = searchParams.entityType as string || '';
 
   const where: any = {};
+  if (!context.isInternalAdmin) {
+    where.organizationId = context.organizationId || 'never-match';
+  }
   if (search) {
     where.OR = [
       { user: { email: { contains: search, mode: 'insensitive' } } },
@@ -77,8 +67,8 @@ export default async function AuditLogsPage({
       take: limit,
     }),
     prisma.auditLog.count({ where }),
-    prisma.auditLog.groupBy({ by: ['action'], _count: { action: true } }),
-    prisma.auditLog.groupBy({ by: ['entityType'], _count: { entityType: true } }),
+    prisma.auditLog.groupBy({ by: ['action'], _count: { action: true }, where }),
+    prisma.auditLog.groupBy({ by: ['entityType'], _count: { entityType: true }, where }),
   ]);
 
   const totalPages = Math.ceil(total / limit);

@@ -1,30 +1,17 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import { canAccessFeature } from '@/lib/billing';
 import type { Plan } from '@prisma/client';
 import { formatDateTime } from '@/lib/utils';
-
-function getSessionUser() {
-  const sessionCookie = cookies().get('session');
-  if (sessionCookie?.value) {
-    try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
+import { getCurrentUserContext } from '@/lib/user-context';
 
 export async function GET(request: Request) {
-  const user = getSessionUser();
-  if (!user) {
+  const context = await getCurrentUserContext();
+  if (!context) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  if (!canAccessFeature((user.plan || 'FREE') as Plan, 'exports')) {
+  if (!canAccessFeature((context.plan || 'FREE') as Plan, 'exports')) {
     return NextResponse.json(
       { error: 'PLAN_LIMIT_EXCEEDED', feature: 'exports' },
       { status: 403 }
@@ -37,6 +24,9 @@ export async function GET(request: Request) {
   const entityType = searchParams.get('entityType') || '';
 
   const where: any = {};
+  if (!context.isInternalAdmin) {
+    where.organizationId = context.organizationId || 'never-match';
+  }
   if (search) {
     where.OR = [
       { user: { email: { contains: search, mode: 'insensitive' } } },

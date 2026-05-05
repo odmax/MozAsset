@@ -1,4 +1,3 @@
-import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,29 +6,17 @@ import { Download, Wrench, Calendar, DollarSign } from 'lucide-react';
 import Link from 'next/link';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { BackLink } from '@/components/ui/back-button';
-
-function getSessionUser() {
-  const sessionCookie = cookies().get('session');
-  if (sessionCookie?.value) {
-    try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
+import { getCurrentUserContext } from '@/lib/user-context';
 
 export default async function MaintenanceReportsPage({
   searchParams,
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const user = getSessionUser();
-  if (!user) return null;
+  const context = await getCurrentUserContext();
+  if (!context) return null;
 
-  const canAccess = ['SUPER_ADMIN', 'ASSET_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE'].includes(user.role);
+  const canAccess = ['SUPER_ADMIN', 'ASSET_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE'].includes(context.role);
   if (!canAccess) return null;
 
   const page = Number(searchParams.page) || 1;
@@ -37,6 +24,9 @@ export default async function MaintenanceReportsPage({
   const type = searchParams.type as string || '';
 
   const where: any = {};
+  if (!context.isInternalAdmin) {
+    where.organizationId = context.organizationId || 'never-match';
+  }
   if (type) where.type = type;
 
   const [maintenances, total, totalCost, byType] = await Promise.all([
@@ -51,8 +41,8 @@ export default async function MaintenanceReportsPage({
       take: limit,
     }),
     prisma.maintenance.count({ where }),
-    prisma.maintenance.aggregate({ _sum: { cost: true } }),
-    prisma.maintenance.groupBy({ by: ['type'], _count: true, _sum: { cost: true } }),
+    prisma.maintenance.aggregate({ _sum: { cost: true }, where }),
+    prisma.maintenance.groupBy({ by: ['type'], _count: true, _sum: { cost: true }, where }),
   ]);
 
   const totalPages = Math.ceil(total / limit);

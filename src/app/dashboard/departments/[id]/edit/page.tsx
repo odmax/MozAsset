@@ -1,27 +1,19 @@
-import { cookies } from 'next/headers';
-import prisma from '@/lib/prisma';
 import { notFound, redirect } from 'next/navigation';
 import { DepartmentForm } from '@/components/dashboard/department-form';
 import { BackLink } from '@/components/ui/back-button';
-
-function getSessionUser() {
-  const sessionCookie = cookies().get('session');
-  if (sessionCookie?.value) {
-    try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
+import { getCurrentUserContext } from '@/lib/user-context';
+import prisma from '@/lib/prisma';
 
 export default async function EditDepartmentPage({ params }: { params: { id: string } }) {
-  const user = getSessionUser();
-  if (!user) redirect('/login');
+  const context = await getCurrentUserContext();
+  if (!context) redirect('/login');
 
-  const department = await prisma.department.findUnique({ where: { id: params.id } });
+  const where: any = { id: params.id };
+  if (!context.isInternalAdmin) {
+    where.organizationId = context.organizationId || 'never-match';
+  }
+
+  const department = await prisma.department.findUnique({ where });
   if (!department) notFound();
 
   return (

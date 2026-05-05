@@ -1,39 +1,17 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import { createCheckoutSession, createPortalSession, cancelSubscription, getSubscriptionStatus, createCheckoutPayload, getPayfastBaseUrl } from '@/lib/billing';
 import type { BillingProvider, Plan } from '@prisma/client';
-
-function getSessionUser() {
-  const sessionCookie = cookies().get('session');
-  if (sessionCookie?.value) {
-    try {
-      return JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString('utf-8'));
-    } catch { return null; }
-  }
-  return null;
-}
-
-function getAdminSession() {
-  const adminCookie = cookies().get('adminSession');
-  if (adminCookie?.value) {
-    try {
-      return JSON.parse(Buffer.from(adminCookie.value, 'base64').toString('utf-8'));
-    } catch { return null; }
-  }
-  return null;
-}
+import { getCurrentUserContext } from '@/lib/user-context';
 
 export async function POST(request: Request) {
   try {
-    const user = getSessionUser();
-    const admin = getAdminSession();
-    if (!user && !admin) {
+    const context = await getCurrentUserContext();
+    if (!context) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const sessionUser = user || admin;
-    const userId = sessionUser?.id;
+    const userId = context.userId;
 
     const { action, plan } = await request.json();
 
@@ -167,14 +145,12 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    const user = getSessionUser();
-    const admin = getAdminSession();
-    if (!user && !admin) {
+    const context = await getCurrentUserContext();
+    if (!context) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const sessionUser = user || admin;
-    const userId = sessionUser?.id;
+    const userId = context.userId;
 
     const profile = await prisma.user.findUnique({
       where: { id: userId },
@@ -196,11 +172,16 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    const where: any = {};
+    if (!context.isInternalAdmin) {
+      where.organizationId = context.organizationId || 'never-match';
+    }
+
     const [assetCount, departmentCount, locationCount, userCount] = await Promise.all([
-      prisma.asset.count(),
-      prisma.department.count(),
-      prisma.location.count(),
-      prisma.user.count({ where: { isActive: true } }),
+      prisma.asset.count({ where }),
+      prisma.department.count({ where }),
+      prisma.location.count({ where }),
+      prisma.user.count({ where: { ...where, isActive: true } }),
     ]);
 
     let providerStatus = null;
