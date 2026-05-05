@@ -63,7 +63,8 @@ export default async function AdminLayout({
 }) {
   const session = getUserSession();
   
-  if (!session || session.sessionType !== 'admin') {
+  // Allow both internal admins (sessionType: 'admin') and platform admins (isPlatformAdmin: true)
+  if (!session || (session.sessionType !== 'admin' && !session.isPlatformAdmin)) {
     redirect('/login');
   }
 
