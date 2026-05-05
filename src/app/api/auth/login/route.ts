@@ -5,27 +5,37 @@ import bcrypt from 'bcryptjs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
+  console.log('LOGIN API CALLED');
+  
   try {
     const { email, password } = await request.json();
+    console.log('Login attempt:', { email, hasPassword: !!password });
 
     if (!email || !password) {
+      console.log('ERROR: Missing email or password');
       return NextResponse.json({ error: 'Email and password required' }, { status: 400 });
     }
 
     // Normalize email to lowercase for case-insensitive match
     const normalizedEmail = email.toLowerCase().trim();
+    console.log('Normalized email:', normalizedEmail);
 
     // 1. Check InternalAdmin table first (platform admins)
+    console.log('Checking InternalAdmin table...');
     const admin = await prisma.internalAdmin.findFirst({
       where: { 
         email: { equals: normalizedEmail, mode: 'insensitive' }
       },
     });
+    console.log('Admin found:', !!admin, admin?.email);
 
     if (admin && admin.isActive) {
+      console.log('Admin found, checking password...');
       const isValid = await bcrypt.compare(password, admin.password);
+      console.log('Password valid:', isValid);
 
       if (isValid) {
+        console.log('Password valid, creating session...');
         await prisma.internalAdmin.update({
           where: { id: admin.id },
           data: { lastLogin: new Date() },
@@ -41,6 +51,7 @@ export async function POST(request: Request) {
         };
 
         const sessionToken = Buffer.from(JSON.stringify(sessionData)).toString('base64');
+        console.log('Session token created, setting cookie...');
 
         const response = NextResponse.json({
           success: true,
@@ -60,8 +71,10 @@ export async function POST(request: Request) {
           path: '/',
         });
 
+        console.log('Login successful, returning response with adminSession cookie');
         return response;
       } else {
+        console.log('Password invalid');
         return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
       }
     }
