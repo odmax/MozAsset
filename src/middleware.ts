@@ -1,34 +1,14 @@
 import { NextResponse } from 'next/server';
-import type { Role, Plan } from '@prisma/client';
+import { getAdminSessionFromHeader } from '@/lib/admin-session';
 
 interface UserSession {
   userId: string;
   name: string | null;
   email: string;
   organizationId: string | null;
-  role: Role;
-  plan: Plan;
-  isPlatformAdmin: boolean;
+  role: string;
+  plan: string;
   isInternalAdmin: boolean;
-}
-
-function parseSessionCookie(cookieValue: string): UserSession | null {
-  try {
-    const session = JSON.parse(Buffer.from(cookieValue, 'base64').toString('utf-8'));
-    if (session?.id) {
-      return {
-        userId: session.id,
-        name: session.name || null,
-        email: session.email || '',
-        organizationId: session.organizationId || null,
-        role: session.role || 'EMPLOYEE',
-        plan: session.plan || 'FREE',
-        isPlatformAdmin: session.isPlatformAdmin || false,
-        isInternalAdmin: session.isInternalAdmin || false,
-      };
-    }
-  } catch {}
-  return null;
 }
 
 export async function middleware(request: Request) {
@@ -43,8 +23,17 @@ export async function middleware(request: Request) {
     return NextResponse.next();
   }
 
-  // Get session from cookie (middleware uses request.cookies, not next/headers)
+  // Check for admin session first (platform admins)
   const cookieHeader = request.headers.get('cookie') || '';
+  const adminSession = getAdminSessionFromHeader(cookieHeader);
+  
+  if (adminSession) {
+    // Platform admin - only allow /admin routes
+    if (isAdminRoute) return NextResponse.next();
+    return NextResponse.redirect(new URL('/admin', request.url));
+  }
+
+  // Check for customer session
   const cookies: Record<string, string> = {};
   cookieHeader.split(';').forEach(cookie => {
     const trimmed = cookie.trim();
@@ -57,35 +46,30 @@ export async function middleware(request: Request) {
   });
 
   const sessionCookie = cookies['session'];
-  const adminCookie = cookies['adminSession'];
-
   let user: UserSession | null = null;
 
   if (sessionCookie) {
-    user = parseSessionCookie(sessionCookie);
-  }
-
-  if (!user && adminCookie) {
-    user = parseSessionCookie(adminCookie);
-    if (user) {
-      user.isInternalAdmin = true;
-      user.role = 'SUPER_ADMIN' as Role;
-      user.plan = 'ENTERPRISE' as Plan;
-    }
+    try {
+      const session = JSON.parse(Buffer.from(sessionCookie, 'base64').toString('utf-8'));
+      if (session?.id) {
+        user = {
+          userId: session.id,
+          name: session.name || null,
+          email: session.email || '',
+          organizationId: session.organizationId || null,
+          role: session.role || 'EMPLOYEE',
+          plan: session.plan || 'FREE',
+          isInternalAdmin: false,
+        };
+      }
+    } catch {}
   }
 
   if (!user) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  if (user.isInternalAdmin) {
-    if (isAdminRoute) return NextResponse.next();
-    return NextResponse.redirect(new URL('/admin', request.url));
-  }
-
-  // Note: Platform admins now use InternalAdmin table with sessionType === 'admin'
-  // isPlatformAdmin in User table is deprecated for admin access control
-
+  // Customer user - allow /dashboard and /onboarding
   return NextResponse.next();
 }
 

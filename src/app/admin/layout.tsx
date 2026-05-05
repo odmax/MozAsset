@@ -18,20 +18,17 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import LogoutButton from './logout-button';
+import { getAdminSession } from '@/lib/admin-session';
 
 function getUserSession() {
-  const sessionCookie = cookies().get('session');
-  const adminSessionCookie = cookies().get('adminSession');
-  
-  if (adminSessionCookie?.value) {
-    try {
-      const decoded = Buffer.from(adminSessionCookie.value, 'base64').toString('utf-8');
-      return { ...JSON.parse(decoded), sessionType: 'admin' };
-    } catch {
-      return null;
-    }
+  // Check for admin session first
+  const adminSession = getAdminSession();
+  if (adminSession) {
+    return { ...adminSession, sessionType: 'admin' };
   }
-  
+
+  // Fall back to customer session
+  const sessionCookie = cookies().get('session');
   if (sessionCookie?.value) {
     try {
       const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');

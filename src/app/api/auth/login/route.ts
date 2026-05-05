@@ -12,8 +12,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email and password required' }, { status: 400 });
     }
 
-    const admin = await prisma.internalAdmin.findUnique({
-      where: { email },
+    // Normalize email to lowercase for case-insensitive match
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // 1. Check InternalAdmin table first (platform admins)
+    const admin = await prisma.internalAdmin.findFirst({
+      where: { 
+        email: { equals: normalizedEmail, mode: 'insensitive' }
+      },
     });
 
     if (admin && admin.isActive) {
@@ -30,6 +36,7 @@ export async function POST(request: Request) {
           email: String(admin.email),
           name: String(admin.name || ''),
           role: String(admin.role),
+          sessionType: 'admin',
           isInternalAdmin: true,
         };
 
@@ -54,15 +61,32 @@ export async function POST(request: Request) {
         });
 
         return response;
+      } else {
+        return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
       }
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email },
+    if (admin && !admin.isActive) {
+      return NextResponse.json({ error: 'Account is inactive. Please contact support.' }, { status: 403 });
+    }
+
+    // 2. Check User table (customers)
+    const user = await prisma.user.findFirst({
+      where: { 
+        email: { equals: normalizedEmail, mode: 'insensitive' }
+      },
     });
 
-    if (!user || !user.password || !user.isActive) {
+    if (!user) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+    }
+
+    if (!user.isActive) {
+      return NextResponse.json({ error: 'Account is inactive. Please contact support.' }, { status: 403 });
+    }
+
+    if (!user.password) {
+      return NextResponse.json({ error: 'Please set your password first. Use forgot password.' }, { status: 401 });
     }
 
     const isValid = await bcrypt.compare(password, user.password);
@@ -110,6 +134,6 @@ export async function POST(request: Request) {
     if (message.includes('database') || message.includes('Prisma')) {
       return NextResponse.json({ error: 'Database connection failed. Please try again later.' }, { status: 503 });
     }
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'Login failed. Please try again.' }, { status: 500 });
   }
 }
