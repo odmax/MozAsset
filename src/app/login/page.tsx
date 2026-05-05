@@ -28,18 +28,27 @@ export default function LoginPage() {
       });
 
       const data = await res.json();
+      
+      console.log('Login API response:', { status: res.status, data });
 
       if (!res.ok || data.error) {
-        setError(data.error || 'Invalid email or password');
+        setError(data.error || `Login failed (${res.status})`);
         setIsLoading(false);
         return;
       }
 
+      console.log('Login successful, redirecting to:', data.redirectUrl);
+      
       // Small delay to ensure cookie is set before redirect
       setTimeout(() => {
-        window.location.href = data.redirectUrl || '/dashboard';
-      }, 100);
+        const redirectUrl = data.redirectUrl || '/dashboard';
+        console.log('Redirecting to:', redirectUrl);
+        
+        // Try using window.location.replace instead of href
+        window.location.replace(redirectUrl);
+      }, 500);
     } catch (err) {
+      console.error('Login error:', err);
       setError('An error occurred. Please try again.');
       setIsLoading(false);
     }
@@ -116,7 +125,7 @@ export default function LoginPage() {
         </Card>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
-          Demo: admin@example.com / password123
+          Platform Admin: Ademoyemo@gmail.com / password123
         </p>
       </div>
     </div>
