@@ -13,6 +13,11 @@ interface UserSession {
 
 export async function middleware(request: Request) {
   const url = new URL(request.url);
+  
+  // Skip middleware for login page and API routes to prevent loops
+  if (url.pathname === '/login' || url.pathname.startsWith('/api/')) {
+    return NextResponse.next();
+  }
 
   const isAdminRoute = url.pathname.startsWith('/admin');
   const isDashboardRoute = url.pathname.startsWith('/dashboard');
@@ -25,7 +30,11 @@ export async function middleware(request: Request) {
 
   // Check for admin session first (platform admins)
   const cookieHeader = request.headers.get('cookie') || '';
+  console.log('Middleware check:', url.pathname);
+  console.log('Cookie header present:', !!cookieHeader);
+  
   const adminSession = getAdminSessionFromHeader(cookieHeader);
+  console.log('Admin session found:', !!adminSession);
   
   if (adminSession) {
     // Platform admin - only allow /admin routes

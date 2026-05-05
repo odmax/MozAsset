@@ -59,9 +59,11 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const session = getUserSession();
+  console.log('Admin layout check:', { hasSession: !!session, sessionType: session?.sessionType });
   
   // Platform admins now use InternalAdmin table with sessionType = 'admin'
   if (!session || session.sessionType !== 'admin') {
+    console.log('Admin layout: redirecting to /login');
     redirect('/login');
   }
 
