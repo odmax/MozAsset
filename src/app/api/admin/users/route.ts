@@ -28,16 +28,16 @@ export async function GET() {
   const sessionUser = getSessionUser();
   const adminUser = getAdminSession();
   
-  // Check both session formats
-  const isPlatformAdmin = sessionUser?.isPlatformAdmin === true;
-  const isInternalAdmin = adminUser?.isInternalAdmin === true || sessionUser?.isInternalAdmin === true;
+  // Check admin session ONLY (platform admins use InternalAdmin table)
+  const isInternalAdmin = adminUser?.isInternalAdmin === true;
   
-  if (!isPlatformAdmin && !isInternalAdmin) {
+  if (!isInternalAdmin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
-
+  
   try {
     
+    // Only fetch from User table (platform admins are in InternalAdmin table)
     const users = await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
       select: {

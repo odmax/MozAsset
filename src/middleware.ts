@@ -83,10 +83,8 @@ export async function middleware(request: Request) {
     return NextResponse.redirect(new URL('/admin', request.url));
   }
 
-  if (user.isPlatformAdmin) {
-    if (isAdminRoute) return NextResponse.next();
-    return NextResponse.redirect(new URL('/admin', request.url));
-  }
+  // Note: Platform admins now use InternalAdmin table with sessionType === 'admin'
+  // isPlatformAdmin in User table is deprecated for admin access control
 
   return NextResponse.next();
 }

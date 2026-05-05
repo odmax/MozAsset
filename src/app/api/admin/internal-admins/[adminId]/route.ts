@@ -1,40 +1,115 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
+import { InternalRole } from '@prisma/client';
+
+function getAdminSession() {
+  const adminCookie = cookies().get('adminSession');
+  if (adminCookie?.value) {
+    try {
+      const decoded = Buffer.from(adminCookie.value, 'base64').toString('utf-8');
+      return JSON.parse(decoded);
+    } catch { return null; }
+  }
+  return null;
+}
 
 export const dynamic = 'force-dynamic';
 
-export async function PATCH(request: Request) {
+// GET - Get single admin
+export async function GET(
+  request: Request,
+  { params }: { params: { adminId: string } }
+) {
+  const admin = getAdminSession();
+  if (!admin?.isInternalAdmin) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  }
+
   try {
-    const { adminId, isActive, role } = await request.json();
-
-    if (!adminId) {
-      return NextResponse.json({ error: 'Admin ID required' }, { status: 400 });
-    }
-
-    const updateData: Record<string, unknown> = {};
-
-    if (typeof isActive === 'boolean') {
-      updateData.isActive = isActive;
-    }
-
-    if (role) {
-      updateData.role = role;
-    }
-
-    const admin = await prisma.internalAdmin.update({
-      where: { id: adminId },
-      data: updateData,
+    const adminUser = await prisma.internalAdmin.findUnique({
+      where: { id: params.adminId },
+      select: { id: true, name: true, email: true, role: true, isActive: true, lastLogin: true, createdAt: true }
     });
-
-    return NextResponse.json({
-      id: admin.id,
-      email: admin.email,
-      name: admin.name,
-      role: admin.role,
-      isActive: admin.isActive,
-    });
+    
+    if (!adminUser) {
+      return NextResponse.json({ error: 'Admin not found' }, { status: 404 });
+    }
+    
+    return NextResponse.json(adminUser);
   } catch (error) {
-    console.error('Update admin error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('[internal-admins] Error:', error);
+    return NextResponse.json({ error: 'Failed to fetch admin' }, { status: 500 });
+  }
+}
+
+// PUT - Update admin (role, isActive)
+export async function PUT(
+  request: Request,
+  { params }: { params: { adminId: string } }
+) {
+  const admin = getAdminSession();
+  if (!admin?.isInternalAdmin) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  }
+
+  // Only OWNER can update admins
+  if (admin.role !== 'OWNER') {
+    return NextResponse.json({ error: 'Only owner can update admins' }, { status: 403 });
+  }
+
+  try {
+    const { role, isActive } = await request.json();
+    
+    if (role && !['PLATFORM_ADMIN', 'SUPPORT_ADMIN', 'FINANCE_ADMIN'].includes(role)) {
+      return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
+    }
+
+    const data: any = {};
+    if (role) data.role = role;
+    if (isActive !== undefined) data.isActive = isActive;
+
+    const updated = await prisma.internalAdmin.update({
+      where: { id: params.adminId },
+      data,
+      select: { id: true, name: true, email: true, role: true, isActive: true }
+    });
+    
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error('[internal-admins] Error:', error);
+    return NextResponse.json({ error: 'Failed to update admin' }, { status: 500 });
+  }
+}
+
+// DELETE - Delete admin (OWNER only)
+export async function DELETE(
+  request: Request,
+  { params }: { params: { adminId: string } }
+) {
+  const admin = getAdminSession();
+  if (!admin?.isInternalAdmin) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  }
+
+  // Only OWNER can delete admins
+  if (admin.role !== 'OWNER') {
+    return NextResponse.json({ error: 'Only owner can delete admins' }, { status: 403 });
+  }
+
+  // Prevent deleting yourself
+  if (admin.id === params.adminId) {
+    return NextResponse.json({ error: 'Cannot delete yourself' }, { status: 400 });
+  }
+
+  try {
+    await prisma.internalAdmin.delete({
+      where: { id: params.adminId }
+    });
+    
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('[internal-admins] Error:', error);
+    return NextResponse.json({ error: 'Failed to delete admin' }, { status: 500 });
   }
 }

@@ -1,321 +1,142 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Pencil, Power, RefreshCw, MoreHorizontal } from 'lucide-react';
+import Link from 'next/link';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { 
+  UserCog, 
+  Shield,
+  Plus,
+  Trash2,
+  Pencil,
+  Mail,
+} from 'lucide-react';
+import LogoutButton from '../logout-button';
 
-interface InternalAdmin {
+interface PlatformAdmin {
   id: string;
-  email: string;
   name: string | null;
+  email: string;
   role: string;
   isActive: boolean;
+  lastLogin: string | null;
   createdAt: string;
 }
 
-const roleLabels: Record<string, string> = {
-  OWNER: 'Owner',
-  PLATFORM_ADMIN: 'Platform Admin',
-  SUPPORT_ADMIN: 'Support Admin',
-  FINANCE_ADMIN: 'Finance Admin',
-};
-
-const roleColors: Record<string, string> = {
-  OWNER: 'bg-purple-100 text-purple-800',
-  PLATFORM_ADMIN: 'bg-blue-100 text-blue-800',
-  SUPPORT_ADMIN: 'bg-green-100 text-green-800',
-  FINANCE_ADMIN: 'bg-orange-100 text-orange-800',
-};
+async function getPlatformAdmins() {
+  const admins = await fetch('/api/admin/internal-admins').then(r => r.json());
+  return admins;
+}
 
 export default function PlatformAdminsPage() {
-  const [admins, setAdmins] = useState<InternalAdmin[]>([]);
+  // Admin session verified by layout (admin/layout.tsx)
+  // This page assumes user is authorized
+
+  const [admins, setAdmins] = useState<PlatformAdmin[]>([]);
   const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(false);
-  const [editingAdmin, setEditingAdmin] = useState<InternalAdmin | null>(null);
-  const [formData, setFormData] = useState({ email: '', name: '', password: '', role: 'PLATFORM_ADMIN' });
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchAdmins();
+    getPlatformAdmins().then(data => {
+      if (data?.error) {
+        setError(data.error);
+      } else {
+        setAdmins(data);
+      }
+      setLoading(false);
+    }).catch(err => {
+      setError('Failed to load platform admins');
+      setLoading(false);
+    });
   }, []);
 
-  async function fetchAdmins() {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/admin/internal-admins');
-      const data = await res.json();
-      setAdmins(data);
-    } catch (error) {
-      console.error('Error fetching admins:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleSubmit() {
-    try {
-      const res = await fetch('/api/admin/internal-admins', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      if (res.ok) {
-        setOpen(false);
-        setFormData({ email: '', name: '', password: '', role: 'PLATFORM_ADMIN' });
-        fetchAdmins();
-      }
-    } catch (error) {
-      console.error('Error creating admin:', error);
-    }
-  }
-
-  async function handleUpdate() {
-    if (!editingAdmin) return;
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this admin?')) return;
     
-    try {
-      const res = await fetch(`/api/admin/internal-admins/${editingAdmin.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          adminId: editingAdmin.id, 
-          role: formData.role,
-          isActive: editingAdmin.isActive,
-        }),
-      });
-
-      if (res.ok) {
-        setEditingAdmin(null);
-        setFormData({ email: '', name: '', password: '', role: 'PLATFORM_ADMIN' });
-        fetchAdmins();
-      }
-    } catch (error) {
-      console.error('Error updating admin:', error);
+    const res = await fetch(`/api/admin/internal-admins/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      setAdmins(admins.filter(a => a.id !== id));
+    } else {
+      alert('Failed to delete admin');
     }
-  }
-
-  async function handleToggleActive(admin: InternalAdmin) {
-    try {
-      await fetch(`/api/admin/internal-admins/${admin.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminId: admin.id, isActive: !admin.isActive }),
-      });
-      fetchAdmins();
-    } catch (error) {
-      console.error('Error toggling admin:', error);
-    }
-  }
-
-  function openEdit(admin: InternalAdmin) {
-    setEditingAdmin(admin);
-    setFormData({ email: admin.email, name: admin.name || '', password: '', role: admin.role });
-  }
-
-  function formatDate(dateString: string) {
-    return new Date(dateString).toLocaleDateString('en-ZA', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Platform Admins</h1>
-          <p className="text-muted-foreground">Manage internal admin accounts</p>
+          <h1 className="text-3xl font-bold tracking-tight">Platform Admins</h1>
+          <p className="text-muted-foreground">Manage platform administrator accounts</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Admin
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Admin</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Email</Label>
-                <Input
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="admin@mozassets.com"
-                />
-              </div>
-              <div>
-                <Label>Name</Label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Admin Name"
-                />
-              </div>
-              <div>
-                <Label>Password</Label>
-                <Input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder="Leave blank for existing admins"
-                />
-              </div>
-              <div>
-                <Label>Role</Label>
-                <Select
-                  value={formData.role}
-                  onValueChange={(v) => setFormData({ ...formData, role: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="OWNER">Owner</SelectItem>
-                    <SelectItem value="PLATFORM_ADMIN">Platform Admin</SelectItem>
-                    <SelectItem value="SUPPORT_ADMIN">Support Admin</SelectItem>
-                    <SelectItem value="FINANCE_ADMIN">Finance Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={handleSubmit}>Create Admin</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <Link href="/admin/platform-admins/new">
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Admin
+          </Button>
+        </Link>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {admins.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                  No admins found. Add your first admin.
-                </TableCell>
-              </TableRow>
-            ) : (
-              admins.map((admin) => (
-                <TableRow key={admin.id}>
-                  <TableCell className="font-medium">{admin.name || '-'}</TableCell>
-                  <TableCell>{admin.email}</TableCell>
-                  <TableCell>
-                    <Badge className={roleColors[admin.role] || 'bg-gray-100'}>
-                      {roleLabels[admin.role] || admin.role}
+      {error && (
+        <div className="p-3 text-sm text-red-500 bg-red-50 rounded-lg">
+          {error}
+        </div>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>All Platform Admins</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-8 text-muted-foreground">Loading...</div>
+          ) : admins.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No platform admins found. <Link href="/admin/platform-admins/new" className="text-primary">Add one</Link>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {admins.map(admin => (
+                <div key={admin.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                      <UserCog className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{admin.name || admin.email}</p>
+                      <p className="text-sm text-muted-foreground">{admin.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge variant={admin.role === 'OWNER' ? 'default' : 'secondary'}>
+                      {admin.role}
                     </Badge>
-                  </TableCell>
-                  <TableCell>
                     <Badge variant={admin.isActive ? 'default' : 'destructive'}>
                       {admin.isActive ? 'Active' : 'Inactive'}
                     </Badge>
-                  </TableCell>
-                  <TableCell>{formatDate(admin.createdAt)}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(admin)}>
+                    {admin.lastLogin && (
+                      <span className="text-xs text-muted-foreground">
+                        Last login: {new Date(admin.lastLogin).toLocaleDateString()}
+                      </span>
+                    )}
+                    <Link href={`/admin/platform-admins/${admin.id}/edit`}>
+                      <Button variant="ghost" size="sm">
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleToggleActive(admin)}
-                      >
-                        <Power className="h-4 w-4" />
+                    </Link>
+                    {admin.role !== 'OWNER' && (
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(admin.id)}>
+                        <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      <Dialog open={!!editingAdmin} onOpenChange={(open) => !open && setEditingAdmin(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Admin</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Email</Label>
-              <Input value={editingAdmin?.email || ''} disabled />
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-            <div>
-              <Label>Role</Label>
-              <Select
-                value={formData.role}
-                onValueChange={(v) => setFormData({ ...formData, role: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="OWNER">Owner</SelectItem>
-                  <SelectItem value="PLATFORM_ADMIN">Platform Admin</SelectItem>
-                  <SelectItem value="SUPPORT_ADMIN">Support Admin</SelectItem>
-                  <SelectItem value="FINANCE_ADMIN">Finance Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Leave password blank to keep current password.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingAdmin(null)}>Cancel</Button>
-            <Button onClick={handleUpdate}>Save Changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

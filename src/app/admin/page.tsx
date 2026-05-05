@@ -105,8 +105,8 @@ async function getAdminStats() {
 export default async function AdminPage() {
   const user = getUserSession();
   
-  // Allow both internal admins (sessionType: 'admin') and platform admins (isPlatformAdmin: true)
-  if (!user || (user.sessionType !== 'admin' && !user.isPlatformAdmin)) {
+  // Platform admins now use InternalAdmin table with sessionType = 'admin'
+  if (!user || user.sessionType !== 'admin') {
     redirect('/login');
   }
 

@@ -63,8 +63,8 @@ export default async function AdminLayout({
 }) {
   const session = getUserSession();
   
-  // Allow both internal admins (sessionType: 'admin') and platform admins (isPlatformAdmin: true)
-  if (!session || (session.sessionType !== 'admin' && !session.isPlatformAdmin)) {
+  // Platform admins now use InternalAdmin table with sessionType = 'admin'
+  if (!session || session.sessionType !== 'admin') {
     redirect('/login');
   }
 
