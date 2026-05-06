@@ -30,11 +30,16 @@ export async function middleware(request: Request) {
 
   // Check for admin session first (platform admins)
   const cookieHeader = request.headers.get('cookie') || '';
-  console.log('Middleware check:', url.pathname);
-  console.log('Cookie header present:', !!cookieHeader);
+  console.log('=== MIDDLEWARE ===');
+  console.log('URL:', url.pathname);
+  console.log('isAdminRoute:', isAdminRoute);
+  console.log('Cookie header length:', cookieHeader.length);
   
   const adminSession = getAdminSessionFromHeader(cookieHeader);
   console.log('Admin session found:', !!adminSession);
+  if (adminSession) {
+    console.log('Admin session valid:', { id: adminSession.id, email: adminSession.email, sessionType: adminSession.sessionType });
+  }
   
   if (adminSession) {
     // Platform admin - only allow /admin routes
