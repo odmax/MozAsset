@@ -15,63 +15,8 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  console.log('LoginPage rendered, isLoading:', isLoading);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isLoading) {
-      console.log('Already loading, ignoring submit');
-      return;
-    }
-    console.log('Form submission prevented, calling login...');
-    doLogin();
-  };
-
-  const doLogin = async () => {
-    setIsLoading(true);
-    setError('');
-
-    try {
-      console.log('Calling login API with:', { email, password: '***' });
-      
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      console.log('Login API response status:', res.status);
-      const data = await res.json();
-      console.log('Login API response data:', data);
-
-      if (!res.ok || data.error) {
-        const errorMsg = data.error || `Login failed (${res.status})`;
-        console.error('Login failed:', errorMsg);
-        setError(errorMsg);
-        setIsLoading(false);
-        return;
-      }
-
-      if (!data.success || !data.redirectUrl) {
-        console.error('Login response missing success or redirectUrl');
-        setError('Login response invalid. Please try again.');
-        setIsLoading(false);
-        return;
-      }
-
-      console.log('Login successful! Redirecting to:', data.redirectUrl);
-      console.log('Cookie before redirect:', document.cookie);
-      
-      // Use replace to prevent going back to login page
-      window.location.replace(data.redirectUrl);
-    } catch (err) {
-      console.error('Login error:', err);
-      setError('An error occurred. Please try again.');
-      setIsLoading(false);
-    }
-  };
-
-  console.log('LoginPage VERSION: 2026-05-06-v3');
+  alert('LoginPage VERSION: 2026-05-06-v4 - JavaScript IS RUNNING');
+  console.log('LoginPage VERSION: 2026-05-06-v4');
   
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
