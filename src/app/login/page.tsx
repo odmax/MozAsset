@@ -19,6 +19,11 @@ export default function LoginPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    alert('Form submit prevented! JavaScript is running.');
+    if (isLoading) {
+      console.log('Already loading, ignoring submit');
+      return;
+    }
     console.log('Form submission prevented, calling login...');
     doLogin();
   };
@@ -58,8 +63,8 @@ export default function LoginPage() {
       console.log('Login successful! Redirecting to:', data.redirectUrl);
       console.log('Cookie before redirect:', document.cookie);
       
-      // Redirect immediately - cookie should be set by now
-      window.location.href = data.redirectUrl;
+      // Use replace to prevent going back to login page
+      window.location.replace(data.redirectUrl);
     } catch (err) {
       console.error('Login error:', err);
       setError('An error occurred. Please try again.');
@@ -87,7 +92,7 @@ export default function LoginPage() {
             <CardDescription>Sign in to your account to continue</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-4">
               {error && (
                 <div className="p-3 text-sm text-red-500 bg-red-50 rounded-lg">
                   {error}
@@ -122,10 +127,17 @@ export default function LoginPage() {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button 
+                onClick={() => {
+                  console.log('Button clicked!');
+                  handleSubmit(new Event('click') as any);
+                }}
+                className="w-full" 
+                disabled={isLoading}
+              >
                 {isLoading ? 'Signing in...' : 'Sign in'}
               </Button>
-            </form>
+            </div>
           </CardContent>
           <CardFooter className="justify-center">
             <p className="text-sm text-muted-foreground">
