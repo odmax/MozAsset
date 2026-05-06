@@ -24,12 +24,18 @@ export default function LoginPage() {
 
     try {
       console.log('Calling login API with:', { email, password: '***' });
+      console.log('About to fetch /api/auth/login...');
       
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
+      }).catch((fetchErr) => {
+        console.error('Fetch error:', fetchErr);
+        throw fetchErr;
       });
+      
+      console.log('Fetch completed, status:', res.status);
 
       console.log('Login API response status:', res.status);
       const data = await res.json();
@@ -127,7 +133,11 @@ export default function LoginPage() {
                 onClick={(e) => {
                   e.preventDefault();
                   console.log('Button clicked, calling login...');
-                  doLogin();
+                  doLogin().catch((err) => {
+                    console.error('Login promise error:', err);
+                    setError('An error occurred. Please try again.');
+                    setIsLoading(false);
+                  });
                 }}
                 className="w-full" 
                 disabled={isLoading}
