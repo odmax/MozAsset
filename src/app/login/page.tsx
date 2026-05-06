@@ -19,7 +19,6 @@ export default function LoginPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Form submit prevented! JavaScript is running.');
     if (isLoading) {
       console.log('Already loading, ignoring submit');
       return;
@@ -92,10 +91,15 @@ export default function LoginPage() {
             <CardDescription>Sign in to your account to continue</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
                 <div className="p-3 text-sm text-red-500 bg-red-50 rounded-lg">
                   {error}
+                </div>
+              )}
+              {isLoading && (
+                <div className="p-3 text-sm text-blue-500 bg-blue-50 rounded-lg">
+                  Signing in... Please wait.
                 </div>
               )}
               <div className="space-y-2">
@@ -128,16 +132,13 @@ export default function LoginPage() {
                 />
               </div>
               <Button 
-                onClick={() => {
-                  console.log('Button clicked!');
-                  handleSubmit(new Event('click') as any);
-                }}
+                type="submit"
                 className="w-full" 
                 disabled={isLoading}
               >
                 {isLoading ? 'Signing in...' : 'Sign in'}
               </Button>
-            </div>
+            </form>
           </CardContent>
           <CardFooter className="justify-center">
             <p className="text-sm text-muted-foreground">
