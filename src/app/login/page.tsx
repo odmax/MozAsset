@@ -15,38 +15,51 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  console.log('LoginPage rendered, isLoading:', isLoading);
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submission prevented, calling login...');
+    doLogin();
+  };
+
+  const doLogin = async () => {
     setIsLoading(true);
     setError('');
 
     try {
+      console.log('Calling login API with:', { email, password: '***' });
+      
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
+      console.log('Login API response status:', res.status);
       const data = await res.json();
-      
-      console.log('Login API response:', { status: res.status, data });
+      console.log('Login API response data:', data);
 
       if (!res.ok || data.error) {
-        setError(data.error || `Login failed (${res.status})`);
+        const errorMsg = data.error || `Login failed (${res.status})`;
+        console.error('Login failed:', errorMsg);
+        setError(errorMsg);
         setIsLoading(false);
         return;
       }
 
-      console.log('Login successful, redirecting to:', data.redirectUrl);
+      if (!data.success || !data.redirectUrl) {
+        console.error('Login response missing success or redirectUrl');
+        setError('Login response invalid. Please try again.');
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('Login successful! Redirecting to:', data.redirectUrl);
+      console.log('Cookie before redirect:', document.cookie);
       
-      // Small delay to ensure cookie is set before redirect
-      setTimeout(() => {
-        const redirectUrl = data.redirectUrl || '/dashboard';
-        console.log('Redirecting to:', redirectUrl);
-        
-        // Try using window.location.replace instead of href
-        window.location.replace(redirectUrl);
-      }, 500);
+      // Redirect immediately - cookie should be set by now
+      window.location.href = data.redirectUrl;
     } catch (err) {
       console.error('Login error:', err);
       setError('An error occurred. Please try again.');
