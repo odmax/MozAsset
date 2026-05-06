@@ -71,6 +71,8 @@ export default function LoginPage() {
     }
   };
 
+  console.log('LoginPage VERSION: 2026-05-06-v3');
+  
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
       <div className="w-full max-w-md">
@@ -83,6 +85,7 @@ export default function LoginPage() {
             <span>MozAssets</span>
           </Link>
           <p className="text-sm text-muted-foreground mt-1">by Mozetech</p>
+          <p className="text-xs text-green-600">Version: 2026-05-06-v3</p>
         </div>
 
         <Card>
