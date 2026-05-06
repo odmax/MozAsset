@@ -17,7 +17,51 @@ export default function LoginPage() {
 
   console.log('LoginPage VERSION: 2026-05-06-v5');
   console.log('If you see this, JavaScript IS running');
-  
+
+  const doLogin = async () => {
+    setIsLoading(true);
+    setError('');
+
+    try {
+      console.log('Calling login API with:', { email, password: '***' });
+      
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      console.log('Login API response status:', res.status);
+      const data = await res.json();
+      console.log('Login API response data:', data);
+
+      if (!res.ok || data.error) {
+        const errorMsg = data.error || `Login failed (${res.status})`;
+        console.error('Login failed:', errorMsg);
+        setError(errorMsg);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!data.success || !data.redirectUrl) {
+        console.error('Login response missing success or redirectUrl');
+        setError('Login response invalid. Please try again.');
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('Login successful! Redirecting to:', data.redirectUrl);
+      console.log('Cookie before redirect:', document.cookie);
+      
+      // Redirect immediately
+      window.location.href = data.redirectUrl;
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('An error occurred. Please try again.');
+      setIsLoading(false);
+    }
+  };
+   
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
       <div className="w-full max-w-md">
