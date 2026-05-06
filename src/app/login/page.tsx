@@ -15,8 +15,8 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  alert('LoginPage VERSION: 2026-05-06-v4 - JavaScript IS RUNNING');
-  console.log('LoginPage VERSION: 2026-05-06-v4');
+  console.log('LoginPage VERSION: 2026-05-06-v5');
+  console.log('If you see this, JavaScript IS running');
   
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
@@ -39,7 +39,7 @@ export default function LoginPage() {
             <CardDescription>Sign in to your account to continue</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-4">
               {error && (
                 <div className="p-3 text-sm text-red-500 bg-red-50 rounded-lg">
                   {error}
@@ -80,13 +80,17 @@ export default function LoginPage() {
                 />
               </div>
               <Button 
-                type="submit"
+                onClick={(e) => {
+                  e.preventDefault();
+                  console.log('Button clicked, calling login...');
+                  doLogin();
+                }}
                 className="w-full" 
                 disabled={isLoading}
               >
                 {isLoading ? 'Signing in...' : 'Sign in'}
               </Button>
-            </form>
+            </div>
           </CardContent>
           <CardFooter className="justify-center">
             <p className="text-sm text-muted-foreground">
