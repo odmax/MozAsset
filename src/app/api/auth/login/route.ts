@@ -52,7 +52,8 @@ export async function POST(request: Request) {
 
         const sessionToken = Buffer.from(JSON.stringify(sessionData)).toString('base64');
         console.log('Session token created, setting cookie...');
-
+        console.log('Session token (first 50 chars):', sessionToken.substring(0, 50) + '...');
+        
         const response = NextResponse.json({
           success: true,
           user: {
@@ -62,7 +63,7 @@ export async function POST(request: Request) {
           },
           redirectUrl: '/admin',
         });
-
+        
         response.cookies.set('adminSession', sessionToken, {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
@@ -70,7 +71,8 @@ export async function POST(request: Request) {
           maxAge: 60 * 60 * 24 * 7,
           path: '/',
         });
-
+        
+        console.log('Cookie set, response headers:', JSON.stringify(Object.fromEntries(response.headers.entries())));
         console.log('Login successful, returning response with adminSession cookie');
         return response;
       } else {
