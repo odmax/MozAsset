@@ -105,9 +105,8 @@ async function getAdminStats() {
 export default async function AdminPage() {
   const user = getUserSession();
   
-  // Platform admins now use InternalAdmin table with sessionType = 'admin'
   if (!user || user.sessionType !== 'admin') {
-    redirect('/login');
+    redirect('/admin-login');
   }
 
   const { isInternalAdmin: platformAdmin } = user;
