@@ -14,8 +14,8 @@ interface UserSession {
 export async function middleware(request: Request) {
   const url = new URL(request.url);
   
-  // Skip middleware for login page and API routes to prevent loops
-  if (url.pathname === '/login' || url.pathname.startsWith('/api/')) {
+  // Skip middleware for login pages and API routes to prevent loops
+  if (url.pathname === '/login' || url.pathname === '/admin-login' || url.pathname.startsWith('/api/')) {
     return NextResponse.next();
   }
 
@@ -44,6 +44,10 @@ export async function middleware(request: Request) {
   if (adminSession) {
     // Platform admin - only allow /admin routes
     if (isAdminRoute) return NextResponse.next();
+    // If on login page, redirect to admin
+    if (url.pathname === '/login' || url.pathname === '/admin-login') {
+      return NextResponse.redirect(new URL('/admin', request.url));
+    }
     return NextResponse.redirect(new URL('/admin', request.url));
   }
 
@@ -80,6 +84,10 @@ export async function middleware(request: Request) {
   }
 
   if (!user) {
+    // If this was an admin route, redirect to admin-login
+    if (isAdminRoute) {
+      return NextResponse.redirect(new URL('/admin-login', request.url));
+    }
     return NextResponse.redirect(new URL('/login', request.url));
   }
 

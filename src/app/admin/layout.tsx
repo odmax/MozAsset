@@ -66,10 +66,9 @@ export default async function AdminLayout({
     console.log('Session email:', session.email);
   }
   
-  // Platform admins now use InternalAdmin table with sessionType === 'admin'
   if (!session || session.sessionType !== 'admin') {
-    console.log('❌ Admin layout: REDIRECTING TO /login');
-    redirect('/login');
+    console.log('❌ Admin layout: REDIRECTING TO /admin-login');
+    redirect('/admin-login');
   }
   console.log('✅ Admin layout: SESSION VALID, rendering admin page');
 

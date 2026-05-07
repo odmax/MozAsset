@@ -20,72 +20,8 @@ export async function POST(request: Request) {
     const normalizedEmail = email.toLowerCase().trim();
     console.log('Normalized email:', normalizedEmail);
 
-    // 1. Check InternalAdmin table first (platform admins)
-    console.log('Checking InternalAdmin table...');
-    const admin = await prisma.internalAdmin.findFirst({
-      where: { 
-        email: { equals: normalizedEmail, mode: 'insensitive' }
-      },
-    });
-    console.log('Admin found:', !!admin, admin?.email);
-
-    if (admin && admin.isActive) {
-      console.log('Admin found, checking password...');
-      const isValid = await bcrypt.compare(password, admin.password);
-      console.log('Password valid:', isValid);
-
-      if (isValid) {
-        console.log('Password valid, creating session...');
-        await prisma.internalAdmin.update({
-          where: { id: admin.id },
-          data: { lastLogin: new Date() },
-        });
-
-        const sessionData = {
-          id: admin.id,
-          email: String(admin.email),
-          name: String(admin.name || ''),
-          role: String(admin.role),
-          sessionType: 'admin',
-          isInternalAdmin: true,
-        };
-
-        const sessionToken = Buffer.from(JSON.stringify(sessionData)).toString('base64');
-        console.log('Session token created, setting cookie...');
-        console.log('Session token (first 50 chars):', sessionToken.substring(0, 50) + '...');
-        
-        const response = NextResponse.json({
-          success: true,
-          user: {
-            id: admin.id,
-            email: admin.email,
-            name: admin.name,
-          },
-          redirectUrl: '/admin',
-        });
-        
-        response.cookies.set('adminSession', sessionToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 60 * 60 * 24 * 7,
-          path: '/',
-        });
-        
-        console.log('Cookie set, response headers:', JSON.stringify(Object.fromEntries(response.headers.entries())));
-        console.log('Login successful, returning response with adminSession cookie');
-        return response;
-      } else {
-        console.log('Password invalid');
-        return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
-      }
-    }
-
-    if (admin && !admin.isActive) {
-      return NextResponse.json({ error: 'Account is inactive. Please contact support.' }, { status: 403 });
-    }
-
-    // 2. Check User table (customers)
+    // Check User table only (platform admins use /api/admin/login)
+    console.log('Checking User table...');
     const user = await prisma.user.findFirst({
       where: { 
         email: { equals: normalizedEmail, mode: 'insensitive' }
@@ -130,7 +66,7 @@ export async function POST(request: Request) {
         email: user.email,
         name: user.name,
       },
-      redirectUrl: user.isPlatformAdmin ? '/admin' : '/dashboard',
+      redirectUrl: '/dashboard',
     });
 
     response.cookies.set('session', sessionToken, {

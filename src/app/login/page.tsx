@@ -155,7 +155,7 @@ export default function LoginPage() {
         </Card>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
-          Platform Admin: Ademoyemo@gmail.com / password123
+          <Link href="/admin-login" className="text-primary hover:underline">Platform Admin Login</Link>
         </p>
       </div>
     </div>
