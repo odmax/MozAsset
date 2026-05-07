@@ -59,6 +59,16 @@ export default function LoginPage() {
       console.log('Login successful! Redirecting to:', data.redirectUrl);
       console.log('Cookie before redirect:', document.cookie);
       
+      // Verify adminSession cookie exists
+      if (document.cookie.includes('adminSession')) {
+        console.log('✅ adminSession cookie is SET');
+      } else {
+        console.error('❌ adminSession cookie is NOT SET!');
+        setError('Login succeeded but session cookie was not set. Please try again.');
+        setIsLoading(false);
+        return;
+      }
+      
       // Redirect immediately
       window.location.href = data.redirectUrl;
     } catch (err) {
