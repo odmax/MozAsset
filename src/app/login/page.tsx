@@ -89,7 +89,15 @@ export default function LoginPage() {
             <CardDescription>Sign in to your account to continue</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              console.log('Form submitted, calling login...');
+              doLogin().catch((err) => {
+                console.error('Login promise error:', err);
+                setError('An error occurred. Please try again.');
+                setIsLoading(false);
+              });
+            }} className="space-y-4">
               {error && (
                 <div className="p-3 text-sm text-red-500 bg-red-50 rounded-lg">
                   {error}
@@ -130,21 +138,13 @@ export default function LoginPage() {
                 />
               </div>
               <Button 
-                onClick={(e) => {
-                  e.preventDefault();
-                  console.log('Button clicked, calling login...');
-                  doLogin().catch((err) => {
-                    console.error('Login promise error:', err);
-                    setError('An error occurred. Please try again.');
-                    setIsLoading(false);
-                  });
-                }}
+                type="submit"
                 className="w-full" 
                 disabled={isLoading}
               >
                 {isLoading ? 'Signing in...' : 'Sign in'}
               </Button>
-            </div>
+            </form>
           </CardContent>
           <CardFooter className="justify-center">
             <p className="text-sm text-muted-foreground">
