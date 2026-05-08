@@ -35,7 +35,16 @@ export default function AdminLoginPage() {
       }
 
       if (data.success) {
-        window.location.href = '/admin';
+        // Verify adminSession cookie was accepted by the browser
+        const checkRes = await fetch('/api/admin/session-check');
+        const checkData = await checkRes.json();
+        if (checkData.valid) {
+          window.location.href = '/admin';
+        } else {
+          console.error('adminSession cookie not found after login. secure flag may be mismatched.');
+          setError('Session could not be established. Check if the site is served over HTTPS.');
+          setIsLoading(false);
+        }
       }
     } catch {
       setError('An error occurred. Please try again.');

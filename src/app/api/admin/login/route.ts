@@ -4,6 +4,12 @@ import bcrypt from 'bcryptjs';
 
 export const dynamic = 'force-dynamic';
 
+function isHttps(request: Request): boolean {
+  const proto = request.headers.get('x-forwarded-proto');
+  if (proto === 'https') return true;
+  return request.url.startsWith('https://');
+}
+
 export async function POST(request: Request) {
   try {
     const { email, password } = await request.json();
@@ -52,14 +58,18 @@ export async function POST(request: Request) {
       redirectUrl: '/admin',
     });
 
+    const secure = isHttps(request);
+    console.log('Admin login cookie - secure:', secure, 'proto:', request.headers.get('x-forwarded-proto'), 'url startsWith https:', request.url.startsWith('https://'));
+
     response.cookies.set('adminSession', sessionToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
     });
 
+    console.log('Admin login success for:', normalizedEmail);
     return response;
   } catch (error) {
     console.error('Admin login error:', error);
