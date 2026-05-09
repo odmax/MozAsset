@@ -6,7 +6,10 @@ export const dynamic = 'force-dynamic';
 
 function isHttps(request: Request): boolean {
   const proto = request.headers.get('x-forwarded-proto');
-  if (proto === 'https') return true;
+  if (proto) {
+    const protocols = proto.split(',').map(p => p.trim().toLowerCase());
+    if (protocols.includes('https')) return true;
+  }
   return request.url.startsWith('https://');
 }
 

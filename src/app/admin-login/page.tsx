@@ -50,19 +50,8 @@ export default function AdminLoginPage() {
       }
 
       if (data.success) {
-        addDebug('Step 7: Login API success, calling session-check...');
-        const checkRes = await fetch('/api/admin/session-check');
-        const checkData = await checkRes.json();
-        addDebug(`Step 8: Session-check returned: ${JSON.stringify(checkData)}`);
-
-        if (checkData.valid) {
-          addDebug('Step 9: Session valid! Redirecting to /admin');
-          window.location.href = '/admin';
-        } else {
-          addDebug('Step 9 FAILED: adminSession cookie not found by server');
-          setError('Session cookie was not set by browser. Check: (1) HTTPS is active, (2) browser is not blocking cookies, (3) try clearing cookies and re-login.');
-          setIsLoading(false);
-        }
+        addDebug('Login API success, redirecting to /admin');
+        window.location.href = '/admin';
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
