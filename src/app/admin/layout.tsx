@@ -58,19 +58,23 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = getUserSession();
+  const allCookies = cookies().getAll();
+  const cookieNames = allCookies.map((c: { name: string }) => c.name);
   console.log('=== ADMIN LAYOUT ===');
-  console.log('Has session:', !!session);
+  console.log('1. Cookie names:', cookieNames);
+  console.log('2. Has adminSession:', cookieNames.includes('adminSession'));
+  
+  const session = getUserSession();
+  console.log('3. Has valid session:', !!session);
   if (session) {
-    console.log('Session type:', session.sessionType);
-    console.log('Session email:', session.email);
+    console.log('4. Session type:', session.sessionType, 'email:', session.email);
   }
   
   if (!session || session.sessionType !== 'admin') {
-    console.log('❌ Admin layout: REDIRECTING TO /admin-login');
+    console.log('5. REDIRECT: session missing or not admin → /admin-login');
     redirect('/admin-login');
   }
-  console.log('✅ Admin layout: SESSION VALID, rendering admin page');
+  console.log('5. ALLOW: admin session valid, rendering admin page');
 
   const user = session;
 
