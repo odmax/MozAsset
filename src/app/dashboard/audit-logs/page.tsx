@@ -41,8 +41,8 @@ export default async function AuditLogsPage({
   const entityType = searchParams.entityType as string || '';
 
   const where: any = {};
-  if (!context.isInternalAdmin) {
-    where.organizationId = context.organizationId || 'never-match';
+  if (!context.isInternalAdmin && context.organizationId) {
+    where.user = { organizationId: context.organizationId };
   }
   if (search) {
     where.OR = [
@@ -166,7 +166,7 @@ export default async function AuditLogsPage({
             ))}
             {logs.length === 0 && (
               <div className="p-8 text-center text-muted-foreground">
-                No audit logs found
+                No audit logs yet
               </div>
             )}
           </div>
