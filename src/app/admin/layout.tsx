@@ -1,6 +1,4 @@
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import { 
   LayoutDashboard, 
@@ -8,7 +6,6 @@ import {
   Building2, 
   CreditCard, 
   Mail,
-  LogOut,
   Package,
   UserCog,
   DollarSign,
@@ -18,28 +15,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import LogoutButton from './logout-button';
-import { getAdminSession } from '@/lib/admin-session';
-
-function getUserSession() {
-  // Check for admin session first
-  const adminSession = getAdminSession();
-  if (adminSession) {
-    return { ...adminSession, sessionType: 'admin' };
-  }
-
-  // Fall back to customer session
-  const sessionCookie = cookies().get('session');
-  if (sessionCookie?.value) {
-    try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return { ...JSON.parse(decoded), sessionType: 'user' };
-    } catch {
-      return null;
-    }
-  }
-  
-  return null;
-}
+// TEMP_ADMIN_AUTH: simple admin auth until full platform auth is rebuilt.
+import { getSimpleAdminSession } from '@/lib/admin-session';
 
 const navItems = [
   { title: 'Overview', href: '/admin', icon: LayoutDashboard },
@@ -58,29 +35,18 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const allCookies = cookies().getAll();
-  const cookieNames = allCookies.map((c: { name: string }) => c.name);
-  console.log('=== ADMIN LAYOUT ===');
-  console.log('1. Cookie names:', cookieNames);
-  console.log('2. Has adminSession:', cookieNames.includes('adminSession'));
-  
-  const session = getUserSession();
-  console.log('3. Has valid session:', !!session);
-  if (session) {
-    console.log('4. Session type:', session.sessionType, 'email:', session.email);
-  }
-  
-  if (!session || session.sessionType !== 'admin') {
-    console.log('5. REDIRECT: session missing or not admin → /admin-login');
+  // TEMP_ADMIN_AUTH: check simpleAdminAuth only
+  const session = getSimpleAdminSession();
+
+  if (!session) {
+    console.log('ADMIN LAYOUT: no simpleAdminAuth, redirecting to /admin-login');
     redirect('/admin-login');
   }
-  console.log('5. ALLOW: admin session valid, rendering admin page');
 
-  const user = session;
+  console.log('ADMIN LAYOUT: simpleAdminAuth valid for', session.email);
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Admin Sidebar */}
       <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-slate-900 text-white">
         <div className="flex h-16 items-center border-b border-slate-800 px-6">
           <Link href="/admin" className="flex items-center gap-2 font-bold text-lg">
@@ -115,12 +81,12 @@ export default async function AdminLayout({
           <div className="flex items-center gap-3 mb-4">
             <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
               <span className="text-sm font-medium">
-                {user.name?.charAt(0) || user.email?.charAt(0) || 'A'}
+                {session.email?.charAt(0) || 'A'}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user.name || 'Admin'}</p>
-              <p className="text-xs text-slate-400 truncate">{user.email}</p>
+              <p className="text-sm font-medium truncate">{session.email}</p>
+              <p className="text-xs text-slate-400 truncate">{session.role}</p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -134,7 +100,6 @@ export default async function AdminLayout({
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="pl-64">
         <div className="container mx-auto p-6">
           {children}

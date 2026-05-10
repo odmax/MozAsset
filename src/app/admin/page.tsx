@@ -5,28 +5,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Building2, Crown, CreditCard, Mail, TrendingUp, UserPlus, DollarSign, AlertCircle, CheckCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
-function getUserSession() {
-  const sessionCookie = cookies().get('session');
-  const adminSessionCookie = cookies().get('adminSession');
-  
-  if (adminSessionCookie?.value) {
+// TEMP_ADMIN_AUTH: simple admin auth until full platform auth is rebuilt.
+function getSimpleAdminSession() {
+  const authCookie = cookies().get('simpleAdminAuth');
+  if (authCookie?.value) {
     try {
-      const decoded = Buffer.from(adminSessionCookie.value, 'base64').toString('utf-8');
-      return { ...JSON.parse(decoded), sessionType: 'admin' };
-    } catch {
-      return null;
-    }
+      const session = JSON.parse(Buffer.from(authCookie.value, 'base64').toString('utf-8'));
+      if (session?.adminId && session.isAdmin === true) {
+        return session;
+      }
+    } catch {}
   }
-  
-  if (sessionCookie?.value) {
-    try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return { ...JSON.parse(decoded), sessionType: 'user' };
-    } catch {
-      return null;
-    }
-  }
-  
   return null;
 }
 
@@ -103,13 +92,11 @@ async function getAdminStats() {
 }
 
 export default async function AdminPage() {
-  const user = getUserSession();
-  
-  if (!user || user.sessionType !== 'admin') {
+  // TEMP_ADMIN_AUTH
+  const session = getSimpleAdminSession();
+  if (!session) {
     redirect('/admin-login');
   }
-
-  const { isInternalAdmin: platformAdmin } = user;
 
   const stats = await getAdminStats();
 

@@ -56,17 +56,16 @@ export async function POST(request: Request) {
       data: { lastLogin: new Date() },
     });
 
-    const sessionData = {
-      id: admin.id,
+    // TEMP_ADMIN_AUTH: simple admin auth until full platform auth is rebuilt.
+    const simpleData = {
+      adminId: admin.id,
       email: admin.email,
-      name: admin.name || '',
       role: admin.role,
-      sessionType: 'admin',
-      isInternalAdmin: true,
+      isAdmin: true,
     };
 
-    const sessionToken = Buffer.from(JSON.stringify(sessionData)).toString('base64');
-    console.log('11. Session token created, length:', sessionToken.length);
+    const cookieValue = Buffer.from(JSON.stringify(simpleData)).toString('base64');
+    console.log('11. Cookie value created, length:', cookieValue.length);
 
     const response = NextResponse.json({
       success: true,
@@ -74,9 +73,9 @@ export async function POST(request: Request) {
     });
 
     const secure = isHttps(request);
-    console.log('12. Cookie secure flag:', secure, '(proto:', request.headers.get('x-forwarded-proto'), ')');
+    console.log('12. Cookie secure flag:', secure);
 
-    response.cookies.set('adminSession', sessionToken, {
+    response.cookies.set('simpleAdminAuth', cookieValue, {
       httpOnly: true,
       secure,
       sameSite: 'lax',
@@ -84,8 +83,7 @@ export async function POST(request: Request) {
       path: '/',
     });
 
-    console.log('13. Cookie set on response. Headers:', Object.fromEntries(response.headers.entries()));
-    console.log('14. SUCCESS: Returning to client');
+    console.log('13. simpleAdminAuth cookie set. Returning to client');
     return response;
   } catch (error) {
     console.error('ADMIN LOGIN ERROR:', error);

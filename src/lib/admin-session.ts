@@ -1,66 +1,58 @@
 import { cookies } from 'next/headers';
-import { headers } from 'next/headers';
 
-export interface AdminSession {
-  id: string;
+// TEMP_ADMIN_AUTH: simple admin auth until full platform auth is rebuilt.
+export interface SimpleAdminSession {
+  adminId: string;
   email: string;
-  name: string;
   role: string;
-  sessionType: 'admin';
-  isInternalAdmin: true;
+  isAdmin: true;
 }
 
-export function getAdminSession(): AdminSession | null {
+export function getSimpleAdminSession(): SimpleAdminSession | null {
   const cookieStore = cookies();
-  const adminCookie = cookieStore.get('adminSession');
-  
-  if (adminCookie?.value) {
+  const authCookie = cookieStore.get('simpleAdminAuth');
+
+  if (authCookie?.value) {
     try {
-      const session = JSON.parse(Buffer.from(adminCookie.value, 'base64').toString('utf-8'));
-      if (session?.id && session.sessionType === 'admin') {
+      const session = JSON.parse(Buffer.from(authCookie.value, 'base64').toString('utf-8'));
+      if (session?.adminId && session.isAdmin === true) {
         return {
-          id: session.id,
+          adminId: session.adminId,
           email: session.email || '',
-          name: session.name || '',
           role: session.role || 'OWNER',
-          sessionType: 'admin',
-          isInternalAdmin: true,
+          isAdmin: true,
         };
       }
     } catch {}
   }
-  
+
   return null;
 }
 
-export function getAdminSessionFromHeader(cookieHeader: string): AdminSession | null {
-  const cookies: Record<string, string> = {};
-  cookieHeader.split(';').forEach(cookie => {
-    const trimmed = cookie.trim();
+export function getSimpleAdminSessionFromHeader(cookieHeader: string): SimpleAdminSession | null {
+  const parsed: Record<string, string> = {};
+  cookieHeader.split(';').forEach(c => {
+    const trimmed = c.trim();
     const eqIndex = trimmed.indexOf('=');
     if (eqIndex > 0) {
-      const name = trimmed.substring(0, eqIndex);
-      const value = trimmed.substring(eqIndex + 1);
-      cookies[name] = value;
+      parsed[trimmed.substring(0, eqIndex)] = trimmed.substring(eqIndex + 1);
     }
   });
-  
-  const adminCookie = cookies['adminSession'];
-  if (adminCookie) {
+
+  const authCookie = parsed['simpleAdminAuth'];
+  if (authCookie) {
     try {
-      const session = JSON.parse(Buffer.from(adminCookie, 'base64').toString('utf-8'));
-      if (session?.id && session.sessionType === 'admin') {
+      const session = JSON.parse(Buffer.from(authCookie, 'base64').toString('utf-8'));
+      if (session?.adminId && session.isAdmin === true) {
         return {
-          id: session.id,
+          adminId: session.adminId,
           email: session.email || '',
-          name: session.name || '',
           role: session.role || 'OWNER',
-          sessionType: 'admin',
-          isInternalAdmin: true,
+          isAdmin: true,
         };
       }
     } catch {}
   }
-  
+
   return null;
 }
