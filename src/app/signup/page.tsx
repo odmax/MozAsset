@@ -184,40 +184,6 @@ export default function SignupPage() {
                     autoComplete="organization"
                   />
                 </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Work Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="name@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Create a password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                />
-                <p className="text-xs text-muted-foreground">Must be at least 6 characters</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="organization">Organization (Optional)</Label>
-                <Input
-                  id="organization"
-                  type="text"
-                  placeholder="Your company name"
-                  value={organization}
-                  onChange={(e) => setOrganization(e.target.value)}
-                />
-              </div>
               <div className="flex items-start gap-2">
                 <input
                   type="checkbox"

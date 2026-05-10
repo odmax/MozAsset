@@ -34,10 +34,10 @@ async function getDashboardData(context: any) {
   const orgId = context.organizationId;
 
   // Build where clause based on user type
-  // If no orgId, all queries will return empty (safe)
+  // If no orgId, queries return empty results (safe)
   const buildWhere = (extra: any = {}) => {
     if (isPlatformAdmin) return { ...extra };
-    if (!orgId) return {}; // No org = empty results
+    if (!orgId) return { id: { in: [] } };
     return { organizationId: orgId, ...extra };
   };
 
@@ -54,11 +54,11 @@ async function getDashboardData(context: any) {
     expiringWarranties,
     recentActivity,
   ] = await Promise.all([
-    prisma.asset.count(buildWhere()),
-    prisma.asset.count(buildWhere({ status: AssetStatus.AVAILABLE })),
-    prisma.asset.count(buildWhere({ status: AssetStatus.ASSIGNED })),
-    prisma.asset.count(buildWhere({ status: AssetStatus.IN_REPAIR })),
-    prisma.asset.count(buildWhere({ status: AssetStatus.RETIRED })),
+    prisma.asset.count({ where: buildWhere() }),
+    prisma.asset.count({ where: buildWhere({ status: AssetStatus.AVAILABLE }) }),
+    prisma.asset.count({ where: buildWhere({ status: AssetStatus.ASSIGNED }) }),
+    prisma.asset.count({ where: buildWhere({ status: AssetStatus.IN_REPAIR }) }),
+    prisma.asset.count({ where: buildWhere({ status: AssetStatus.RETIRED }) }),
     prisma.asset.groupBy({
       by: ['categoryId'],
       _count: true,
@@ -74,13 +74,13 @@ async function getDashboardData(context: any) {
       _count: true,
       where: buildWhere(),
     }),
-    prisma.asset.aggregate({ ...buildWhere(), _sum: { purchaseCost: true } }),
-    prisma.asset.count(buildWhere({
+    prisma.asset.aggregate({ where: buildWhere(), _sum: { purchaseCost: true } }),
+    prisma.asset.count({ where: buildWhere({
       warrantyExpiry: {
         gte: new Date(),
         lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       },
-    })),
+    }) }),
     prisma.auditLog.findMany({
       take: 10,
       orderBy: { createdAt: 'desc' },
