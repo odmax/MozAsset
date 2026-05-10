@@ -71,14 +71,31 @@ export function getPayfastBaseUrl(): string {
     : 'https://www.payfast.co.za';
 }
 
+function phpUrlencode(value: string): string {
+  // PHP's urlencode encodes all non-alphanumeric characters except -_.
+  // JS encodeURIComponent preserves !~*'() which PHP encodes.
+  // Also convert spaces to + (PHP style).
+  const encoded = encodeURIComponent(value)
+    .replace(/%20/g, '+')
+    .replace(/!/g, '%21')
+    .replace(/'/g, '%27')
+    .replace(/\(/g, '%28')
+    .replace(/\)/g, '%29')
+    .replace(/\*/g, '%2A')
+    .replace(/~/g, '%7E');
+  return encoded;
+}
+
 export function generateSignature(data: Record<string, string>): string {
   const config = getPayfastConfig();
   
-  // Filter out empty values, undefined, null, and signature itself
+  // Include ALL fields that will be submitted (including empty strings).
+  // Payfast's PHP implementation includes every field in the signature,
+  // even those with empty values. Filtering empties causes mismatch.
   const validData: Record<string, string> = {};
   for (const [key, value] of Object.entries(data)) {
     if (key === 'signature') continue;
-    if (value !== undefined && value !== null && value !== '') {
+    if (value !== undefined && value !== null) {
       validData[key] = value;
     }
   }
@@ -86,31 +103,33 @@ export function generateSignature(data: Record<string, string>): string {
   // Sort alphabetically
   const sortedKeys = Object.keys(validData).sort();
   
-  // Build signature string with proper encoding
+  // Build signature string with PHP-compatible encoding
   const pairs: string[] = [];
   for (const key of sortedKeys) {
     const value = validData[key];
-    // Encode and replace spaces with plus signs (Payfast requirement)
-    const encoded = encodeURIComponent(value).replace(/%20/g, '+');
-    pairs.push(`${key}=${encoded}`);
+    pairs.push(`${key}=${phpUrlencode(value)}`);
   }
   
   let signatureString = pairs.join('&');
   
-  // Append passphrase if configured (sandbox may not require it)
+  // Append passphrase if configured (Payfast dashboard setting)
   if (config.passphrase && config.passphrase.length > 0) {
-    const passEnc = encodeURIComponent(config.passphrase).replace(/%20/g, '+');
-    signatureString += `&passphrase=${passEnc}`;
+    signatureString += `&passphrase=${phpUrlencode(config.passphrase)}`;
   }
   
   const sig = crypto.createHash('md5').update(signatureString).digest('hex');
   
-  console.log('[Payfast] Signature generated:', {
+  // Safe debug logging — no merchant key, passphrase, or secrets
+  console.log('[Payfast] Signature debug:', {
     mode: config.mode,
+    endpoint: config.mode === 'sandbox'
+      ? 'https://sandbox.payfast.co.za/eng/process'
+      : 'https://www.payfast.co.za/eng/process',
     hasPassphrase: !!(config.passphrase && config.passphrase.length > 0),
     fields: sortedKeys,
-    signatureString: signatureString,
-    sig: sig,
+    fieldCount: sortedKeys.length,
+    // Log first 30 chars of signature string for debug; never log full string with secrets
+    signatureStringPrefix: signatureString.substring(0, 30) + '...',
   });
   
   return sig;
@@ -142,7 +161,7 @@ export function createCheckoutPayload(
     cancel_url: `${config.cancelUrl}?userId=${userId}`,
     notify_url: `${config.itnUrl}?userId=${userId}`,
     name_first: userName.split(' ')[0] || 'Customer',
-    name_last: userName.split(' ').slice(1).join(' ') || '',
+    name_last: userName.split(' ').slice(1).join(' ') || userName.split(' ')[0] || 'Customer',
     email_address: userEmail,
     m_payment_id: `${userId}_${plan}_${Date.now()}`,
     amount: planPriceFormatted,
