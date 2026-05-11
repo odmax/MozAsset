@@ -582,7 +582,12 @@ export async function getAuditLogs(params?: { page?: number; limit?: number; act
 
   const { page = 1, limit = 50, action, entityType } = params || {};
 
-  const where: any = buildOrgFilter(context);
+  // AuditLog has NO organizationId; scope by user's org via user relation instead
+  const where: any = context.isInternalAdmin
+    ? {}
+    : context.organizationId
+      ? { user: { organizationId: context.organizationId } }
+      : { id: undefined };
   if (action) where.action = action;
   if (entityType) where.entityType = entityType;
 

@@ -54,7 +54,7 @@ export async function POST(request: Request) {
       plan: String(user.plan),
       assetLimit: Number(user.assetLimit),
       onBoardingComplete: Boolean(user.onBoardingComplete),
-      // Note: isPlatformAdmin deprecated - platform admins now use InternalAdmin table
+      organizationId: user.organizationId,
     };
 
     const sessionToken = Buffer.from(JSON.stringify(sessionData)).toString('base64');

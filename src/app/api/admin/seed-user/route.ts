@@ -29,23 +29,40 @@ export async function POST(request: Request) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await prisma.user.create({
-      data: {
-        name: name || email.split('@')[0],
-        email,
-        password: hashedPassword,
-        role: 'SUPER_ADMIN',
-        plan: 'FREE',
-        assetLimit: 50,
-        onBoardingComplete: true,
-        isActive: true,
-      },
+    const result = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          name: name || email.split('@')[0],
+          email,
+          password: hashedPassword,
+          role: 'SUPER_ADMIN',
+          plan: 'FREE',
+          assetLimit: 50,
+          onBoardingComplete: true,
+          isActive: true,
+        },
+      });
+
+      const org = await tx.organization.create({
+        data: {
+          name: `${user.name}'s Organization`,
+          ownerId: user.id,
+        },
+      });
+
+      await tx.user.update({
+        where: { id: user.id },
+        data: { organizationId: org.id },
+      });
+
+      return { user, org };
     });
 
     return NextResponse.json({
-      id: user.id,
-      email: user.email,
-      name: user.name,
+      id: result.user.id,
+      email: result.user.email,
+      name: result.user.name,
+      organizationId: result.org.id,
     });
   } catch (error) {
     console.error('Create user error:', error);
