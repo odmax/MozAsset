@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,63 +10,54 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Package } from 'lucide-react';
 import { BackButton } from '@/components/ui/back-button';
 
+function LoginForm() {
+  const searchParams = useSearchParams();
+  const error = searchParams.get('error');
+
+  return (
+    <CardContent>
+      <form action="/api/auth/login" method="POST" className="space-y-4">
+        {error && (
+          <div className="p-3 text-sm text-red-500 bg-red-50 rounded-lg">
+            {error}
+          </div>
+        )}
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            placeholder="name@company.com"
+            autoComplete="email"
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password">Password</Label>
+            <Link href="/forgot-password" className="text-sm text-primary hover:underline">
+              Forgot password?
+            </Link>
+          </div>
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            placeholder="••••••••"
+            autoComplete="current-password"
+            required
+          />
+        </div>
+        <Button type="submit" className="w-full">
+          Sign in
+        </Button>
+      </form>
+    </CardContent>
+  );
+}
+
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  console.log('LoginPage VERSION: 2026-05-06-v5');
-  console.log('If you see this, JavaScript IS running');
-
-  const doLogin = async () => {
-    setIsLoading(true);
-    setError('');
-
-    try {
-      console.log('Calling login API with:', { email, password: '***' });
-      console.log('About to fetch /api/auth/login...');
-      
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      }).catch((fetchErr) => {
-        console.error('Fetch error:', fetchErr);
-        throw fetchErr;
-      });
-      
-      console.log('Fetch completed, status:', res.status);
-
-      console.log('Login API response status:', res.status);
-      const data = await res.json();
-      console.log('Login API response data:', data);
-
-      if (!res.ok || data.error) {
-        const errorMsg = data.error || `Login failed (${res.status})`;
-        console.error('Login failed:', errorMsg);
-        setError(errorMsg);
-        setIsLoading(false);
-        return;
-      }
-
-      if (!data.success || !data.redirectUrl) {
-        console.error('Login response missing success or redirectUrl');
-        setError('Login response invalid. Please try again.');
-        setIsLoading(false);
-        return;
-      }
-
-      console.log('Login successful! Redirecting to:', data.redirectUrl);
-      // httpOnly cookies can't be read via document.cookie - trust API response
-      window.location.href = data.redirectUrl;
-    } catch (err) {
-      console.error('Login error:', err);
-      setError('An error occurred. Please try again.');
-      setIsLoading(false);
-    }
-  };
-   
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
       <div className="w-full max-w-md">
@@ -78,7 +70,6 @@ export default function LoginPage() {
             <span>MozAssets</span>
           </Link>
           <p className="text-sm text-muted-foreground mt-1">by Mozetech</p>
-          <p className="text-xs text-green-600">Version: 2026-05-06-v3</p>
         </div>
 
         <Card>
@@ -86,67 +77,12 @@ export default function LoginPage() {
             <CardTitle className="text-2xl">Welcome back</CardTitle>
             <CardDescription>Sign in to your account to continue</CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              console.log('Form submitted, calling login...');
-              doLogin().catch((err) => {
-                console.error('Login promise error:', err);
-                setError('An error occurred. Please try again.');
-                setIsLoading(false);
-              });
-            }} className="space-y-4">
-              {error && (
-                <div className="p-3 text-sm text-red-500 bg-red-50 rounded-lg">
-                  {error}
-                </div>
-              )}
-              {isLoading && (
-                <div className="p-3 text-sm text-blue-500 bg-blue-50 rounded-lg">
-                  Signing in... Please wait.
-                </div>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="name@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <Link href="/forgot-password" className="text-sm text-primary hover:underline">
-                    Forgot password?
-                  </Link>
-                </div>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                  required
-                />
-              </div>
-              <Button 
-                type="submit"
-                className="w-full" 
-                disabled={isLoading}
-              >
-                {isLoading ? 'Signing in...' : 'Sign in'}
-              </Button>
-            </form>
-          </CardContent>
+          <Suspense fallback={<CardContent><div className="p-3 text-sm text-muted-foreground">Loading...</div></CardContent>}>
+            <LoginForm />
+          </Suspense>
           <CardFooter className="justify-center">
             <p className="text-sm text-muted-foreground">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link href="/signup" className="text-primary hover:underline font-medium">
                 Sign up
               </Link>

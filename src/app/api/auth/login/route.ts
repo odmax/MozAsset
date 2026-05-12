@@ -5,45 +5,79 @@ import bcrypt from 'bcryptjs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-  console.log('LOGIN API CALLED');
-  
   try {
-    const { email, password } = await request.json();
-    console.log('Login attempt:', { email, hasPassword: !!password });
+    const contentType = request.headers.get('content-type') || '';
 
-    if (!email || !password) {
-      console.log('ERROR: Missing email or password');
-      return NextResponse.json({ error: 'Email and password required' }, { status: 400 });
+    let email: string, password: string;
+
+    if (contentType.includes('application/json')) {
+      const body = await request.json();
+      email = body.email;
+      password = body.password;
+    } else {
+      const formData = await request.formData();
+      email = formData.get('email') as string;
+      password = formData.get('password') as string;
     }
 
-    // Normalize email to lowercase for case-insensitive match
-    const normalizedEmail = email.toLowerCase().trim();
-    console.log('Normalized email:', normalizedEmail);
+    if (!email || !password) {
+      const msg = 'Email and password required';
+      if (contentType.includes('application/json')) {
+        return NextResponse.json({ error: msg }, { status: 400 });
+      }
+      const redirectUrl = new URL('/login', request.url);
+      redirectUrl.searchParams.set('error', msg);
+      return NextResponse.redirect(redirectUrl, 303);
+    }
 
-    // Check User table only (platform admins use /api/admin/login)
-    console.log('Checking User table...');
+    const normalizedEmail = email.toLowerCase().trim();
+
     const user = await prisma.user.findFirst({
-      where: { 
-        email: { equals: normalizedEmail, mode: 'insensitive' }
+      where: {
+        email: { equals: normalizedEmail, mode: 'insensitive' },
       },
     });
 
     if (!user) {
-      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+      const msg = 'Invalid email or password';
+      if (contentType.includes('application/json')) {
+        return NextResponse.json({ error: msg }, { status: 401 });
+      }
+      const redirectUrl = new URL('/login', request.url);
+      redirectUrl.searchParams.set('error', msg);
+      return NextResponse.redirect(redirectUrl, 303);
     }
 
     if (!user.isActive) {
-      return NextResponse.json({ error: 'Account is inactive. Please contact support.' }, { status: 403 });
+      const msg = 'Account is inactive. Please contact support.';
+      if (contentType.includes('application/json')) {
+        return NextResponse.json({ error: msg }, { status: 403 });
+      }
+      const redirectUrl = new URL('/login', request.url);
+      redirectUrl.searchParams.set('error', msg);
+      return NextResponse.redirect(redirectUrl, 303);
     }
 
     if (!user.password) {
-      return NextResponse.json({ error: 'Please set your password first. Use forgot password.' }, { status: 401 });
+      const msg = 'Please set your password first. Use forgot password.';
+      if (contentType.includes('application/json')) {
+        return NextResponse.json({ error: msg }, { status: 401 });
+      }
+      const redirectUrl = new URL('/login', request.url);
+      redirectUrl.searchParams.set('error', msg);
+      return NextResponse.redirect(redirectUrl, 303);
     }
 
     const isValid = await bcrypt.compare(password, user.password);
 
     if (!isValid) {
-      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+      const msg = 'Invalid email or password';
+      if (contentType.includes('application/json')) {
+        return NextResponse.json({ error: msg }, { status: 401 });
+      }
+      const redirectUrl = new URL('/login', request.url);
+      redirectUrl.searchParams.set('error', msg);
+      return NextResponse.redirect(redirectUrl, 303);
     }
 
     const sessionData = {
@@ -55,36 +89,54 @@ export async function POST(request: Request) {
       assetLimit: Number(user.assetLimit),
       onBoardingComplete: Boolean(user.onBoardingComplete),
       organizationId: user.organizationId,
+      isPlatformAdmin: Boolean(user.isPlatformAdmin),
     };
 
     const sessionToken = Buffer.from(JSON.stringify(sessionData)).toString('base64');
 
-    const response = NextResponse.json({
-      success: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-      },
-      redirectUrl: '/dashboard',
-    });
+    // TEMP_USER_AUTH: simple user auth cookie
+    const simpleUserData = {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      plan: user.plan,
+      organizationId: user.organizationId,
+      isUser: true,
+    };
 
-    response.cookies.set('session', sessionToken, {
+    const simpleUserToken = Buffer.from(JSON.stringify(simpleUserData)).toString('base64');
+
+    const setCookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'lax' as const,
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
-    });
+    };
 
+    if (contentType.includes('application/json')) {
+      const response = NextResponse.json({
+        success: true,
+        user: { id: user.id, email: user.email, name: user.name },
+        redirectUrl: '/dashboard',
+      });
+      response.cookies.set('simpleUserAuth', simpleUserToken, setCookieOptions);
+      response.cookies.set('session', sessionToken, setCookieOptions);
+      return response;
+    }
+
+    const dashboardUrl = new URL('/dashboard', request.url);
+    const response = NextResponse.redirect(dashboardUrl);
+    response.cookies.set('simpleUserAuth', simpleUserToken, setCookieOptions);
+    response.cookies.set('session', sessionToken, setCookieOptions);
     return response;
   } catch (error) {
     console.error('Login error:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    
-    if (message.includes('database') || message.includes('Prisma')) {
-      return NextResponse.json({ error: 'Database connection failed. Please try again later.' }, { status: 503 });
+    if (request.headers.get('content-type')?.includes('application/json')) {
+      return NextResponse.json({ error: 'Login failed. Please try again.' }, { status: 500 });
     }
-    return NextResponse.json({ error: 'Login failed. Please try again.' }, { status: 500 });
+    const redirectUrl = new URL('/login', request.url);
+    redirectUrl.searchParams.set('error', 'Login failed. Please try again.');
+    return NextResponse.redirect(redirectUrl, 303);
   }
 }

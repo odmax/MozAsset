@@ -1,25 +1,11 @@
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
+import type { Role } from '@prisma/client';
 import { Sidebar } from '@/components/layout/sidebar';
 import { UpgradeBanner } from '@/components/dashboard/ads';
 import SupportWidget from '@/components/support-widget';
 import { DashboardClient } from '@/components/dashboard/DashboardClient';
-
-function getSessionUser() {
-  const sessionCookie = cookies().get('session');
-  
-  if (sessionCookie?.value) {
-    try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
-    } catch {
-      return null;
-    }
-  }
-  
-  return null;
-}
+import { getSimpleUserSession } from '@/lib/customer-session';
 
 async function getUserLogo(userId: string) {
   const user = await prisma.user.findUnique({
@@ -34,25 +20,15 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const sessionCookie = cookies().get('session');
-  
-  if (!sessionCookie?.value) {
+  const session = getSimpleUserSession();
+
+  if (!session) {
     redirect('/login');
   }
 
-  const user = getSessionUser();
-  
-  if (!user) {
-    redirect('/login');
-  }
-
-  if (user.isPlatformAdmin) {
-    redirect('/admin');
-  }
-
-  const userPlan = user.plan || 'FREE';
-  const userRole = user.role || 'EMPLOYEE';
-  const companyLogoUrl = await getUserLogo(user.id);
+  const userPlan = session.plan || 'FREE';
+  const userRole = (session.role || 'EMPLOYEE') as Role;
+  const companyLogoUrl = await getUserLogo(session.userId);
 
   return (
     <DashboardClient userPlan={userPlan}>

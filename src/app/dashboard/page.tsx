@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -23,20 +22,19 @@ import { AssetStatus } from '@prisma/client';
 import { StatusPieChart, DepartmentBarChart, CategoryBarChart } from '@/components/dashboard/charts';
 import { UpgradePlanModal } from '@/components/plan/UpgradePlanModal';
 import { UpgradeButton } from '@/components/dashboard/UpgradeButton';
-import { getCurrentUserContext } from '@/lib/user-context';
+import { getSimpleUserSession } from '@/lib/customer-session';
 
-async function getDashboardData(context: any) {
+async function getDashboardData(context: {
+  userId: string;
+  organizationId: string | null;
+}) {
   if (!context?.userId) {
     redirect('/login');
   }
 
-  const isPlatformAdmin = context.isPlatformAdmin || context.isInternalAdmin;
   const orgId = context.organizationId;
 
-  // Build where clause based on user type
-  // If no orgId, queries return empty results (safe)
   const buildWhere = (extra: any = {}) => {
-    if (isPlatformAdmin) return { ...extra };
     if (!orgId) return { id: { in: [] } };
     return { organizationId: orgId, ...extra };
   };
@@ -84,7 +82,7 @@ async function getDashboardData(context: any) {
     prisma.auditLog.findMany({
       take: 10,
       orderBy: { createdAt: 'desc' },
-      where: isPlatformAdmin ? {} : { userId: context.userId },
+      where: { userId: context.userId },
       include: {
         user: { select: { name: true, email: true } },
         asset: { select: { assetTag: true, name: true } },
@@ -136,17 +134,20 @@ async function getDashboardData(context: any) {
 }
 
 export default async function DashboardPage() {
-  const user = await getCurrentUserContext();
+  const session = getSimpleUserSession();
 
-  if (!user?.userId) {
+  if (!session) {
     redirect('/login');
   }
 
-  const plan = user.plan || 'FREE';
+  const plan = session.plan || 'FREE';
   const showAds = plan === 'FREE';
   
   try {
-    const data = await getDashboardData(user);
+    const data = await getDashboardData({
+      userId: session.userId,
+      organizationId: session.organizationId,
+    });
     
     const stats = [
       { title: 'Total Assets', value: data.totalAssets, icon: Package, color: 'text-blue-600' },
@@ -163,7 +164,7 @@ export default async function DashboardPage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
             <p className="text-muted-foreground">
-              Welcome back, {user.name || user.email}
+              Welcome back, {session.email}
             </p>
           </div>
           <Link href="/dashboard/assets/new">
