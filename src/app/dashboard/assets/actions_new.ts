@@ -7,6 +7,7 @@ import { getAssetLimit, canAddAssets } from '@/lib/billing';
 import type { AssetStatus, AssetCondition, Prisma, AuditAction, Plan } from '@prisma/client';
 import type { AssetFormData } from '@/lib/validations';
 import { getCurrentUserContext } from '@/lib/user-context';
+import { createNotification } from '@/lib/notifications';
 
 async function logAudit(
   action: AuditAction,
@@ -256,6 +257,16 @@ export async function assignAsset(assetId: string, userId: string, notes?: strin
 
   await logAudit('ASSIGN' as AuditAction, 'Asset', assetId, context.userId, { assignedToId: userId });
 
+  await createNotification({
+    userId,
+    organizationId: context.organizationId,
+    type: 'ASSET_ASSIGNED',
+    title: 'Asset Assigned to You',
+    message: `"${asset.name}" has been assigned to you`,
+    link: `/dashboard/assets/${assetId}`,
+    actorId: context.userId,
+  });
+
   revalidatePath('/dashboard/assets');
   revalidatePath(`/dashboard/assets/${assetId}`);
   return asset;
@@ -329,6 +340,18 @@ export async function transferAsset(
   });
 
   await logAudit('TRANSFER' as AuditAction, 'Asset', assetId, context.userId, data as Prisma.InputJsonValue);
+
+  if (data.toUserId && data.toUserId !== asset.assignedToId) {
+    await createNotification({
+      userId: data.toUserId,
+      organizationId: context.organizationId,
+      type: 'ASSET_TRANSFERRED',
+      title: 'Asset Transferred to You',
+      message: `"${asset.name}" has been transferred to you`,
+      link: `/dashboard/assets/${assetId}`,
+      actorId: context.userId,
+    });
+  }
 
   revalidatePath('/dashboard/assets');
   revalidatePath(`/dashboard/assets/${assetId}`);
@@ -457,6 +480,12 @@ export async function addMaintenance(
     throw new Error('Unauthorized');
   }
 
+  const asset = await prisma.asset.findFirst({
+    where: { id: assetId, organizationId: context.organizationId },
+    select: { id: true, name: true, assignedToId: true },
+  });
+  if (!asset) throw new Error('Asset not found');
+
   const maintenance = await prisma.maintenance.create({
     data: {
       assetId,
@@ -478,6 +507,18 @@ export async function addMaintenance(
   }
 
   await logAudit('MAINTENANCE' as AuditAction, 'Asset', assetId, context.userId, data as Prisma.InputJsonValue);
+
+  if (asset.assignedToId) {
+    await createNotification({
+      userId: asset.assignedToId,
+      organizationId: context.organizationId,
+      type: 'MAINTENANCE_COMPLETED',
+      title: 'Maintenance Completed',
+      message: `Maintenance "${data.type}" completed for "${asset.name}"`,
+      link: `/dashboard/assets/${assetId}`,
+      actorId: context.userId,
+    });
+  }
 
   revalidatePath('/dashboard/assets');
   revalidatePath(`/dashboard/assets/${assetId}`);

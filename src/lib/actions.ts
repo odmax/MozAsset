@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { Prisma, type Plan } from '@prisma/client';
 import { getPlanLimits, canAddAssets, canAddCategories, canAddDepartments, canAddLocations, canAddVendors, canAddUsers } from '@/lib/billing';
 import { getCurrentUserContext } from '@/lib/user-context';
+import { createNotification, createNotificationForOrg } from '@/lib/notifications';
 
 // Helper to build organization filter for non-platform admins
 function buildOrgFilter(context: Awaited<ReturnType<typeof getCurrentUserContext>>, baseWhere: any = {}) {
@@ -469,6 +470,27 @@ export async function createUser(data: { name: string; email: string; password?:
       changes: { ...data, password: undefined } as Prisma.InputJsonValue,
     },
   });
+
+  createNotification({
+    userId: newUser.id,
+    organizationId: context.organizationId,
+    type: 'USER_INVITED',
+    title: 'Welcome to MozAssets',
+    message: `Your account has been created by ${context.name || 'an administrator'}`,
+    link: '/dashboard',
+  }).catch((err) => console.error('Failed to create notification:', err));
+
+  if (context.organizationId) {
+    createNotificationForOrg({
+      organizationId: context.organizationId,
+      excludeUserId: newUser.id,
+      type: 'ORGANIZATION_UPDATE',
+      title: 'New User Added',
+      message: `${data.name} has been added to the organization`,
+      link: '/dashboard/users',
+      actorId: context.userId,
+    }).catch((err) => console.error('Failed to create org notification:', err));
+  }
 
   revalidatePath('/dashboard/users');
   return newUser;

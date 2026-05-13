@@ -24,9 +24,11 @@ import {
   FileText,
   CreditCard,
   Settings,
+  Bell,
 } from 'lucide-react';
 import type { Role, LucideIcon } from '@/types';
 import { AdContainer } from '@/components/ad-container';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 interface NavItem {
   title: string;
@@ -103,6 +105,12 @@ const navItems: NavItem[] = [
     roles: ['SUPER_ADMIN', 'ASSET_MANAGER'],
   },
   {
+    title: 'Notifications',
+    href: '/dashboard/notifications',
+    icon: Bell,
+    roles: ['SUPER_ADMIN', 'ASSET_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE'],
+  },
+  {
     title: 'Settings',
     href: '/dashboard/settings',
     icon: Settings,
@@ -137,7 +145,7 @@ function SidebarContent({
 
   return (
     <>
-      <div className="flex h-16 items-center border-b px-6">
+      <div className="flex h-16 items-center justify-between border-b px-6">
         <Link href="/dashboard" className="flex items-center gap-2 font-bold text-lg">
           {companyLogoUrl ? (
             <img 
@@ -152,6 +160,7 @@ function SidebarContent({
             </>
           )}
         </Link>
+        <NotificationBell />
       </div>
       <nav className="flex-1 overflow-y-auto p-4">
         <ul className="space-y-1">

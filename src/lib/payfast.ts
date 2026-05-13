@@ -262,9 +262,28 @@ export async function updatePlanFromConfirmedPayment(
       });
     }
 
+    const { createNotification } = await import('@/lib/notifications');
+    createNotification({
+      userId,
+      type: 'BILLING_SUCCESSFUL',
+      title: 'Payment Confirmed',
+      message: `Your ${plan} plan payment has been confirmed and your subscription is active`,
+      link: '/billing',
+    }).catch((err) => console.error('Failed to create notification:', err));
+
     return { success: true };
   } catch (error) {
     console.error('Failed to update user plan:', error);
+
+    const { createNotification } = await import('@/lib/notifications');
+    createNotification({
+      userId,
+      type: 'BILLING_FAILED',
+      title: 'Payment Failed',
+      message: 'Your payment could not be processed. Please check your payment method',
+      link: '/billing',
+    }).catch((err) => console.error('Failed to create notification:', err));
+
     return { success: false, error: 'Failed to update subscription' };
   }
 }

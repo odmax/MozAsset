@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import type { Plan } from '@prisma/client';
+import { createNotification } from '@/lib/notifications';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,6 +63,17 @@ export async function POST(
         plan: plan as Plan,
       },
     });
+
+    createNotification({
+      userId: params.userId,
+      type: 'PLAN_UPGRADED',
+      title: plan === 'FREE' ? 'Plan Downgraded' : 'Plan Upgraded',
+      message: plan === 'FREE'
+        ? 'Your plan has been changed to Free by an administrator'
+        : `Your plan has been upgraded to ${plan} by an administrator`,
+      link: '/billing',
+      actorId: sessionUser?.id || adminUser?.id,
+    }).catch((err) => console.error('Failed to create notification:', err));
 
     return NextResponse.json({ success: true, plan: updated.plan });
   } catch (error) {

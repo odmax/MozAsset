@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { createCheckoutSession, createPortalSession, cancelSubscription, getSubscriptionStatus, createCheckoutPayload, getPayfastBaseUrl } from '@/lib/billing';
 import type { BillingProvider, Plan } from '@prisma/client';
 import { getCurrentUserContext } from '@/lib/user-context';
+import { createNotification } from '@/lib/notifications';
 
 export async function POST(request: Request) {
   try {
@@ -80,126 +81,13 @@ export async function POST(request: Request) {
           },
         });
 
-        return NextResponse.json(result);
-      }
-
-      case 'cancel': {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: userId },
-        });
-
-        if (!dbUser || dbUser.plan === 'FREE') {
-          return NextResponse.json({ error: 'No active subscription' }, { status: 400 });
-        }
-
-        const { cancelType, feedback, feedbackDetail } = await request.json();
-
-        const result = await cancelSubscription(userId, dbUser.billingProvider as BillingProvider);
-
-        if (!result.success) {
-          return NextResponse.json({ error: result.error }, { status: 400 });
-        }
-
-        if (cancelType === 'immediate') {
-          const orgId = dbUser.organizationId;
-
-          await prisma.$transaction(async (tx) => {
-            await tx.user.update({
-              where: { id: userId },
-              data: {
-                plan: 'FREE',
-                subscriptionStatus: 'CANCELED',
-                billingProvider: 'NONE',
-                canceledAt: new Date(),
-                billingPeriodStart: null,
-                billingPeriodEnd: null,
-              },
-            });
-
-            if (orgId) {
-              await tx.organization.update({
-                where: { id: orgId },
-                data: {
-                  plan: 'FREE',
-                  subscriptionStatus: 'CANCELED',
-                  billingProvider: 'NONE',
-                  canceledAt: new Date(),
-                },
-              });
-            }
-
-            await tx.auditLog.create({
-              data: {
-                action: 'UPDATE',
-                entityType: 'User',
-                entityId: userId,
-                userId: userId,
-                changes: {
-                  action: 'cancel_subscription',
-                  cancelType: 'immediate',
-                  ...(feedback ? { feedback } : {}),
-                  ...(feedbackDetail ? { feedbackDetail } : {}),
-                },
-              },
-            });
-          });
-
-          return NextResponse.json({ success: true, cancelType: 'immediate' });
-        } else {
-          await prisma.$transaction(async (tx) => {
-            await tx.user.update({
-              where: { id: userId },
-              data: {
-                canceledAt: new Date(),
-                subscriptionStatus: 'CANCELED',
-              },
-            });
-
-            if (dbUser.organizationId) {
-              await tx.organization.update({
-                where: { id: dbUser.organizationId },
-                data: {
-                  canceledAt: new Date(),
-                  subscriptionStatus: 'CANCELED',
-                },
-              });
-            }
-
-            await tx.auditLog.create({
-              data: {
-                action: 'UPDATE',
-                entityType: 'User',
-                entityId: userId,
-                userId: userId,
-                changes: {
-                  action: 'cancel_subscription',
-                  cancelType: 'end_of_period',
-                  ...(feedback ? { feedback } : {}),
-                  ...(feedbackDetail ? { feedbackDetail } : {}),
-                },
-              },
-            });
-          });
-
-          return NextResponse.json({
-            success: true,
-            cancelType: 'end_of_period',
-            endDate: dbUser.billingPeriodEnd,
-          });
-        }
-      }
-
-      case 'portal': {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: userId },
-        });
-
-        const provider = dbUser?.billingProvider || 'PAYSTACK';
-        const result = await createPortalSession(userId, provider as BillingProvider);
-
-        if (!result.success) {
-          return NextResponse.json({ error: result.error }, { status: 400 });
-        }
+        createNotification({
+          userId,
+          type: 'PLAN_UPGRADED',
+          title: 'Plan Upgrade Initiated',
+          message: `Your upgrade to ${plan} plan has been initiated. Complete payment to activate`,
+          link: '/billing',
+        }).catch((err) => console.error('Failed to create notification:', err));
 
         return NextResponse.json(result);
       }

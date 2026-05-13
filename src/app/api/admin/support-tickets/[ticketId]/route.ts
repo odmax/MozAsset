@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { sendEmail } from '@/lib/email';
+import { createNotification } from '@/lib/notifications';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,7 +82,7 @@ export async function POST(
 
     const ticket = await prisma.supportTicket.findUnique({
       where: { id: ticketId },
-      include: { user: { select: { email: true, name: true } } },
+      include: { user: { select: { id: true, email: true, name: true } } },
     });
 
     if (!ticket) {
@@ -106,7 +107,7 @@ export async function POST(
       },
     });
 
-    // Send email notification to customer
+    // Send email and in-app notification to customer
     sendEmail({
       to: ticket.user.email,
       subject: `Re: ${ticket.subject} — Support Update`,
@@ -124,6 +125,15 @@ export async function POST(
         </div>
       `,
     }).catch((err) => console.error('Failed to send support email:', err));
+
+    createNotification({
+      userId: ticket.user.id,
+      type: 'SUPPORT_REPLY',
+      title: 'Support Ticket Update',
+      message: `Admin replied to "${ticket.subject}"`,
+      link: `/dashboard/support?ticket=${ticketId}`,
+      actorId: admin.id,
+    }).catch((err) => console.error('Failed to create notification:', err));
 
     return NextResponse.json({
       ...ticketMessage,

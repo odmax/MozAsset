@@ -84,6 +84,21 @@ enum AssetCondition {
   NEEDS_REPAIR
 }
 
+enum NotificationType {
+  ASSET_ASSIGNED
+  ASSET_TRANSFERRED
+  MAINTENANCE_DUE
+  MAINTENANCE_COMPLETED
+  SUPPORT_REPLY
+  BILLING_SUCCESSFUL
+  BILLING_FAILED
+  SUBSCRIPTION_CANCELLED
+  PLAN_UPGRADED
+  USER_INVITED
+  EXPORT_COMPLETED
+  ORGANIZATION_UPDATE
+}
+
 enum AuditAction {
   CREATE
   UPDATE
@@ -154,6 +169,7 @@ model User {
   invoices        Invoice[]
   payments       Payment[]
   supportTickets SupportTicket[]
+  notifications  Notification[]
 
   @@index([email])
   @@index([departmentId])
@@ -445,6 +461,29 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([assetId])
   @@index([userId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id             String           @id @default(cuid())
+  userId         String
+  organizationId String?
+  type           NotificationType
+  title          String
+  message        String           @db.Text
+  link           String?
+  isRead         Boolean          @default(false)
+  priority       String           @default("normal")
+  actorId        String?
+  metadata       Json?
+  createdAt      DateTime         @default(now())
+
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@index([organizationId])
+  @@index([type])
   @@index([createdAt])
 }
 
