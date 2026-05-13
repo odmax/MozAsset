@@ -2,11 +2,13 @@ import prisma from '@/lib/prisma';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Download, Wrench, Calendar, DollarSign } from 'lucide-react';
+import { Download, Crown } from 'lucide-react';
 import Link from 'next/link';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { BackLink } from '@/components/ui/back-button';
 import { getCurrentUserContext } from '@/lib/user-context';
+import { getPlanDetails } from '@/lib/billing';
+import type { Plan } from '@prisma/client';
 
 export default async function MaintenanceReportsPage({
   searchParams,
@@ -18,6 +20,37 @@ export default async function MaintenanceReportsPage({
 
   const canAccess = ['SUPER_ADMIN', 'ASSET_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE'].includes(context.role);
   if (!canAccess) return null;
+
+  const userPlan = (context.plan || 'FREE') as Plan;
+  const planDetails = getPlanDetails(userPlan);
+  const canViewReport = planDetails.features.advancedReports;
+
+  if (!canViewReport) {
+    return (
+      <div className="space-y-6">
+        <BackLink href="/dashboard/reports" />
+        <Card className="border-dashed border-2 bg-slate-50/50">
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+              <Crown className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <CardTitle className="text-xl">Maintenance Reports</CardTitle>
+            <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
+              Get detailed maintenance history, cost analysis, and export capabilities.
+            </p>
+          </CardHeader>
+          <CardContent className="text-center pt-0">
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-6">
+              <span>Available on PRO and above</span>
+            </div>
+            <Link href="/billing">
+              <Button>Upgrade to PRO</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const page = Number(searchParams.page) || 1;
   const limit = 50;
