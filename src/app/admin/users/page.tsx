@@ -30,7 +30,7 @@ interface User {
   isActive: boolean;
   emailVerified: Date | null;
   createdAt: Date;
-  department: { name: string } | null;
+  organization: { name: string } | null;
 }
 
 export default function AdminUsersPage() {
@@ -212,7 +212,7 @@ export default function AdminUsersPage() {
                       </div>
                     </td>
                     <td className="p-3 text-sm">
-                      {user.department?.name || '-'}
+                      {user.organization?.name || '-'}
                     </td>
                     <td className="p-3 text-sm">
                       <Badge variant="outline">{user.role}</Badge>

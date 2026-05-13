@@ -1,35 +1,24 @@
-import { cookies } from 'next/headers';
+import { getSimpleUserSession } from '@/lib/customer-session';
 import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import { AssetForm } from '@/components/dashboard/asset-form';
 import { BackLink } from '@/components/ui/back-button';
 
-function getSessionUser() {
-  const sessionCookie = cookies().get('session');
-  if (sessionCookie?.value) {
-    try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
-
 export const metadata = { title: 'Add Asset | Asset Manager' };
 
 export default async function NewAssetPage() {
-  const user = getSessionUser();
+  const user = getSimpleUserSession();
   if (!user) redirect('/login');
 
+  const orgId = user.organizationId || '';
+
   const [categories, departments, locations, vendors, users] = await Promise.all([
-    prisma.category.findMany({ orderBy: { name: 'asc' } }),
-    prisma.department.findMany({ orderBy: { name: 'asc' } }),
-    prisma.location.findMany({ orderBy: { name: 'asc' } }),
-    prisma.vendor.findMany({ orderBy: { name: 'asc' } }),
+    prisma.category.findMany({ where: { organizationId: orgId }, orderBy: { name: 'asc' } }),
+    prisma.department.findMany({ where: { organizationId: orgId }, orderBy: { name: 'asc' } }),
+    prisma.location.findMany({ where: { organizationId: orgId }, orderBy: { name: 'asc' } }),
+    prisma.vendor.findMany({ where: { organizationId: orgId }, orderBy: { name: 'asc' } }),
     prisma.user.findMany({
-      where: { isActive: true },
+      where: { organizationId: orgId, isActive: true },
       select: { id: true, name: true, email: true },
       orderBy: { name: 'asc' },
     }),

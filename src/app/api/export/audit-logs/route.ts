@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
   const where: any = {};
   if (!context.isInternalAdmin) {
-    where.organizationId = context.organizationId || 'never-match';
+    where.user = { organizationId: context.organizationId || 'never-match' };
   }
   if (search) {
     where.OR = [

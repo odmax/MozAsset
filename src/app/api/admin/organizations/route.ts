@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
-import { getCurrentUserContext } from '@/lib/user-context';
+import { getSimpleAdminSession } from '@/lib/admin-session';
 import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const context = await getCurrentUserContext();
-  
-  if (!context?.isPlatformAdmin && !context?.isInternalAdmin) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  const admin = getSimpleAdminSession();
+
+  if (!admin) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -17,12 +17,12 @@ export async function GET() {
       select: {
         id: true,
         name: true,
+        plan: true,
         createdAt: true,
         owner: {
           select: {
             name: true,
             email: true,
-            plan: true,
           },
         },
         _count: {
@@ -39,9 +39,9 @@ export async function GET() {
     const formatted = organizations.map(org => ({
       id: org.id,
       name: org.name,
-      code: '',
+      plan: org.plan,
       createdAt: org.createdAt,
-      owner: org.owner || { name: null, email: 'Unknown', plan: 'FREE' },
+      owner: org.owner || { name: null, email: 'Unknown' },
       _count: {
         users: org._count.users,
         assets: org._count.assets,

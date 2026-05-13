@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import type { Plan, BillingProvider, SubscriptionStatus } from '@prisma/client';
+import { getPlanLimits } from './billing';
 
 export interface PayfastConfig {
   merchantId: string;
@@ -230,6 +231,8 @@ export async function updatePlanFromConfirmedPayment(
   billingPeriodEnd.setMonth(billingPeriodEnd.getMonth() + 1);
 
   try {
+    const limits = getPlanLimits(plan);
+
     await prisma.user.update({
       where: { id: userId },
       data: {
@@ -240,12 +243,24 @@ export async function updatePlanFromConfirmedPayment(
         billingSubscriptionId,
         billingPeriodStart,
         billingPeriodEnd,
-        assetLimit: plan === 'PRO' ? 1000 : 50,
-        departmentLimit: plan === 'PRO' ? -1 : 1,
-        locationLimit: plan === 'PRO' ? -1 : 1,
-        userLimit: plan === 'PRO' ? -1 : 3,
+        assetLimit: limits.assetLimit,
+        departmentLimit: limits.departmentLimit,
+        locationLimit: limits.locationLimit,
+        userLimit: limits.userLimit,
       },
     });
+
+    // Keep Organization plan in sync with user's plan
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { organizationId: true },
+    });
+    if (user?.organizationId) {
+      await prisma.organization.update({
+        where: { id: user.organizationId },
+        data: { plan, subscriptionStatus: 'ACTIVE' as SubscriptionStatus },
+      });
+    }
 
     return { success: true };
   } catch (error) {
@@ -255,9 +270,9 @@ export async function updatePlanFromConfirmedPayment(
 }
 
 export function getPlanPrice(plan: Plan): number {
-  return plan === 'PRO' ? 29 : 0;
+  return plan === 'PRO' ? 149 : plan === 'ENTERPRISE' ? 599 : 0;
 }
 
 export function getPlanInterval(plan: Plan): string {
-  return plan === 'PRO' ? 'monthly' : '';
+  return plan === 'PRO' || plan === 'ENTERPRISE' ? 'monthly' : '';
 }

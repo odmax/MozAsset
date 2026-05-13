@@ -1,43 +1,17 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getSimpleAdminSession } from '@/lib/admin-session';
 import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-function getSessionUser() {
-  const sessionCookie = cookies().get('session');
-  if (sessionCookie?.value) {
-    try {
-      return JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString('utf-8'));
-    } catch { return null; }
-  }
-  return null;
-}
-
-function getAdminSession() {
-  const adminCookie = cookies().get('adminSession');
-  if (adminCookie?.value) {
-    try {
-      return JSON.parse(Buffer.from(adminCookie.value, 'base64').toString('utf-8'));
-    } catch { return null; }
-  }
-  return null;
-}
-
 export async function GET() {
-  const sessionUser = getSessionUser();
-  const adminUser = getAdminSession();
-  
-  // Check admin session ONLY (platform admins use InternalAdmin table)
-  const isInternalAdmin = adminUser?.isInternalAdmin === true;
-  
-  if (!isInternalAdmin) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  const admin = getSimpleAdminSession();
+
+  if (!admin) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  
+
   try {
-    
-    // Only fetch from User table (platform admins are in InternalAdmin table)
     const users = await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
       select: {
@@ -49,12 +23,9 @@ export async function GET() {
         isActive: true,
         emailVerified: true,
         createdAt: true,
-        department: { select: { name: true } },
+        organization: { select: { name: true } },
       },
     });
-
-    console.log('[admin-users] Found users:', users.length);
-    console.log('[admin-users] First few emails:', users.slice(0, 3).map(u => u.email));
 
     return NextResponse.json(users);
   } catch (error) {

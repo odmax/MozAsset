@@ -1,23 +1,9 @@
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Building2, Crown, CreditCard, Mail, TrendingUp, UserPlus, DollarSign, AlertCircle, CheckCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-
-// TEMP_ADMIN_AUTH: simple admin auth until full platform auth is rebuilt.
-function getSimpleAdminSession() {
-  const authCookie = cookies().get('simpleAdminAuth');
-  if (authCookie?.value) {
-    try {
-      const session = JSON.parse(Buffer.from(authCookie.value, 'base64').toString('utf-8'));
-      if (session?.adminId && session.isAdmin === true) {
-        return session;
-      }
-    } catch {}
-  }
-  return null;
-}
+import { getSimpleAdminSession } from '@/lib/admin-session';
 
 async function getAdminStats() {
   const now = new Date();
@@ -42,7 +28,7 @@ async function getAdminStats() {
     prisma.user.count({ where: { plan: 'FREE' } }),
     prisma.user.count({ where: { plan: 'PRO' } }),
     prisma.user.count({ where: { plan: 'ENTERPRISE' } }),
-    prisma.department.count(),
+    prisma.organization.count(),
     prisma.user.count({ where: { subscriptionStatus: 'ACTIVE', plan: { not: 'FREE' } } }),
     prisma.contactSubmission.count({ where: { status: 'PENDING' } }),
     prisma.payment.count({ where: { status: 'FAILED' } }),
@@ -51,7 +37,7 @@ async function getAdminStats() {
       take: 5,
       select: { id: true, name: true, email: true, plan: true, createdAt: true },
     }),
-    prisma.department.findMany({
+    prisma.organization.findMany({
       orderBy: { createdAt: 'desc' },
       take: 5,
       select: { id: true, name: true, createdAt: true },

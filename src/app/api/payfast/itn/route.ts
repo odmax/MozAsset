@@ -20,11 +20,19 @@ export async function POST(request: Request) {
       item_description: formData.get('item_description')?.toString() || '',
       amount: formData.get('amount')?.toString() || '',
       custom_str1: formData.get('custom_str1')?.toString() || '',
+      custom_str2: formData.get('custom_str2')?.toString() || '',
+      custom_str3: formData.get('custom_str3')?.toString() || '',
       custom_int1: formData.get('custom_int1')?.toString() || '',
       name_first: formData.get('name_first')?.toString() || '',
       name_last: formData.get('name_last')?.toString() || '',
       email_address: formData.get('email_address')?.toString() || '',
     };
+
+    // Only process COMPLETE payments
+    if (paymentData.payment_status !== 'COMPLETE') {
+      console.log('[Payfast ITN] Skipping non-complete payment:', paymentData.payment_status);
+      return NextResponse.json({ success: true, message: 'Payment not complete, ignored' });
+    }
 
     const result = await handleITN(paymentData);
 

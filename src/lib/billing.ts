@@ -179,14 +179,13 @@ export function canAddLocations(plan: Plan, currentCount: number): { allowed: bo
 }
 
 export function canAddVendors(plan: Plan, currentCount: number): { allowed: boolean; message?: string } {
-  const limit = 50;
-  if (currentCount >= limit) {
-    if (plan === 'FREE') {
-      return {
-        allowed: false,
-        message: `${limit} vendors max on FREE. Need more? PRO has you covered!`,
-      };
-    }
+  // FREE capped at 50 vendors; PRO+ unlimited
+  if (plan !== 'FREE') return { allowed: true };
+  if (currentCount >= 50) {
+    return {
+      allowed: false,
+      message: '50 vendors max on FREE. Need more? PRO has you covered!',
+    };
   }
   return { allowed: true };
 }

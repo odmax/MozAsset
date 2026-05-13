@@ -16,7 +16,8 @@ export function getSimpleUserSession(): SimpleUserSession | null {
 
   if (authCookie?.value) {
     try {
-      const session = JSON.parse(Buffer.from(authCookie.value, 'base64').toString('utf-8'));
+      const decoded = decodeURIComponent(authCookie.value);
+      const session = JSON.parse(Buffer.from(decoded, 'base64').toString('utf-8'));
       if (session?.userId && session.isUser === true) {
         return {
           userId: session.userId,
@@ -46,7 +47,8 @@ export function getSimpleUserSessionFromHeader(cookieHeader: string): SimpleUser
   const authCookie = parsed['simpleUserAuth'];
   if (authCookie) {
     try {
-      const session = JSON.parse(Buffer.from(authCookie, 'base64').toString('utf-8'));
+      const decoded = decodeURIComponent(authCookie);
+      const session = JSON.parse(Buffer.from(decoded, 'base64').toString('utf-8'));
       if (session?.userId && session.isUser === true) {
         return {
           userId: session.userId,

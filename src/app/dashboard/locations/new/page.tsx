@@ -1,27 +1,16 @@
-import { cookies } from 'next/headers';
+import { getSimpleUserSession } from '@/lib/customer-session';
 import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import { LocationForm } from '@/components/dashboard/location-form';
 import { BackLink } from '@/components/ui/back-button';
 
-function getSessionUser() {
-  const sessionCookie = cookies().get('session');
-  if (sessionCookie?.value) {
-    try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
-
 export default async function NewLocationPage() {
-  const user = getSessionUser();
+  const user = getSimpleUserSession();
   if (!user) redirect('/login');
 
-  const departments = await prisma.department.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } });
+  const orgId = user.organizationId || '';
+
+  const departments = await prisma.department.findMany({ where: { organizationId: orgId }, orderBy: { name: 'asc' }, select: { id: true, name: true } });
 
   return (
     <div className="space-y-6">

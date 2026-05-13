@@ -1,4 +1,4 @@
-import { cookies } from 'next/headers';
+import { getSimpleUserSession } from '@/lib/customer-session';
 import prisma from '@/lib/prisma';
 import { getAssets } from './actions';
 import { AssetList } from '@/components/dashboard/asset-list';
@@ -8,21 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import type { Role } from '@prisma/client';
 import { AdContainer } from '@/components/ad-container';
-
-function getSessionUser() {
-  const sessionCookie = cookies().get('session');
-  if (sessionCookie?.value) {
-    try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
 
 export const metadata = { title: 'Assets | Asset Manager' };
 
@@ -31,9 +17,10 @@ export default async function AssetsPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const user = getSessionUser();
+  const user = getSimpleUserSession();
   if (!user) redirect('/login');
 
+  const orgId = user.organizationId || '';
   const canManage = user.role === 'SUPER_ADMIN' || user.role === 'ASSET_MANAGER' || user.role === 'DEPARTMENT_MANAGER';
 
   const page = Number(searchParams.page) || 1;
@@ -47,8 +34,8 @@ export default async function AssetsPage({
 
   const [{ data: assets, total, totalPages }, categories, departments] = await Promise.all([
     getAssets({ page, limit: 10, search, status, condition, categoryId, departmentId, sortBy, sortOrder }),
-    prisma.category.findMany({ orderBy: { name: 'asc' } }),
-    prisma.department.findMany({ orderBy: { name: 'asc' } }),
+    prisma.category.findMany({ where: { organizationId: orgId }, orderBy: { name: 'asc' } }),
+    prisma.department.findMany({ where: { organizationId: orgId }, orderBy: { name: 'asc' } }),
   ]);
 
   return (

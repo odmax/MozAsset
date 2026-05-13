@@ -1,21 +1,8 @@
-import { cookies } from 'next/headers';
+import { getSimpleUserSession } from '@/lib/customer-session';
 import prisma from '@/lib/prisma';
 import { notFound, redirect } from 'next/navigation';
 import { AssignForm } from '@/components/dashboard/assign-form';
 import { BackLink } from '@/components/ui/back-button';
-
-function getSessionUser() {
-  const sessionCookie = cookies().get('session');
-  if (sessionCookie?.value) {
-    try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
 
 export const metadata = { title: 'Assign Asset | Asset Manager' };
 
@@ -24,11 +11,13 @@ export default async function AssignAssetPage({
 }: {
   params: { id: string };
 }) {
-  const user = getSessionUser();
+  const user = getSimpleUserSession();
   if (!user) redirect('/login');
 
-  const asset = await prisma.asset.findUnique({
-    where: { id: params.id },
+  const orgId = user.organizationId || '';
+
+  const asset = await prisma.asset.findFirst({
+    where: { id: params.id, organizationId: orgId },
     include: { department: true },
   });
 
@@ -37,7 +26,7 @@ export default async function AssignAssetPage({
   }
 
   const users = await prisma.user.findMany({
-    where: { isActive: true },
+    where: { organizationId: orgId, isActive: true },
     select: { id: true, name: true, email: true, department: { select: { name: true } } },
     orderBy: { name: 'asc' },
   });

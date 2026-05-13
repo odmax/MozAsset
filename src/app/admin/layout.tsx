@@ -90,11 +90,6 @@ export default async function AdminLayout({
             </div>
           </div>
           <div className="flex gap-2">
-            <Link href="/dashboard" className="flex-1">
-              <Button variant="outline" size="sm" className="w-full text-slate-900">
-                User Dashboard
-              </Button>
-            </Link>
             <LogoutButton />
           </div>
         </div>

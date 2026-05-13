@@ -19,12 +19,11 @@ import {
 interface Organization {
   id: string;
   name: string;
-  code: string;
+  plan: string;
   createdAt: Date;
   owner: {
     name: string | null;
     email: string;
-    plan: string;
   };
   _count: {
     users: number;
@@ -133,11 +132,11 @@ export default function AdminOrganizationsPage() {
                     </td>
                     <td className="p-3">
                       <Badge className={
-                        org.owner.plan === 'PRO' ? 'bg-purple-100 text-purple-700' :
-                        org.owner.plan === 'ENTERPRISE' ? 'bg-amber-100 text-amber-700' :
+                        org.plan === 'PRO' ? 'bg-purple-100 text-purple-700' :
+                        org.plan === 'ENTERPRISE' ? 'bg-amber-100 text-amber-700' :
                         'bg-muted text-muted-foreground'
                       }>
-                        {org.owner.plan}
+                        {org.plan}
                       </Badge>
                     </td>
                     <td className="p-3 text-sm">
