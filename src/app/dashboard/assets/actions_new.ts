@@ -8,6 +8,7 @@ import type { AssetStatus, AssetCondition, Prisma, AuditAction, Plan } from '@pr
 import type { AssetFormData } from '@/lib/validations';
 import { getCurrentUserContext } from '@/lib/user-context';
 import { createNotification } from '@/lib/notifications';
+import { sendNotificationEmail } from '@/lib/notification-email';
 
 async function logAudit(
   action: AuditAction,
@@ -266,6 +267,11 @@ export async function assignAsset(assetId: string, userId: string, notes?: strin
     link: `/dashboard/assets/${assetId}`,
     actorId: context.userId,
   });
+
+  sendNotificationEmail(userId, 'ASSET_ASSIGNED', {
+    assetName: asset.name,
+    assignedBy: context.name || 'An administrator',
+  }).catch((err) => console.error('Failed to send notification email:', err));
 
   revalidatePath('/dashboard/assets');
   revalidatePath(`/dashboard/assets/${assetId}`);

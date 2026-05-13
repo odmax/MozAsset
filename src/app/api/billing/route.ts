@@ -4,6 +4,7 @@ import { createCheckoutSession, createPortalSession, cancelSubscription, getSubs
 import type { BillingProvider, Plan } from '@prisma/client';
 import { getCurrentUserContext } from '@/lib/user-context';
 import { createNotification } from '@/lib/notifications';
+import { sendNotificationEmail } from '@/lib/notification-email';
 
 export async function POST(request: Request) {
   try {

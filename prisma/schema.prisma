@@ -155,6 +155,12 @@ model User {
   themeColor     String?        @default("#222222")
   companyLogoUrl String?
 
+  emailMarketing    Boolean @default(true)
+  emailSecurity     Boolean @default(true)
+  emailSupport      Boolean @default(true)
+  emailMaintenance  Boolean @default(true)
+  emailBilling      Boolean @default(true)
+
   organizationId   String?
   organization     Organization? @relation(fields: [organizationId], references: [id])
   ownedOrganization Organization? @relation("OrganizationOwner")
@@ -461,6 +467,22 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([assetId])
   @@index([userId])
+  @@index([createdAt])
+}
+
+model EmailLog {
+  id         String   @id @default(cuid())
+  to         String
+  subject    String
+  type       String?
+  status     String   // sent, failed
+  error      String?  @db.Text
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([to])
+  @@index([status])
+  @@index([type])
   @@index([createdAt])
 }
 

@@ -28,6 +28,7 @@ const navItems = [
   { title: 'Revenue', href: '/admin/revenue', icon: DollarSign },
   { title: 'Support Tickets', href: '/admin/support-tickets', icon: MessageSquare },
   { title: 'Contact Submissions', href: '/admin/contact-submissions', icon: Mail },
+  { title: 'Email Logs', href: '/admin/emails', icon: Mail },
 ];
 
 export default async function AdminLayout({

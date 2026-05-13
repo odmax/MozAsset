@@ -4,6 +4,7 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
+    serverComponentsExternalPackages: ['nodemailer'],
   },
   eslint: {
     ignoreDuringBuilds: true,

@@ -271,6 +271,13 @@ export async function updatePlanFromConfirmedPayment(
       link: '/billing',
     }).catch((err) => console.error('Failed to create notification:', err));
 
+    const { sendNotificationEmail } = await import('@/lib/notification-email');
+    sendNotificationEmail(userId, 'BILLING_SUCCESSFUL', {
+      name: '',
+      plan,
+      amount: plan === 'PRO' ? 'R149' : 'R599',
+    }).catch((err) => console.error('Failed to send notification email:', err));
+
     return { success: true };
   } catch (error) {
     console.error('Failed to update user plan:', error);
@@ -283,6 +290,9 @@ export async function updatePlanFromConfirmedPayment(
       message: 'Your payment could not be processed. Please check your payment method',
       link: '/billing',
     }).catch((err) => console.error('Failed to create notification:', err));
+
+    const { sendNotificationEmail } = await import('@/lib/notification-email');
+    sendNotificationEmail(userId, 'BILLING_FAILED', {}).catch((err) => console.error('Failed to send notification email:', err));
 
     return { success: false, error: 'Failed to update subscription' };
   }
