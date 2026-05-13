@@ -64,8 +64,16 @@ export async function POST(request: Request) {
       isAdmin: true,
     };
 
+    // Legacy admin session cookie (used by older API routes)
+    const sessionData = {
+      id: admin.id,
+      email: admin.email,
+      role: admin.role,
+      isInternalAdmin: true,
+    };
+
     const cookieValue = Buffer.from(JSON.stringify(simpleData)).toString('base64');
-    console.log('11. Cookie value created, length:', cookieValue.length);
+    const sessionCookieValue = Buffer.from(JSON.stringify(sessionData)).toString('base64');
 
     const response = NextResponse.json({
       success: true,
@@ -73,7 +81,6 @@ export async function POST(request: Request) {
     });
 
     const secure = isHttps(request);
-    console.log('12. Cookie secure flag:', secure);
 
     response.cookies.set('simpleAdminAuth', cookieValue, {
       httpOnly: true,
@@ -83,7 +90,14 @@ export async function POST(request: Request) {
       path: '/',
     });
 
-    console.log('13. simpleAdminAuth cookie set. Returning to client');
+    response.cookies.set('adminSession', sessionCookieValue, {
+      httpOnly: true,
+      secure,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    });
+
     return response;
   } catch (error) {
     console.error('ADMIN LOGIN ERROR:', error);
