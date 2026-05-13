@@ -267,32 +267,51 @@ export default function SupportTicketsPage() {
               </Badge>
             </div>
             
-            <div className="max-h-64 overflow-y-auto space-y-3 border rounded-lg p-4">
+            <div className="max-h-[400px] overflow-y-auto space-y-1 border rounded-xl p-4 bg-slate-50/50">
               {loadingMessages ? (
-                <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
               ) : messages.length === 0 ? (
-                <p className="text-center text-muted-foreground">No messages</p>
+                <p className="text-center text-muted-foreground py-8 text-sm">No messages yet</p>
               ) : (
-                messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`p-3 rounded-lg ${
-                      msg.senderType === 'ADMIN'
-                        ? 'bg-blue-50 ml-8'
-                        : 'bg-gray-50 mr-8'
-                    }`}
-                  >
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs font-medium">
-                        {msg.senderType === 'ADMIN' ? 'Admin' : 'User'}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDate(msg.createdAt)}
-                      </span>
+                messages.map((msg, idx) => {
+                  const isAdmin = msg.senderType === 'ADMIN';
+                  const prev = idx > 0 ? messages[idx - 1] : null;
+                  const showAvatar = !prev || prev.senderType !== msg.senderType;
+                  return (
+                    <div key={msg.id} className={`flex items-end gap-2 mb-2 ${isAdmin ? 'justify-start' : 'justify-end'}`}>
+                      {isAdmin && showAvatar && (
+                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center text-white text-[10px] font-bold shrink-0 shadow-sm">
+                          S
+                        </div>
+                      )}
+                      {isAdmin && !showAvatar && <div className="w-7 shrink-0" />}
+                      <div className={`max-w-[75%] ${isAdmin ? '' : ''}`}>
+                        {isAdmin && showAvatar && (
+                          <p className="text-[10px] font-semibold text-blue-600/80 mb-1 ml-0.5">Support Team</p>
+                        )}
+                        {!isAdmin && showAvatar && (
+                          <p className="text-[10px] font-semibold text-slate-500 mb-1 text-right mr-0.5">Customer</p>
+                        )}
+                        <div className={`rounded-2xl px-4 py-2.5 shadow-sm ${
+                          isAdmin
+                            ? 'bg-white rounded-bl-md border'
+                            : 'bg-primary text-primary-foreground rounded-br-md'
+                        }`}>
+                          <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{msg.message}</p>
+                          <p className={`text-[10px] mt-1.5 ${isAdmin ? 'text-muted-foreground' : 'text-primary-foreground/60'}`}>
+                            {formatDate(msg.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+                      {!isAdmin && showAvatar && (
+                        <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-[10px] font-bold shrink-0 shadow-sm">
+                          U
+                        </div>
+                      )}
+                      {!isAdmin && !showAvatar && <div className="w-7 shrink-0" />}
                     </div>
-                    <p className="text-sm">{msg.message}</p>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
