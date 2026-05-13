@@ -104,6 +104,8 @@ export default function SupportTicketsPage() {
       const res = await fetch(`/api/admin/support-tickets/${ticket.id}`);
       const data = await res.json();
       setMessages(data.messages || []);
+      // Mark admin-viewed messages as read
+      await fetch(`/api/support/tickets/${ticket.id}/read`, { method: 'POST' }).catch(() => {});
     } catch (error) {
       console.error('Error fetching messages:', error);
     } finally {
@@ -116,7 +118,7 @@ export default function SupportTicketsPage() {
     
     setSending(true);
     try {
-      await fetch(`/api/admin/support-tickets/${selectedTicket.id}/reply`, {
+      await fetch(`/api/admin/support-tickets/${selectedTicket.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: replyMessage }),

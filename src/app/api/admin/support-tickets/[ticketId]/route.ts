@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { cookies } from 'next/headers';
+import { sendEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -78,6 +79,15 @@ export async function POST(
       return NextResponse.json({ error: 'Message required' }, { status: 400 });
     }
 
+    const ticket = await prisma.supportTicket.findUnique({
+      where: { id: ticketId },
+      include: { user: { select: { email: true, name: true } } },
+    });
+
+    if (!ticket) {
+      return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
+    }
+
     const ticketMessage = await prisma.supportMessage.create({
       data: {
         ticketId,
@@ -96,7 +106,30 @@ export async function POST(
       },
     });
 
-    return NextResponse.json(ticketMessage);
+    // Send email notification to customer
+    sendEmail({
+      to: ticket.user.email,
+      subject: `Re: ${ticket.subject} — Support Update`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+          <h2 style="color: #333;">Support Update</h2>
+          <p>Hi ${ticket.user.name || 'there'},</p>
+          <p>Your support ticket <strong>"${ticket.subject}"</strong> has received a reply:</p>
+          <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
+            <p style="margin: 0; white-space: pre-wrap;">${message}</p>
+          </div>
+          <p>Reply in-app or create a new ticket for further assistance.</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+          <p style="color: #888; font-size: 12px;">MozAsset Support Team</p>
+        </div>
+      `,
+    }).catch((err) => console.error('Failed to send support email:', err));
+
+    return NextResponse.json({
+      ...ticketMessage,
+      ticketSubject: ticket.subject,
+      ticketStatus: 'PENDING',
+    });
   } catch (error) {
     console.error('Reply error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

@@ -555,6 +555,7 @@ model SupportMessage {
   senderAdminId String?
   message     String     @db.Text
   createdAt   DateTime   @default(now())
+  readAt      DateTime?
 
   @@index([ticketId])
   @@index([senderUserId])

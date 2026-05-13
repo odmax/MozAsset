@@ -40,7 +40,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const context = await getCurrentUserContext();
     if (!context || !context.userId) {
@@ -56,14 +56,40 @@ export async function GET(request: Request) {
       where,
       include: {
         messages: {
-          orderBy: { createdAt: 'asc' },
+          orderBy: { createdAt: 'desc' },
           take: 1,
         },
+        _count: {
+          select: {
+            messages: {
+              where: {
+                senderType: 'ADMIN',
+                readAt: null,
+              },
+            },
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { updatedAt: 'desc' },
     });
 
-    return NextResponse.json(tickets);
+    const result = tickets.map((t) => ({
+      id: t.id,
+      subject: t.subject,
+      category: t.category,
+      status: t.status,
+      priority: t.priority,
+      createdAt: t.createdAt.toISOString(),
+      updatedAt: t.updatedAt.toISOString(),
+      lastMessage: t.messages[0] ? {
+        message: t.messages[0].message,
+        senderType: t.messages[0].senderType,
+        createdAt: t.messages[0].createdAt.toISOString(),
+      } : null,
+      unreadCount: t._count.messages,
+    }));
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Get tickets error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
