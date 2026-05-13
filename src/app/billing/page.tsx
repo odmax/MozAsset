@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { UpgradePlanModal } from '@/components/plan/UpgradePlanModal';
+import { CancelSubscriptionModal } from '@/components/billing/CancelSubscriptionModal';
 import { 
   Package, 
   Crown, 
@@ -87,10 +88,10 @@ export default function BillingPage() {
   const router = useRouter();
   const [billingData, setBillingData] = useState<BillingData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [canceling, setCanceling] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
 
   useEffect(() => {
     fetch('/api/billing')
@@ -105,37 +106,6 @@ export default function BillingPage() {
       .catch(() => setError('Failed to load billing data'))
       .finally(() => setLoading(false));
   }, []);
-
-  const handleCancel = async () => {
-    if (!confirm('Are you sure you want to cancel your subscription? You will lose access at the end of your billing period.')) {
-      return;
-    }
-
-    setCanceling(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      const res = await fetch('/api/billing', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'cancel' }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'Failed to cancel');
-      } else {
-        setSuccess('Subscription canceled. You will have access until the end of your billing period.');
-        router.refresh();
-      }
-    } catch {
-      setError('An error occurred');
-    } finally {
-      setCanceling(false);
-    }
-  };
 
   const handleBack = () => {
     if (window.history.length > 1) {
@@ -301,7 +271,73 @@ export default function BillingPage() {
         </CardContent>
       </Card>
 
-      {/* C. Usage */}
+      {/* C. Subscription Details */}
+      {plan !== 'FREE' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Subscription Details</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Status</p>
+                <Badge
+                  variant={
+                    billingData?.canceledAt
+                      ? 'secondary'
+                      : billingData?.subscriptionStatus === 'PAST_DUE'
+                      ? 'destructive'
+                      : 'default'
+                  }
+                  className="text-xs"
+                >
+                  {billingData?.canceledAt
+                    ? 'Canceled'
+                    : billingData?.subscriptionStatus === 'TRIALING'
+                    ? 'Trialing'
+                    : billingData?.subscriptionStatus === 'PAST_DUE'
+                    ? 'Past Due'
+                    : 'Active'
+                  }
+                </Badge>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Billing cycle</p>
+                <p className="text-sm font-medium">Monthly</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">
+                  {billingData?.canceledAt ? 'Access ends' : 'Renewal date'}
+                </p>
+                <p className="text-sm font-medium">
+                  {billingData?.billingPeriodEnd
+                    ? new Date(billingData.billingPeriodEnd).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })
+                    : 'N/A'}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Payment method</p>
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <p className="text-sm font-medium">
+                    {billingData?.billingProvider === 'NONE' || !billingData?.billingProvider
+                      ? 'Not set'
+                      : billingData.billingProvider === 'PAYSTACK'
+                      ? 'Payfast'
+                      : billingData.billingProvider}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* D. Usage */}
       <Card>
         <CardHeader>
           <CardTitle>Current Usage</CardTitle>
@@ -314,7 +350,7 @@ export default function BillingPage() {
         </CardContent>
       </Card>
 
-      {/* D. Plans */}
+      {/* E. Plans */}
       <Card>
         <CardHeader>
           <CardTitle>Available Plans</CardTitle>
@@ -434,28 +470,20 @@ export default function BillingPage() {
 
       {/* Cancel Subscription (for paid plans) */}
       {plan !== 'FREE' && (
-        <Card>
+        <Card className="border-red-200">
           <CardHeader>
             <CardTitle className="text-red-500">Cancel Subscription</CardTitle>
             <CardDescription>
-              Cancel your subscription. You'll lose access at the end of your billing period.
+              Cancel your subscription. You&apos;ll lose premium features and be downgraded to Free.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="text-red-500 border-red-200 hover:bg-red-50"
-              onClick={handleCancel}
-              disabled={canceling}
+              onClick={() => setCancelModalOpen(true)}
             >
-              {canceling ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Canceling...
-                </>
-              ) : (
-                'Cancel Subscription'
-              )}
+              Cancel Subscription
             </Button>
           </CardContent>
         </Card>
@@ -465,6 +493,16 @@ export default function BillingPage() {
         isOpen={upgradeModalOpen}
         onClose={() => setUpgradeModalOpen(false)}
         currentPlan={plan}
+      />
+
+      <CancelSubscriptionModal
+        isOpen={cancelModalOpen}
+        onClose={() => {
+          setCancelModalOpen(false);
+          router.refresh();
+        }}
+        currentPlan={plan}
+        billingPeriodEnd={billingData?.billingPeriodEnd || null}
       />
     </div>
   );

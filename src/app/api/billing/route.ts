@@ -92,31 +92,101 @@ export async function POST(request: Request) {
           return NextResponse.json({ error: 'No active subscription' }, { status: 400 });
         }
 
+        const { cancelType, feedback, feedbackDetail } = await request.json();
+
         const result = await cancelSubscription(userId, dbUser.billingProvider as BillingProvider);
 
         if (!result.success) {
           return NextResponse.json({ error: result.error }, { status: 400 });
         }
 
-        await prisma.user.update({
-          where: { id: userId },
-          data: { 
-            canceledAt: new Date(),
-            subscriptionStatus: 'CANCELED',
-          },
-        });
+        if (cancelType === 'immediate') {
+          const orgId = dbUser.organizationId;
 
-        await prisma.auditLog.create({
-          data: {
-            action: 'UPDATE',
-            entityType: 'User',
-            entityId: userId,
-            userId: userId,
-            changes: { action: 'cancel_subscription' },
-          },
-        });
+          await prisma.$transaction(async (tx) => {
+            await tx.user.update({
+              where: { id: userId },
+              data: {
+                plan: 'FREE',
+                subscriptionStatus: 'CANCELED',
+                billingProvider: 'NONE',
+                canceledAt: new Date(),
+                billingPeriodStart: null,
+                billingPeriodEnd: null,
+              },
+            });
 
-        return NextResponse.json({ success: true });
+            if (orgId) {
+              await tx.organization.update({
+                where: { id: orgId },
+                data: {
+                  plan: 'FREE',
+                  subscriptionStatus: 'CANCELED',
+                  billingProvider: 'NONE',
+                  canceledAt: new Date(),
+                },
+              });
+            }
+
+            await tx.auditLog.create({
+              data: {
+                action: 'UPDATE',
+                entityType: 'User',
+                entityId: userId,
+                userId: userId,
+                changes: {
+                  action: 'cancel_subscription',
+                  cancelType: 'immediate',
+                  ...(feedback ? { feedback } : {}),
+                  ...(feedbackDetail ? { feedbackDetail } : {}),
+                },
+              },
+            });
+          });
+
+          return NextResponse.json({ success: true, cancelType: 'immediate' });
+        } else {
+          await prisma.$transaction(async (tx) => {
+            await tx.user.update({
+              where: { id: userId },
+              data: {
+                canceledAt: new Date(),
+                subscriptionStatus: 'CANCELED',
+              },
+            });
+
+            if (dbUser.organizationId) {
+              await tx.organization.update({
+                where: { id: dbUser.organizationId },
+                data: {
+                  canceledAt: new Date(),
+                  subscriptionStatus: 'CANCELED',
+                },
+              });
+            }
+
+            await tx.auditLog.create({
+              data: {
+                action: 'UPDATE',
+                entityType: 'User',
+                entityId: userId,
+                userId: userId,
+                changes: {
+                  action: 'cancel_subscription',
+                  cancelType: 'end_of_period',
+                  ...(feedback ? { feedback } : {}),
+                  ...(feedbackDetail ? { feedbackDetail } : {}),
+                },
+              },
+            });
+          });
+
+          return NextResponse.json({
+            success: true,
+            cancelType: 'end_of_period',
+            endDate: dbUser.billingPeriodEnd,
+          });
+        }
       }
 
       case 'portal': {
