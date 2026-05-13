@@ -58,8 +58,6 @@ export default function SettingsPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const [appearanceMode, setAppearanceMode] = useState<'LIGHT' | 'DARK' | 'SYSTEM'>('SYSTEM');
-  const [themeColor, setThemeColor] = useState('#222222');
-  const [savingAppearance, setSavingAppearance] = useState(false);
 
   const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -85,13 +83,9 @@ export default function SettingsPage() {
           setUser(data);
           setName(data.name || '');
           setAppearanceMode(data.appearanceMode || 'SYSTEM');
-          setThemeColor(data.themeColor || '#222222');
           setCompanyLogoUrl(data.companyLogoUrl);
           if (data.appearanceMode) {
             setTheme(data.appearanceMode.toLowerCase());
-          }
-          if (data.themeColor) {
-            document.documentElement.style.setProperty('--theme-color', data.themeColor);
           }
         }
       })
@@ -125,32 +119,6 @@ export default function SettingsPage() {
     }
 
     setSaving(false);
-  };
-
-  const handleUpdateAppearance = async () => {
-    setSavingAppearance(true);
-    setError('');
-
-    try {
-      const res = await fetch('/api/user/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ appearanceMode, themeColor }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'Failed to update appearance');
-      } else {
-        setTheme(appearanceMode.toLowerCase());
-        document.documentElement.style.setProperty('--theme-color', themeColor);
-      }
-    } catch {
-      setError('Failed to update appearance');
-    }
-
-    setSavingAppearance(false);
   };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -267,7 +235,6 @@ export default function SettingsPage() {
   }
 
   const planDetails = user ? getPlanDetails(user.plan as any) : null;
-  const canUseThemeColor = user?.plan === 'PRO' || user?.plan === 'ENTERPRISE';
 
   return (
     <div className="space-y-6">
@@ -458,52 +425,6 @@ export default function SettingsPage() {
                     </Button>
                   ))}
                 </div>
-              </div>
-
-              {/* Theme Color - Gated */}
-              <div className="space-y-3">
-                <Label>Theme Color</Label>
-                {canUseThemeColor ? (
-                  <div className="flex items-center gap-4">
-                    <input
-                      type="color"
-                      value={themeColor}
-                      onChange={(e) => setThemeColor(e.target.value)}
-                      className="w-12 h-12 rounded border cursor-pointer"
-                    />
-                    <Input
-                      value={themeColor}
-                      onChange={(e) => setThemeColor(e.target.value)}
-                      className="w-32 font-mono"
-                      placeholder="#222222"
-                    />
-                    <Button 
-                      onClick={handleUpdateAppearance}
-                      disabled={savingAppearance}
-                    >
-                      {savingAppearance ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : null}
-                      Save
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="p-4 border rounded-lg bg-muted/30">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">Custom theme colors</p>
-                        <p className="text-sm text-muted-foreground">
-                          Available on Pro and Enterprise plans
-                        </p>
-                      </div>
-                      <Link href="/upgrade">
-                        <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
-                          Upgrade
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>
