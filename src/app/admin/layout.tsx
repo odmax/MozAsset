@@ -52,15 +52,15 @@ export default async function AdminLayout({
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-slate-900 text-white">
-        <div className="flex h-16 items-center border-b border-slate-800 px-6">
+      <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-slate-900 text-white flex flex-col">
+        <div className="flex h-16 items-center border-b border-slate-800 px-6 shrink-0">
           <Link href="/admin" className="flex items-center gap-2 font-bold text-lg">
             <Package className="h-6 w-6" />
             <span>MozAssets Admin</span>
           </Link>
         </div>
         
-        <nav className="flex-1 overflow-y-auto p-4">
+        <nav className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900 hover:scrollbar-thumb-slate-600" style={{ scrollbarWidth: 'thin', scrollbarColor: '#334155 #0f172a' }}>
           <ul className="space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -82,7 +82,7 @@ export default async function AdminLayout({
           </ul>
         </nav>
 
-        <div className="border-t border-slate-800 p-4">
+        <div className="border-t border-slate-800 p-4 shrink-0">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
               <span className="text-sm font-medium">
