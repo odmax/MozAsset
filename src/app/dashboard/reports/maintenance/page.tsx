@@ -58,7 +58,7 @@ export default async function MaintenanceReportsPage({
 
   const where: any = {};
   if (!context.isInternalAdmin) {
-    where.organizationId = context.organizationId || 'never-match';
+    where.asset = { organizationId: context.organizationId || 'never-match' };
   }
   if (type) where.type = type;
 
