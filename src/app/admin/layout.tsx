@@ -10,7 +10,9 @@ import {
   UserCog,
   DollarSign,
   Receipt,
-  MessageSquare
+  MessageSquare,
+  Shield,
+  HardDrive
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -29,6 +31,8 @@ const navItems = [
   { title: 'Support Tickets', href: '/admin/support-tickets', icon: MessageSquare },
   { title: 'Contact Submissions', href: '/admin/contact-submissions', icon: Mail },
   { title: 'Email Logs', href: '/admin/emails', icon: Mail },
+  { title: 'Security', href: '/admin/security', icon: Shield },
+  { title: 'File Storage', href: '/admin/storage', icon: HardDrive },
 ];
 
 export default async function AdminLayout({

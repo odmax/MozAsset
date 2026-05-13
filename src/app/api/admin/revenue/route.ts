@@ -1,9 +1,25 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
+function getAdminSession() {
+  const cookieStore = cookies();
+  const adminCookie = cookieStore.get('adminSession');
+  if (adminCookie?.value) {
+    try {
+      return JSON.parse(Buffer.from(adminCookie.value, 'base64').toString('utf-8'));
+    } catch { return null; }
+  }
+  return null;
+}
+
 export async function GET() {
+  const admin = getAdminSession();
+  if (!admin || !admin.isInternalAdmin) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
