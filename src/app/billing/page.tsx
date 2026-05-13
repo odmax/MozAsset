@@ -317,7 +317,7 @@ export default function BillingPage() {
               <p className="text-xs text-muted-foreground mb-4">Unlimited everything</p>
               <ul className="space-y-2 mb-5 text-sm">
                 <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />Unlimited assets</li>
-                <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" /><Infinity className="h-3 w-3 text-amber-600" /> All Pro features + more</li>
+                <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" /><span className="text-amber-600 text-xs font-bold">∞</span> All Pro features + more</li>
                 <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />API access</li>
                 <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />Multi-branch support</li>
                 <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />SLA + on-premise option</li>
