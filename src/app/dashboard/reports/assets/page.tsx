@@ -102,6 +102,7 @@ export default async function AssetReportsPage({
 
   return (
     <div className="space-y-6">
+      <BackLink href="/dashboard/reports" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Asset Report</h1>
