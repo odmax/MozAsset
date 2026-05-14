@@ -3,6 +3,8 @@ import prisma from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import type { AuditAction } from '@prisma/client';
 
+export const dynamic = 'force-dynamic';
+
 function getAdminSession() {
   const cookieStore = cookies();
   const adminCookie = cookieStore.get('adminSession');

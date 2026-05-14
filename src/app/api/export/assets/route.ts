@@ -4,6 +4,8 @@ import { getCurrentUserContext } from '@/lib/user-context';
 import { canAccessFeature } from '@/lib/billing';
 import { formatDate } from '@/lib/utils';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   const context = await getCurrentUserContext();
   if (!context?.userId) {

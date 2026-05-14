@@ -5,6 +5,8 @@ import type { Plan } from '@prisma/client';
 import { formatDateTime } from '@/lib/utils';
 import { getCurrentUserContext } from '@/lib/user-context';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   const context = await getCurrentUserContext();
   if (!context) {

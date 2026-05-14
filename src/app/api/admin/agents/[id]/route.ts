@@ -22,7 +22,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
         id: true, email: true, name: true, role: true, isActive: true,
         status: true, isOnline: true, isBusy: true, maxConcurrentChats: true,
         activeChatCount: true, lastActiveAt: true, statusMessage: true,
-        avatar: true, isSuspended: true, createdAt: true, lastLogin: true,
+        isSuspended: true, createdAt: true, lastLogin: true,
         createdByOwner: true, assignedDepartments: true,
         _count: { select: { assignedTickets: true } },
       },
@@ -74,7 +74,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (body.maxConcurrentChats !== undefined) updateData.maxConcurrentChats = body.maxConcurrentChats;
   if (body.statusMessage !== undefined) updateData.statusMessage = body.statusMessage;
   if (body.assignedDepartments !== undefined) updateData.assignedDepartments = body.assignedDepartments;
-  if (body.avatar !== undefined) updateData.avatar = body.avatar;
   if (body.isActive !== undefined) {
     if (!hasPermission(dbAdmin, 'agents:update')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -98,7 +97,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       id: true, email: true, name: true, role: true, isActive: true,
       status: true, isOnline: true, isBusy: true, maxConcurrentChats: true,
       activeChatCount: true, lastActiveAt: true, statusMessage: true,
-      avatar: true, isSuspended: true, assignedDepartments: true, createdAt: true,
+      isSuspended: true, assignedDepartments: true, createdAt: true,
     },
   });
 

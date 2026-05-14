@@ -4,6 +4,8 @@ import prisma from '@/lib/prisma';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 
+export const dynamic = 'force-dynamic';
+
 function getSessionUser() {
   const sessionCookie = cookies().get('session');
   if (sessionCookie?.value) {

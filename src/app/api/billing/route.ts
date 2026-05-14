@@ -6,6 +6,8 @@ import { getCurrentUserContext } from '@/lib/user-context';
 import { createNotification } from '@/lib/notifications';
 import { sendNotificationEmail } from '@/lib/notification-email';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   try {
     const context = await getCurrentUserContext();

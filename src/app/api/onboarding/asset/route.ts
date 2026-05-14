@@ -3,6 +3,8 @@ import prisma from '@/lib/prisma';
 import { getCurrentUserContext } from '@/lib/user-context';
 import { generateAssetTag } from '@/lib/utils';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   try {
     const context = await getCurrentUserContext();

@@ -24,7 +24,7 @@ export async function GET(req: Request, { params }: { params: { ticketId: string
       createdAt: true,
       updatedAt: true,
       author: {
-        select: { id: true, name: true, email: true, role: true, avatar: true },
+        select: { id: true, name: true, email: true, role: true },
       },
     },
   });
@@ -63,7 +63,7 @@ export async function POST(req: Request, { params }: { params: { ticketId: strin
       content: true,
       createdAt: true,
       author: {
-        select: { id: true, name: true, email: true, role: true, avatar: true },
+        select: { id: true, name: true, email: true, role: true },
       },
     },
   });

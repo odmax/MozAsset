@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getCurrentUserContext } from '@/lib/user-context';
 
+export const dynamic = 'force-dynamic';
+
 export async function PUT() {
   const context = await getCurrentUserContext();
   if (!context?.userId) {

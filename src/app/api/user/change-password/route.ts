@@ -3,6 +3,8 @@ import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 
+export const dynamic = 'force-dynamic';
+
 function getSessionUser() {
   const sessionCookie = cookies().get('session');
   if (sessionCookie?.value) {

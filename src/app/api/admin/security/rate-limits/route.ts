@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { apiLimiter, loginLimiter, bruteForceLimiter, uploadLimiter } from '@/lib/rate-limiter';
 
+export const dynamic = 'force-dynamic';
+
 function getAdminSession() {
   const cookieStore = cookies();
   const adminCookie = cookieStore.get('adminSession');

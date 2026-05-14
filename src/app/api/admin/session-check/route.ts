@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 // TEMP_ADMIN_AUTH: check simpleAdminAuth cookie
 import { getSimpleAdminSession } from '@/lib/admin-session';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   const authCookie = cookies().get('simpleAdminAuth');
   const session = getSimpleAdminSession();

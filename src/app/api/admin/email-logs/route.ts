@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { cookies } from 'next/headers';
 
+export const dynamic = 'force-dynamic';
+
 function getAdminSession() {
   const cookieStore = cookies();
   const adminCookie = cookieStore.get('adminSession');

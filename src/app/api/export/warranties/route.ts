@@ -5,6 +5,8 @@ import { canAccessFeature } from '@/lib/billing';
 import type { Plan } from '@prisma/client';
 import { formatDate } from '@/lib/utils';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   const context = await getCurrentUserContext();
   if (!context?.userId) {

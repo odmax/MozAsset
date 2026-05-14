@@ -36,7 +36,7 @@ export async function GET(req: Request) {
           id: true, email: true, name: true, role: true, isActive: true,
           status: true, isOnline: true, isBusy: true, maxConcurrentChats: true,
           activeChatCount: true, lastActiveAt: true, statusMessage: true,
-          avatar: true, isSuspended: true, createdAt: true, lastLogin: true,
+          isSuspended: true, createdAt: true, lastLogin: true,
         },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
