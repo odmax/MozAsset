@@ -31,28 +31,40 @@ export default function SupportOperationsPage() {
   const fetchStats = async () => {
     try {
       setLoading(true);
-      const [ticketsRes, agentsRes] = await Promise.all([
+      setError('');
+
+      const [ticketsRes, agentsRes] = await Promise.allSettled([
         fetch('/api/admin/support-tickets'),
         fetch('/api/admin/agents'),
       ]);
 
-      const tickets = await ticketsRes.json();
-      const agents = await agentsRes.json();
+      let ticketList: any[] = [];
+      let agentList: any[] = [];
 
-      if (tickets.error || agents.error) {
-        setError('Failed to load data');
-        return;
+      if (ticketsRes.status === 'fulfilled') {
+        try {
+          const tickets = await ticketsRes.value.json();
+          if (!tickets.error) {
+            ticketList = Array.isArray(tickets) ? tickets : tickets.tickets || [];
+          }
+        } catch {}
       }
 
-      const ticketList = Array.isArray(tickets) ? tickets : tickets.tickets || [];
-      const agentList = agents.agents || [];
+      if (agentsRes.status === 'fulfilled') {
+        try {
+          const agents = await agentsRes.value.json();
+          if (!agents.error) {
+            agentList = agents.agents || [];
+          }
+        } catch {}
+      }
 
       const openTickets = ticketList.filter((t: any) => t.status === 'OPEN' || t.status === 'PENDING');
       const unassignedTickets = openTickets.filter((t: any) => !t.assignedAdminId);
       const agentsOnline = agentList.filter((a: any) => a.isOnline);
-      const enterpriseTickets = openTickets.filter((t: any) => t.organization?.plan === 'ENTERPRISE' || t.priority === 'URGENT' || t.priority === 'HIGH');
-      const proTickets = openTickets.filter((t: any) => t.organization?.plan === 'PRO');
-      const freeTickets = openTickets.filter((t: any) => !t.organization?.plan || t.organization?.plan === 'FREE');
+      const enterpriseTickets = openTickets.filter((t: any) => t.priority === 'URGENT' || t.priority === 'HIGH');
+      const proTickets = openTickets.filter((t: any) => t.priority === 'MEDIUM');
+      const freeTickets = openTickets.filter((t: any) => t.priority === 'LOW');
 
       setStats({
         totalOpen: openTickets.length,

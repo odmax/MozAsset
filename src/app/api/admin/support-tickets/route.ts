@@ -43,7 +43,14 @@ export async function GET(request: Request) {
     const [tickets, total] = await Promise.all([
       prisma.supportTicket.findMany({
         where,
-        include: {
+        select: {
+          id: true,
+          subject: true,
+          category: true,
+          status: true,
+          priority: true,
+          assignedAdminId: true,
+          createdAt: true,
           user: {
             select: { id: true, email: true, name: true },
           },
@@ -62,6 +69,7 @@ export async function GET(request: Request) {
         category: t.category,
         status: t.status,
         priority: t.priority,
+        assignedAdminId: t.assignedAdminId,
         createdAt: t.createdAt.toISOString(),
         userEmail: t.user.email,
         userName: t.user.name,
