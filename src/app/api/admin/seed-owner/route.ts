@@ -39,7 +39,8 @@ export async function POST(request: Request) {
           isActive: true,
           role: 'OWNER',
           name: existing.name || 'Ademoyemo',
-        }
+        },
+        select: { id: true, email: true, role: true, isActive: true },
       });
 
       return NextResponse.json({
@@ -61,7 +62,8 @@ export async function POST(request: Request) {
         password: hashedPassword,
         role: 'OWNER',
         isActive: true,
-      }
+      },
+      select: { id: true, email: true, role: true, isActive: true },
     });
 
     return NextResponse.json({

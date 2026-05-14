@@ -52,12 +52,14 @@ export async function POST(req: Request, { params }: { params: { ticketId: strin
     await prisma.internalAdmin.update({
       where: { id: previousAdminId },
       data: { activeChatCount: { decrement: 1 } },
+      select: { id: true },
     });
   }
 
   await prisma.internalAdmin.update({
     where: { id: targetAgentId },
     data: { activeChatCount: { increment: 1 } },
+    select: { id: true },
   });
 
   await prisma.auditLog.create({

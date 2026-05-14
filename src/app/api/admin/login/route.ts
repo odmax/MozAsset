@@ -55,6 +55,7 @@ export async function POST(request: Request) {
     await prisma.internalAdmin.update({
       where: { id: admin.id },
       data: { lastLogin: new Date() },
+      select: { id: true },
     });
 
     // TEMP_ADMIN_AUTH: simple admin auth until full platform auth is rebuilt.

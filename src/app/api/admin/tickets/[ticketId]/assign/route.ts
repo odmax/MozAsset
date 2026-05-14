@@ -48,6 +48,7 @@ export async function POST(req: Request, { params }: { params: { ticketId: strin
     await prisma.internalAdmin.update({
       where: { id: previousAdminId },
       data: { activeChatCount: { decrement: 1 } },
+      select: { id: true },
     });
   }
 
@@ -55,6 +56,7 @@ export async function POST(req: Request, { params }: { params: { ticketId: strin
     await prisma.internalAdmin.update({
       where: { id: assignedToId },
       data: { activeChatCount: { increment: 1 } },
+      select: { id: true },
     });
   }
 
