@@ -94,12 +94,10 @@ export async function POST(req: Request) {
         name: name || null,
         password: hashedPassword,
         role,
-        createdByOwner: dbAdmin.role === 'OWNER',
-        status: 'OFFLINE',
       },
       select: {
         id: true, email: true, name: true, role: true, isActive: true,
-        status: true, createdAt: true,
+        createdAt: true,
       },
     });
 
