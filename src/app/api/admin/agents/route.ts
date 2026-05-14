@@ -57,7 +57,10 @@ export async function POST(req: Request) {
     const admin = getSimpleAdminSession();
     if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const dbAdmin = await prisma.internalAdmin.findUnique({ where: { id: admin.adminId } });
+    const dbAdmin = await prisma.internalAdmin.findUnique({
+      where: { id: admin.adminId },
+      select: { id: true, role: true, permissions: true },
+    });
     if (!dbAdmin || !hasPermission(dbAdmin, 'agents:create')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
@@ -78,7 +81,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Forbidden: cannot create this role' }, { status: 403 });
     }
 
-    const existing = await prisma.internalAdmin.findUnique({ where: { email: email.toLowerCase() } });
+    const existing = await prisma.internalAdmin.findUnique({ where: { email: email.toLowerCase() }, select: { id: true } });
     if (existing) {
       return NextResponse.json({ error: 'Email already exists' }, { status: 409 });
     }

@@ -4,40 +4,55 @@ import { getSimpleAdminSession } from '@/lib/admin-session';
 import { hasPermission, canManageAgent } from '@/lib/admin-permissions';
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
-  const admin = getSimpleAdminSession();
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  try {
+    const admin = getSimpleAdminSession();
+    if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const dbAdmin = await prisma.internalAdmin.findUnique({ where: { id: admin.adminId } });
-  if (!dbAdmin || !hasPermission(dbAdmin, 'agents:read')) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const dbAdmin = await prisma.internalAdmin.findUnique({
+      where: { id: admin.adminId },
+      select: { id: true, role: true, permissions: true },
+    });
+    if (!dbAdmin || !hasPermission(dbAdmin, 'agents:read')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const agent = await prisma.internalAdmin.findUnique({
+      where: { id: params.id },
+      select: {
+        id: true, email: true, name: true, role: true, isActive: true,
+        status: true, isOnline: true, isBusy: true, maxConcurrentChats: true,
+        activeChatCount: true, lastActiveAt: true, statusMessage: true,
+        avatar: true, isSuspended: true, createdAt: true, lastLogin: true,
+        createdByOwner: true, assignedDepartments: true,
+        _count: { select: { assignedTickets: true } },
+      },
+    });
+
+    if (!agent) return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
+
+    return NextResponse.json({ agent });
+  } catch (error) {
+    console.error('[agents] GET error:', error);
+    return NextResponse.json({ error: 'Failed to fetch agent' }, { status: 500 });
   }
-
-  const agent = await prisma.internalAdmin.findUnique({
-    where: { id: params.id },
-    select: {
-      id: true, email: true, name: true, role: true, isActive: true,
-      status: true, isOnline: true, isBusy: true, maxConcurrentChats: true,
-      activeChatCount: true, lastActiveAt: true, statusMessage: true,
-      avatar: true, isSuspended: true, createdAt: true, lastLogin: true,
-      createdByOwner: true, assignedDepartments: true,
-      _count: { select: { assignedTickets: true } },
-    },
-  });
-
-  if (!agent) return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
-
-  return NextResponse.json({ agent });
 }
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const admin = getSimpleAdminSession();
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  try {
+    const admin = getSimpleAdminSession();
+    if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const dbAdmin = await prisma.internalAdmin.findUnique({ where: { id: admin.adminId } });
-  if (!dbAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const dbAdmin = await prisma.internalAdmin.findUnique({
+      where: { id: admin.adminId },
+      select: { id: true, role: true, permissions: true },
+    });
+    if (!dbAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  const target = await prisma.internalAdmin.findUnique({ where: { id: params.id } });
-  if (!target) return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
+    const target = await prisma.internalAdmin.findUnique({
+      where: { id: params.id },
+      select: { id: true, role: true, isActive: true, isSuspended: true, createdByOwner: true },
+    });
+    if (!target) return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
 
   if (!canManageAgent(dbAdmin, target)) {
     return NextResponse.json({ error: 'Forbidden: cannot manage this agent' }, { status: 403 });
@@ -88,18 +103,29 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   });
 
   return NextResponse.json({ agent });
+  } catch (error) {
+    console.error('[agents] PATCH error:', error);
+    return NextResponse.json({ error: 'Failed to update agent' }, { status: 500 });
+  }
 }
 
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
-  const admin = getSimpleAdminSession();
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  try {
+    const admin = getSimpleAdminSession();
+    if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const dbAdmin = await prisma.internalAdmin.findUnique({ where: { id: admin.adminId } });
-  if (!dbAdmin || !hasPermission(dbAdmin, 'agents:delete')) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+    const dbAdmin = await prisma.internalAdmin.findUnique({
+      where: { id: admin.adminId },
+      select: { id: true, role: true },
+    });
+    if (!dbAdmin || !hasPermission(dbAdmin, 'agents:delete')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
-  const target = await prisma.internalAdmin.findUnique({ where: { id: params.id } });
+    const target = await prisma.internalAdmin.findUnique({
+      where: { id: params.id },
+      select: { id: true, role: true },
+    });
   if (!target) return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
 
   if (target.role === 'OWNER') {
@@ -113,4 +139,8 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
   await prisma.internalAdmin.delete({ where: { id: params.id } });
 
   return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('[agents] DELETE error:', error);
+    return NextResponse.json({ error: 'Failed to delete agent' }, { status: 500 });
+  }
 }
