@@ -12,7 +12,8 @@ import {
   Receipt,
   MessageSquare,
   Shield,
-  HardDrive
+  HardDrive,
+  Activity
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -33,6 +34,7 @@ const navItems = [
   { title: 'Email Logs', href: '/admin/emails', icon: Mail },
   { title: 'Security', href: '/admin/security', icon: Shield },
   { title: 'File Storage', href: '/admin/storage', icon: HardDrive },
+  { title: 'Queue', href: '/admin/queue', icon: Activity },
 ];
 
 export default async function AdminLayout({
