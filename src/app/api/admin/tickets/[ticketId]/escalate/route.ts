@@ -30,7 +30,7 @@ export async function POST(req: Request, { params }: { params: { ticketId: strin
     return NextResponse.json({ error: 'escalateToAdminId is required' }, { status: 400 });
   }
 
-  const targetAdmin = await prisma.internalAdmin.findUnique({ where: { id: escalateToAdminId } });
+  const targetAdmin = await prisma.internalAdmin.findUnique({ where: { id: escalateToAdminId }, select: { id: true, isActive: true, role: true } });
   if (!targetAdmin || !targetAdmin.isActive) {
     return NextResponse.json({ error: 'Target admin not found or inactive' }, { status: 404 });
   }

@@ -25,7 +25,8 @@ export async function POST(request: Request) {
     const existing = await prisma.internalAdmin.findFirst({
       where: { 
         email: { equals: normalizedEmail, mode: 'insensitive' }
-      }
+      },
+      select: { id: true, name: true, role: true, isActive: true },
     });
 
     if (existing) {

@@ -7,7 +7,7 @@ export async function GET(req: Request, { params }: { params: { ticketId: string
   const admin = getSimpleAdminSession();
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const dbAdmin = await prisma.internalAdmin.findUnique({ where: { id: admin.adminId } });
+  const dbAdmin = await prisma.internalAdmin.findUnique({ where: { id: admin.adminId }, select: { id: true, role: true, permissions: true } });
   if (!dbAdmin || !hasPermission(dbAdmin, 'tickets:view_internal_notes')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }

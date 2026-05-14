@@ -29,6 +29,7 @@ export async function POST(request: Request) {
 
     const admin = await prisma.internalAdmin.findFirst({
       where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
+      select: { id: true, email: true, role: true, isActive: true, password: true },
     });
     console.log('4. Admin found:', !!admin);
 

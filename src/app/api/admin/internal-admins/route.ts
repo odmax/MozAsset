@@ -67,7 +67,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
     }
 
-    const existing = await prisma.internalAdmin.findUnique({ where: { email } });
+    const existing = await prisma.internalAdmin.findUnique({ where: { email }, select: { id: true } });
     if (existing) {
       return NextResponse.json({ error: 'Email already exists' }, { status: 400 });
     }

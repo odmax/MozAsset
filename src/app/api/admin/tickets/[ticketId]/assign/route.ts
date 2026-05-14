@@ -29,7 +29,7 @@ export async function POST(req: Request, { params }: { params: { ticketId: strin
   let assignedToId: string;
 
   if (agentId) {
-    const agent = await prisma.internalAdmin.findUnique({ where: { id: agentId } });
+    const agent = await prisma.internalAdmin.findUnique({ where: { id: agentId }, select: { id: true, isActive: true } });
     if (!agent || !agent.isActive) {
       return NextResponse.json({ error: 'Agent not found or inactive' }, { status: 404 });
     }
