@@ -120,4 +120,8 @@ export const NOTIFICATION_ICONS: Record<NotificationType, string> = {
   USER_INVITED: 'user-plus',
   EXPORT_COMPLETED: 'download',
   ORGANIZATION_UPDATE: 'building',
+  TICKET_ASSIGNED: 'message-square',
+  TICKET_ESCALATED: 'arrow-up-circle',
+  SLA_BREACH_WARNING: 'alert-triangle',
+  AGENT_REPLY: 'message-circle',
 } as const;

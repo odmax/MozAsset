@@ -25,7 +25,7 @@ export default function EditAdminPage({ params }: { params: { adminId: string } 
     name: '',
     email: '',
     password: '',
-    role: 'PLATFORM_ADMIN',
+    role: 'SUPER_ADMIN',
     isActive: true,
   });
   const [loading, setLoading] = useState(true);
@@ -43,7 +43,7 @@ export default function EditAdminPage({ params }: { params: { adminId: string } 
             name: data.name || '',
             email: data.email || '',
             password: '',
-            role: data.role || 'PLATFORM_ADMIN',
+            role: data.role || 'SUPER_ADMIN',
             isActive: data.isActive ?? true,
           });
         }
@@ -155,10 +155,11 @@ export default function EditAdminPage({ params }: { params: { adminId: string } 
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="OWNER">Owner (Full access)</SelectItem>
-                    <SelectItem value="PLATFORM_ADMIN">Platform Admin</SelectItem>
-                    <SelectItem value="SUPPORT_ADMIN">Support Admin</SelectItem>
+                    <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                    <SelectItem value="SUPPORT_MANAGER">Support Manager</SelectItem>
+                    <SelectItem value="SUPPORT_AGENT">Support Agent</SelectItem>
                     <SelectItem value="FINANCE_ADMIN">Finance Admin</SelectItem>
+                    <SelectItem value="VIEWER">Viewer</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

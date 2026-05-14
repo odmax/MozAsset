@@ -24,7 +24,7 @@ export default function NewAdminPage() {
     name: '',
     email: '',
     password: '',
-    role: 'PLATFORM_ADMIN',
+    role: 'SUPER_ADMIN',
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -128,10 +128,11 @@ export default function NewAdminPage() {
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="OWNER">Owner (Full access)</SelectItem>
-                    <SelectItem value="PLATFORM_ADMIN">Platform Admin</SelectItem>
-                    <SelectItem value="SUPPORT_ADMIN">Support Admin</SelectItem>
+                    <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                    <SelectItem value="SUPPORT_MANAGER">Support Manager</SelectItem>
+                    <SelectItem value="SUPPORT_AGENT">Support Agent</SelectItem>
                     <SelectItem value="FINANCE_ADMIN">Finance Admin</SelectItem>
+                    <SelectItem value="VIEWER">Viewer</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -63,7 +63,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email and password required' }, { status: 400 });
     }
 
-    if (role && !['PLATFORM_ADMIN', 'SUPPORT_ADMIN', 'FINANCE_ADMIN'].includes(role)) {
+    if (role && !['SUPER_ADMIN', 'SUPPORT_MANAGER', 'SUPPORT_AGENT', 'FINANCE_ADMIN', 'VIEWER'].includes(role)) {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
     }
 
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
         name,
         email,
         password: hashedPassword,
-        role: role as InternalRole || 'PLATFORM_ADMIN',
+        role: role as InternalRole || 'SUPER_ADMIN',
         isActive: true,
       },
       select: {

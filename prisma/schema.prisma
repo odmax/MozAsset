@@ -22,9 +22,20 @@ enum AppearanceMode {
 
 enum InternalRole {
   OWNER
-  PLATFORM_ADMIN
-  SUPPORT_ADMIN
+  SUPER_ADMIN
+  SUPPORT_MANAGER
+  SUPPORT_AGENT
   FINANCE_ADMIN
+  VIEWER
+}
+
+enum AgentStatus {
+  ONLINE
+  BUSY
+  AWAY
+  OFFLINE
+  IN_MEETING
+  BREAK
 }
 
 enum TicketStatus {
@@ -107,6 +118,10 @@ enum NotificationType {
   USER_INVITED
   EXPORT_COMPLETED
   ORGANIZATION_UPDATE
+  TICKET_ASSIGNED
+  TICKET_ESCALATED
+  SLA_BREACH_WARNING
+  AGENT_REPLY
 }
 
 enum AuditAction {
@@ -130,6 +145,13 @@ enum AuditAction {
   CSRF_VIOLATION
   RATE_LIMIT_HIT
   UNAUTHORIZED_ACCESS
+  TICKET_ASSIGNED
+  TICKET_TRANSFERRED
+  TICKET_ESCALATED
+  AGENT_STATUS_CHANGED
+  PERMISSION_CHANGED
+  INTERNAL_NOTE_ADDED
+  TICKET_PRIORITY_CHANGED
 }
 
 model User {
@@ -541,7 +563,7 @@ model EmailLog {
 
 model Notification {
   id             String           @id @default(cuid())
-  userId         String
+  userId         String?
   organizationId String?
   type           NotificationType
   title          String
@@ -553,10 +575,14 @@ model Notification {
   metadata       Json?
   createdAt      DateTime         @default(now())
 
-  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  adminId        String?
+  admin          InternalAdmin?   @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  user           User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
+  @@index([adminId, isRead])
   @@index([userId, createdAt])
+  @@index([adminId, createdAt])
   @@index([organizationId])
   @@index([type])
   @@index([createdAt])
@@ -626,15 +652,34 @@ model InternalAdmin {
   email     String        @unique
   name      String?
   password  String
-  role      InternalRole  @default(PLATFORM_ADMIN)
+  role      InternalRole  @default(SUPPORT_AGENT)
   isActive  Boolean       @default(true)
   lastLogin DateTime?
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 
+  // Agent management fields
+  avatar            String?
+  status            AgentStatus  @default(OFFLINE)
+  isOnline          Boolean      @default(false)
+  isBusy            Boolean      @default(false)
+  maxConcurrentChats Int         @default(5)
+  activeChatCount   Int          @default(0)
+  lastActiveAt      DateTime?
+  statusMessage     String?
+  assignedDepartments String?
+  isSuspended       Boolean      @default(false)
+  createdByOwner    Boolean      @default(false)
+  permissions       Json?
+
   assignedTickets SupportTicket[]
+  internalNotes   InternalNote[]
+  escalatedTickets SupportTicket[] @relation("EscalatedTickets")
+  notifications   Notification[]
 
   @@index([email])
+  @@index([role])
+  @@index([status])
 }
 
 model SupportTicket {
@@ -648,16 +693,38 @@ model SupportTicket {
   priority       TicketPriority @default(MEDIUM)
   assignedAdminId String?
   assignedAdmin  InternalAdmin? @relation(fields: [assignedAdminId], references: [id])
+
+  // Transfer & escalation
+  escalatedToId  String?
+  escalatedTo    InternalAdmin? @relation("EscalatedTickets", fields: [escalatedToId], references: [id])
+  escalatedAt    DateTime?
+  escalatedBy    String?
+  escalationReason String?
+  transferredFromId String?
+  transferredAt   DateTime?
+  transferredBy   String?
+  transferNote   String?
+
+  // SLA tracking
+  slaDeadline    DateTime?
+  slaBreachedAt  DateTime?
+  firstResponseAt DateTime?
+  resolvedAt     DateTime?
+
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
   messages       SupportMessage[]
-  files           File[]
+  files          File[]
+  internalNotes  InternalNote[]
 
   @@index([userId])
   @@index([organizationId])
   @@index([status])
   @@index([assignedAdminId])
+  @@index([escalatedToId])
+  @@index([priority])
+  @@index([slaDeadline])
   @@index([createdAt])
 }
 
@@ -675,4 +742,31 @@ model SupportMessage {
   @@index([ticketId])
   @@index([senderUserId])
   @@index([senderAdminId])
+}
+
+model InternalNote {
+  id        String        @id @default(cuid())
+  ticketId  String
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    InternalAdmin @relation(fields: [authorId], references: [id])
+  content   String        @db.Text
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([ticketId])
+  @@index([authorId])
+}
+
+model SlaRule {
+  id              String          @id @default(cuid())
+  priority        TicketPriority  @unique
+  responseTimeMin Int
+  resolutionTimeMin Int
+  breachPenalty   String?
+  isActive        Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([priority])
 }
