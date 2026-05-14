@@ -26,17 +26,37 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
     const target = await prisma.internalAdmin.findUnique({
       where: { id: params.id },
-      select: { id: true, name: true, email: true, role: true, isActive: true },
+      select: { id: true, name: true, email: true, role: true, isActive: true, status: true, isOnline: true, isBusy: true, activeChatCount: true, maxConcurrentChats: true, statusMessage: true, isSuspended: true },
     });
     if (!target) return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
 
     const body = await req.json();
+    const { status: newStatus, statusMessage, isBusy } = body;
 
-    if (body.status !== undefined && !VALID_STATUSES.includes(body.status)) {
-      return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+    const updateData: any = { lastActiveAt: new Date() };
+
+    if (newStatus) {
+      if (!VALID_STATUSES.includes(newStatus)) {
+        return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+      }
+      updateData.status = newStatus;
+      updateData.isOnline = newStatus === 'ONLINE' || newStatus === 'BUSY';
     }
 
-    return NextResponse.json({ agent: target });
+    if (statusMessage !== undefined) updateData.statusMessage = statusMessage;
+    if (isBusy !== undefined) updateData.isBusy = isBusy;
+
+    const agent = await prisma.internalAdmin.update({
+      where: { id: params.id },
+      data: updateData,
+      select: {
+        id: true, name: true, email: true, role: true,
+        status: true, isOnline: true, isBusy: true,
+        activeChatCount: true, statusMessage: true, lastActiveAt: true,
+      },
+    });
+
+    return NextResponse.json({ agent });
   } catch (error) {
     console.error('[agents] status PATCH error:', error);
     return NextResponse.json({ error: 'Failed to update status' }, { status: 500 });

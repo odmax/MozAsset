@@ -20,7 +20,11 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       where: { id: params.id },
       select: {
         id: true, email: true, name: true, role: true, isActive: true,
-        createdAt: true, lastLogin: true,
+        status: true, isOnline: true, isBusy: true, maxConcurrentChats: true,
+        activeChatCount: true, lastActiveAt: true, statusMessage: true,
+        isSuspended: true, createdAt: true, lastLogin: true,
+        createdByOwner: true, assignedDepartments: true,
+        _count: { select: { assignedTickets: true } },
       },
     });
 
@@ -46,7 +50,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
     const target = await prisma.internalAdmin.findUnique({
       where: { id: params.id },
-      select: { id: true, role: true, isActive: true },
+      select: { id: true, role: true, isActive: true, isSuspended: true, createdByOwner: true },
     });
     if (!target) return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
 
@@ -67,11 +71,23 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     }
     updateData.role = body.role;
   }
+  if (body.maxConcurrentChats !== undefined) updateData.maxConcurrentChats = body.maxConcurrentChats;
+  if (body.statusMessage !== undefined) updateData.statusMessage = body.statusMessage;
+  if (body.assignedDepartments !== undefined) updateData.assignedDepartments = body.assignedDepartments;
   if (body.isActive !== undefined) {
     if (!hasPermission(dbAdmin, 'agents:update')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     updateData.isActive = body.isActive;
+  }
+  if (body.isSuspended !== undefined) {
+    if (!hasPermission(dbAdmin, 'agents:suspend')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    if (body.isSuspended && target.role === 'OWNER') {
+      return NextResponse.json({ error: 'Cannot suspend owner' }, { status: 403 });
+    }
+    updateData.isSuspended = body.isSuspended;
   }
 
   const agent = await prisma.internalAdmin.update({
@@ -79,7 +95,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     data: updateData,
     select: {
       id: true, email: true, name: true, role: true, isActive: true,
-      createdAt: true,
+      status: true, isOnline: true, isBusy: true, maxConcurrentChats: true,
+      activeChatCount: true, lastActiveAt: true, statusMessage: true,
+      isSuspended: true, assignedDepartments: true, createdAt: true,
     },
   });
 

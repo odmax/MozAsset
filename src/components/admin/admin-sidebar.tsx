@@ -81,7 +81,7 @@ export function AdminSidebar({ email, role }: { email: string; role: string }) {
         ]);
         const agentsData = await agentsRes.json();
         if (agentsData.agents) {
-          setAgentsOnline(agentsData.agents.filter((a: any) => a.isActive).length);
+          setAgentsOnline(agentsData.agents.filter((a: any) => a.isOnline).length);
         }
       } catch {}
     };
