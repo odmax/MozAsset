@@ -14,13 +14,10 @@ export async function GET(req: Request) {
     const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'));
     const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get('limit') || '20')));
     const role = url.searchParams.get('role');
-    const status = url.searchParams.get('status');
     const search = url.searchParams.get('search');
 
     const where: any = {};
     if (role) where.role = role;
-    if (status === 'online') where.isOnline = true;
-    else if (status === 'offline') where.isOnline = false;
 
     if (search) {
       where.OR = [
@@ -34,9 +31,7 @@ export async function GET(req: Request) {
         where,
         select: {
           id: true, email: true, name: true, role: true, isActive: true,
-          status: true, isOnline: true, isBusy: true, maxConcurrentChats: true,
-          activeChatCount: true, lastActiveAt: true, statusMessage: true,
-          isSuspended: true, createdAt: true, lastLogin: true,
+          createdAt: true, lastLogin: true,
         },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,

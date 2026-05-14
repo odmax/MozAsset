@@ -61,7 +61,7 @@ export default function SupportOperationsPage() {
 
       const openTickets = ticketList.filter((t: any) => t.status === 'OPEN' || t.status === 'PENDING');
       const unassignedTickets = openTickets.filter((t: any) => !t.assignedAdminId);
-      const agentsOnline = agentList.filter((a: any) => a.isOnline);
+      const agentsOnline = agentList.filter((a: any) => a.isActive);
       const enterpriseTickets = openTickets.filter((t: any) => t.priority === 'URGENT' || t.priority === 'HIGH');
       const proTickets = openTickets.filter((t: any) => t.priority === 'MEDIUM');
       const freeTickets = openTickets.filter((t: any) => t.priority === 'LOW');
