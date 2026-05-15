@@ -47,12 +47,17 @@ export async function findBestAgent(priority: TicketPriority): Promise<string | 
   if (eligible.length === 0) return null;
 
   const sorted = eligible.sort((a, b) => {
+    // Prefer dedicated support roles first, then managers, fall back to super_admin/owner
     const roleWeight: Record<string, number> = {
-      OWNER: 0, SUPER_ADMIN: 1, SUPPORT_MANAGER: 2, SUPPORT_AGENT: 3,
+      SUPPORT_AGENT: 0,
+      SUPPORT_MANAGER: 1,
+      SUPER_ADMIN: 2,
+      OWNER: 3,
     };
     const aWeight = roleWeight[a.role] ?? 99;
     const bWeight = roleWeight[b.role] ?? 99;
     if (aWeight !== bWeight) return aWeight - bWeight;
+    // Within same role, assign to agent with lowest chat count (load balancing)
     return a.activeChatCount - b.activeChatCount;
   });
 

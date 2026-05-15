@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST() {
   const admin = getSimpleAdminSession();
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!admin) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
   const dbAdmin = await prisma.internalAdmin.findUnique({
     where: { id: admin.adminId },
@@ -16,7 +16,7 @@ export async function POST() {
   });
 
   if (!dbAdmin || !hasPermission(dbAdmin, 'tickets:assign')) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
   }
 
   const unassigned = await prisma.supportTicket.findMany({

@@ -68,7 +68,7 @@ const SUPER_ADMIN_PERMISSIONS: Permission[] = [
 ];
 
 const SUPPORT_MANAGER_PERMISSIONS: Permission[] = [
-  'agents:read', 'agents:create', 'agents:update',
+  'agents:read', 'agents:create', 'agents:update', 'agents:delete',
   'agents:manage_status', 'agents:suspend',
   'tickets:read', 'tickets:reply', 'tickets:assign', 'tickets:transfer',
   'tickets:escalate', 'tickets:resolve', 'tickets:change_priority',
@@ -80,7 +80,7 @@ const SUPPORT_MANAGER_PERMISSIONS: Permission[] = [
 ];
 
 const SUPPORT_AGENT_PERMISSIONS: Permission[] = [
-  'agents:read',
+  'agents:read', 'agents:manage_status',
   'tickets:read', 'tickets:reply', 'tickets:assign',
   'tickets:transfer', 'tickets:escalate', 'tickets:resolve',
   'tickets:view_internal_notes', 'tickets:add_internal_notes',
@@ -151,9 +151,15 @@ export function canManageAgent(
   currentAdmin: { role: InternalRole; id: string },
   targetAdmin: { role: InternalRole; id: string }
 ): boolean {
+  // OWNER can manage everyone
   if (currentAdmin.role === 'OWNER') return true;
+  // SUPER_ADMIN can manage everyone except OWNER
   if (currentAdmin.role === 'SUPER_ADMIN' && targetAdmin.role !== 'OWNER') return true;
+  // SUPPORT_MANAGER can manage SUPPORT_AGENT, VIEWER, and FINANCE_ADMIN (but not OWNER/SUPER_ADMIN)
   if (currentAdmin.role === 'SUPPORT_MANAGER' &&
-    (targetAdmin.role === 'SUPPORT_AGENT' || targetAdmin.role === 'VIEWER')) return true;
+    (targetAdmin.role === 'SUPPORT_AGENT' || targetAdmin.role === 'VIEWER' || targetAdmin.role === 'FINANCE_ADMIN')) return true;
+  // SUPPORT_AGENT can only manage themselves (status toggle)
+  if (currentAdmin.role === 'SUPPORT_AGENT') return currentAdmin.id === targetAdmin.id;
+  // Everyone can manage themselves
   return currentAdmin.id === targetAdmin.id;
 }

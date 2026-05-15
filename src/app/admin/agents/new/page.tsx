@@ -30,7 +30,7 @@ export default function NewAgentPage() {
         body: JSON.stringify(formData),
       });
       const data = await res.json();
-      if (!res.ok || data.error) {
+      if (!res.ok || !data.success || data.error) {
         setError(data.error || 'Failed to create agent');
         setIsLoading(false);
         return;

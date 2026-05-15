@@ -9,6 +9,7 @@ import {
   Package, UserCog, DollarSign, Receipt, MessageSquare,
   Shield, HardDrive, Activity, Headphones, UserPlus,
   ChevronDown, ChevronRight, Wifi, WifiOff,
+  Clock, Circle,
 } from 'lucide-react';
 import LogoutButton from '@/app/admin/logout-button';
 
@@ -17,11 +18,13 @@ interface NavItem {
   href: string;
   icon: any;
   badge?: 'new' | 'beta';
+  minRole?: string;
 }
 
 interface NavSection {
   title: string;
   items: NavItem[];
+  minRole?: string;
 }
 
 const navSections: NavSection[] = [
@@ -35,7 +38,7 @@ const navSections: NavSection[] = [
     title: 'Support Operations',
     items: [
       { title: 'Operations Hub', href: '/admin/support', icon: Headphones },
-      { title: 'Support Agents', href: '/admin/agents', icon: UserPlus },
+      { title: 'Support Agents', href: '/admin/agents', icon: UserPlus, minRole: 'SUPPORT_MANAGER' },
       { title: 'Support Tickets', href: '/admin/support-tickets', icon: MessageSquare },
     ],
   },
@@ -53,6 +56,7 @@ const navSections: NavSection[] = [
       { title: 'Payments', href: '/admin/payments', icon: Receipt },
       { title: 'Revenue', href: '/admin/revenue', icon: DollarSign },
     ],
+    minRole: 'FINANCE_ADMIN',
   },
   {
     title: 'System',
@@ -64,31 +68,92 @@ const navSections: NavSection[] = [
       { title: 'File Storage', href: '/admin/storage', icon: HardDrive },
       { title: 'Queue', href: '/admin/queue', icon: Activity },
     ],
+    minRole: 'SUPER_ADMIN',
   },
 ];
+
+const ADMIN_ONLY_ROLES = ['OWNER', 'SUPER_ADMIN'];
+const BILLING_ROLES = ['OWNER', 'SUPER_ADMIN', 'FINANCE_ADMIN'];
+const MANAGER_ROLES = ['OWNER', 'SUPER_ADMIN', 'SUPPORT_MANAGER'];
+
+function canAccess(minRole: string | undefined, userRole: string): boolean {
+  if (!minRole) return true;
+  if (userRole === 'OWNER') return true;
+  if (minRole === 'SUPPORT_MANAGER' && MANAGER_ROLES.includes(userRole)) return true;
+  if (minRole === 'FINANCE_ADMIN' && BILLING_ROLES.includes(userRole)) return true;
+  if (minRole === 'SUPER_ADMIN' && ADMIN_ONLY_ROLES.includes(userRole)) return true;
+  return false;
+}
+
+const statusDot: Record<string, string> = {
+  ONLINE: 'bg-emerald-500',
+  BUSY: 'bg-red-500',
+  AWAY: 'bg-amber-500',
+  OFFLINE: 'bg-slate-400',
+  IN_MEETING: 'bg-purple-500',
+  BREAK: 'bg-amber-500',
+};
 
 export function AdminSidebar({ email, role }: { email: string; role: string }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [agentsOnline, setAgentsOnline] = useState(0);
-  const [unreadTickets, setUnreadTickets] = useState(0);
+  const [myStatus, setMyStatus] = useState('');
+  const [myOnline, setMyOnline] = useState(false);
+  const [myBusy, setMyBusy] = useState(false);
+  const [myActiveChats, setMyActiveChats] = useState(0);
+  const [myMaxChats, setMyMaxChats] = useState(5);
+  const [toggling, setToggling] = useState(false);
+
+  const fetchMeta = async () => {
+    try {
+      const [agentsRes] = await Promise.all([
+        fetch('/api/admin/agents?limit=100'),
+      ]);
+      const agentsData = await agentsRes.json();
+      if (agentsData.agents) {
+        setAgentsOnline(agentsData.agents.filter((a: any) => a.isOnline).length);
+        const me = agentsData.agents.find((a: any) => a.email === email);
+        if (me) {
+          setMyStatus(me.status || 'OFFLINE');
+          setMyOnline(me.isOnline || false);
+          setMyBusy(me.isBusy || false);
+          setMyActiveChats(me.activeChatCount || 0);
+          setMyMaxChats(me.maxConcurrentChats || 5);
+        }
+      }
+    } catch {}
+  };
 
   useEffect(() => {
-    const fetchMeta = async () => {
-      try {
-        const [agentsRes] = await Promise.all([
-          fetch('/api/admin/agents?limit=1'),
-        ]);
-        const agentsData = await agentsRes.json();
-        if (agentsData.agents) {
-          setAgentsOnline(agentsData.agents.filter((a: any) => a.isOnline).length);
-        }
-      } catch {}
-    };
     fetchMeta();
     const interval = setInterval(fetchMeta, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  const toggleMyOnline = async () => {
+    setToggling(true);
+    const newStatus = myOnline ? 'OFFLINE' : 'ONLINE';
+    try {
+      const meRes = await fetch('/api/admin/agents?limit=1');
+      const meData = await meRes.json();
+      const me = meData.agents?.find((a: any) => a.email === email);
+      if (!me) return;
+      const res = await fetch(`/api/admin/agents/${me.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMyStatus(newStatus);
+        setMyOnline(newStatus === 'ONLINE');
+        setMyBusy(false);
+        fetchMeta();
+      }
+    } catch {}
+    setToggling(false);
+  };
 
   const toggleSection = (title: string) => {
     setCollapsed((prev) => ({ ...prev, [title]: !prev[title] }));
@@ -99,9 +164,11 @@ export function AdminSidebar({ email, role }: { email: string; role: string }) {
     return pathname.startsWith(href);
   };
 
+  const statusLabel = myOnline ? (myBusy ? 'Busy' : 'Online') : 'Offline';
+  const statusColor = myOnline ? (myBusy ? 'text-amber-400' : 'text-emerald-400') : 'text-slate-500';
+
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white flex flex-col shadow-2xl border-r border-slate-800/50">
-      {/* Header */}
       <div className="flex h-16 items-center border-b border-slate-800/60 px-6 shrink-0 bg-slate-900/80 backdrop-blur-sm">
         <Link href="/admin" className="flex items-center gap-2 font-bold text-lg group">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/20 group-hover:shadow-primary/30 transition-shadow">
@@ -114,9 +181,11 @@ export function AdminSidebar({ email, role }: { email: string; role: string }) {
         </Link>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent hover:scrollbar-thumb-slate-600" style={{ scrollbarWidth: 'thin', scrollbarColor: '#334155 transparent' }}>
         {navSections.map((section) => {
+          if (!canAccess(section.minRole, role)) return null;
+          const visibleItems = section.items.filter(item => canAccess(item.minRole, role));
+          if (visibleItems.length === 0) return null;
           const isCollapsed = collapsed[section.title];
           return (
             <div key={section.title} className="mb-2">
@@ -133,7 +202,7 @@ export function AdminSidebar({ email, role }: { email: string; role: string }) {
               </button>
               {!isCollapsed && (
                 <ul className="space-y-0.5 mt-0.5">
-                  {section.items.map((item) => {
+                  {visibleItems.map((item) => {
                     const Icon = item.icon;
                     const active = isActive(item.href);
                     return (
@@ -166,16 +235,39 @@ export function AdminSidebar({ email, role }: { email: string; role: string }) {
         })}
       </nav>
 
-      {/* Agent Status Bar */}
-      <div className="px-4 py-2 border-t border-slate-800/60 bg-slate-900/60">
-        <Link href="/admin/agents" className="flex items-center gap-2 text-xs text-slate-400 hover:text-slate-200 transition-colors">
-          {agentsOnline > 0 ? (
-            <Wifi className="h-3 w-3 text-emerald-400" />
-          ) : (
-            <WifiOff className="h-3 w-3 text-slate-500" />
-          )}
-          <span>{agentsOnline} agent{agentsOnline !== 1 ? 's' : ''} online</span>
-        </Link>
+      {/* My Presence Status */}
+      <div className="px-4 py-3 border-t border-slate-800/60 bg-slate-900/60 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className={`w-2.5 h-2.5 rounded-full ${statusDot[myStatus] || 'bg-slate-400'}`} />
+            <span className={`text-xs font-medium ${statusColor}`}>{statusLabel}</span>
+          </div>
+          <button
+            onClick={toggleMyOnline}
+            disabled={toggling}
+            className={cn(
+              'text-xs px-2.5 py-1 rounded-lg font-medium transition-colors',
+              myOnline
+                ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30',
+              toggling && 'opacity-50 cursor-wait',
+            )}
+          >
+            {toggling ? '...' : myOnline ? 'Go Offline' : 'Go Online'}
+          </button>
+        </div>
+        {myOnline && (
+          <div className="flex items-center gap-3 text-xs text-slate-400">
+            <span className="flex items-center gap-1">
+              <MessageSquare className="h-3 w-3" />
+              {myActiveChats}/{myMaxChats}
+            </span>
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {agentsOnline} online
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Footer */}

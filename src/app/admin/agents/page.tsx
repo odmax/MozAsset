@@ -2,13 +2,21 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Users, UserPlus, Search, Wifi, WifiOff,
-  Loader2, MoreHorizontal,
-  RefreshCw,
+  Loader2, MoreHorizontal, RefreshCw,
+  Eye, Pencil, ToggleLeft, ToggleRight, Ban, Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface Agent {
   id: string;
@@ -48,11 +56,13 @@ const roleBadge: Record<string, string> = {
 };
 
 export default function AgentsPage() {
+  const router = useRouter();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [filterRole, setFilterRole] = useState('');
+  const [actionMsg, setActionMsg] = useState<{ id: string; text: string; ok: boolean } | null>(null);
 
   const fetchAgents = async () => {
     setLoading(true);
@@ -62,13 +72,53 @@ export default function AgentsPage() {
       if (filterRole) params.set('role', filterRole);
       const res = await fetch(`/api/admin/agents?${params}`);
       const data = await res.json();
-      if (data.error) { setError(data.error); return; }
+      if (!data.success || data.error) { setError(data.error || 'Failed to load agents'); return; }
       setAgents(data.agents || []);
     } catch {
       setError('Failed to load agents');
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleStatus = async (agent: Agent) => {
+    const newStatus = agent.isOnline ? 'OFFLINE' : 'ONLINE';
+    setActionMsg({ id: agent.id, text: `${newStatus === 'ONLINE' ? 'Going online...' : 'Going offline...'}`, ok: true });
+    try {
+      const res = await fetch(`/api/admin/agents/${agent.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json();
+      if (!data.success || data.error) {
+        setActionMsg({ id: agent.id, text: data.error || 'Failed', ok: false });
+      } else {
+        setActionMsg({ id: agent.id, text: `Now ${newStatus === 'ONLINE' ? 'Online' : 'Offline'}`, ok: true });
+      }
+    } catch {
+      setActionMsg({ id: agent.id, text: 'Failed to update', ok: false });
+    }
+    setTimeout(() => setActionMsg(null), 2000);
+    fetchAgents();
+  };
+
+  const deactivateAgent = async (agent: Agent) => {
+    if (!confirm(`Deactivate ${agent.name || agent.email}?`)) return;
+    setActionMsg({ id: agent.id, text: 'Deactivating...', ok: true });
+    try {
+      const res = await fetch(`/api/admin/agents/${agent.id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!data.success || data.error) {
+        setActionMsg({ id: agent.id, text: data.error || 'Failed', ok: false });
+      } else {
+        setActionMsg({ id: agent.id, text: 'Deactivated', ok: true });
+      }
+    } catch {
+      setActionMsg({ id: agent.id, text: 'Failed', ok: false });
+    }
+    setTimeout(() => setActionMsg(null), 2000);
+    fetchAgents();
   };
 
   useEffect(() => { fetchAgents(); }, []);
@@ -132,18 +182,28 @@ export default function AgentsPage() {
       </div>
 
       {error && !loading && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700">{error}</div>
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center justify-between">
+          <span className="text-red-700 text-sm">{error}</span>
+          <button onClick={fetchAgents} className="text-sm text-red-700 underline hover:no-underline shrink-0 ml-4">Retry</button>
+        </div>
       )}
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      ) : agents.length === 0 ? (
+      ) : agents.length === 0 && !error ? (
         <div className="text-center py-20 bg-card border rounded-xl">
           <Users className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
           <p className="font-medium text-muted-foreground">No agents found</p>
           <p className="text-sm text-muted-foreground/60 mt-1">Add your first support agent</p>
+          <Link
+            href="/admin/agents/new"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 mt-4"
+          >
+            <UserPlus className="h-4 w-4" />
+            Add Agent
+          </Link>
         </div>
       ) : (
         <div className="bg-card border rounded-xl overflow-hidden">
@@ -208,13 +268,43 @@ export default function AgentsPage() {
                           : 'Never'}
                       </span>
                     </td>
-                    <td className="px-5 py-4">
-                      <Link
-                        href={`/admin/agents/${agent.id}`}
-                        className="p-1 rounded hover:bg-accent inline-block"
-                      >
-                        <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                      </Link>
+                    <td className="px-5 py-4 relative">
+                      {actionMsg?.id === agent.id && (
+                        <div className={`absolute right-12 top-1/2 -translate-y-1/2 text-xs px-2 py-1 rounded ${actionMsg.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+                          {actionMsg.text}
+                        </div>
+                      )}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="p-1 rounded hover:bg-accent inline-block">
+                            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem onClick={() => router.push(`/admin/agents/${agent.id}`)}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => router.push(`/admin/agents/${agent.id}`)}>
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => toggleStatus(agent)}>
+                            {agent.isOnline ? (
+                              <><ToggleRight className="h-4 w-4 mr-2 text-amber-500" /> Set Offline</>
+                            ) : (
+                              <><ToggleLeft className="h-4 w-4 mr-2 text-emerald-500" /> Set Online</>
+                            )}
+                          </DropdownMenuItem>
+                          {agent.isActive && (
+                            <DropdownMenuItem onClick={() => deactivateAgent(agent)} className="text-red-600">
+                              <Ban className="h-4 w-4 mr-2" />
+                              Deactivate
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 ))}

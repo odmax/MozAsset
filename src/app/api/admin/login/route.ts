@@ -51,10 +51,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
-    console.log('10. Password OK, updating lastLogin...');
+    console.log('10. Password OK, updating lastLogin and setting OFFLINE...');
     await prisma.internalAdmin.update({
       where: { id: admin.id },
-      data: { lastLogin: new Date() },
+      data: {
+        lastLogin: new Date(),
+        status: 'OFFLINE',
+        isOnline: false,
+        lastActiveAt: new Date(),
+      },
       select: { id: true },
     });
 

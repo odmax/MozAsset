@@ -8,7 +8,7 @@ import bcrypt from 'bcryptjs';
 export async function GET(req: Request) {
   try {
     const admin = getSimpleAdminSession();
-    if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!admin) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
     const url = new URL(req.url);
     const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'));
@@ -45,45 +45,45 @@ export async function GET(req: Request) {
       prisma.internalAdmin.count({ where }),
     ]);
 
-    return NextResponse.json({ agents, total, page, limit });
+    return NextResponse.json({ success: true, agents, total, page, limit });
   } catch (error) {
     console.error('[agents] GET error:', error);
-    return NextResponse.json({ error: 'Failed to fetch agents', agents: [], total: 0, page: 1, limit: 20 }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to fetch agents', agents: [], total: 0, page: 1, limit: 20 }, { status: 500 });
   }
 }
 
 export async function POST(req: Request) {
   try {
     const admin = getSimpleAdminSession();
-    if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!admin) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
     const dbAdmin = await prisma.internalAdmin.findUnique({
       where: { id: admin.adminId },
       select: { id: true, role: true, permissions: true },
     });
     if (!dbAdmin || !hasPermission(dbAdmin, 'agents:create')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await req.json();
     const { email, name, password, role } = body;
 
     if (!email || !password || !role) {
-      return NextResponse.json({ error: 'Email, password, and role required' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Email, password, and role required' }, { status: 400 });
     }
 
     const validRoles: InternalRole[] = ['SUPER_ADMIN', 'SUPPORT_MANAGER', 'SUPPORT_AGENT', 'FINANCE_ADMIN', 'VIEWER'];
     if (!validRoles.includes(role)) {
-      return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Invalid role' }, { status: 400 });
     }
 
     if (dbAdmin.role !== 'OWNER' && (role === 'SUPER_ADMIN' || role === 'SUPPORT_MANAGER')) {
-      return NextResponse.json({ error: 'Forbidden: cannot create this role' }, { status: 403 });
+      return NextResponse.json({ success: false, error: 'Forbidden: cannot create this role' }, { status: 403 });
     }
 
     const existing = await prisma.internalAdmin.findUnique({ where: { email: email.toLowerCase() }, select: { id: true } });
     if (existing) {
-      return NextResponse.json({ error: 'Email already exists' }, { status: 409 });
+      return NextResponse.json({ success: false, error: 'Email already exists' }, { status: 409 });
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
@@ -103,9 +103,9 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({ agent }, { status: 201 });
+    return NextResponse.json({ success: true, agent }, { status: 201 });
   } catch (error) {
     console.error('[agents] POST error:', error);
-    return NextResponse.json({ error: 'Failed to create agent' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to create agent' }, { status: 500 });
   }
 }
