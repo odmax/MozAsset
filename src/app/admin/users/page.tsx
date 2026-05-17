@@ -28,9 +28,20 @@ interface User {
   role: string;
   plan: string;
   isActive: boolean;
-  emailVerified: Date | null;
-  createdAt: Date;
+  isDeactivated: boolean;
+  deactivatedAt: string | null;
+  scheduledDeletionAt: string | null;
+  lastActiveAt: string | null;
+  emailVerified: string | null;
+  createdAt: string;
   organization: { name: string } | null;
+}
+
+interface LifecycleStats {
+  totalFree: number;
+  inactive60Days: number;
+  deactivated: number;
+  pendingDeletion: number;
 }
 
 export default function AdminUsersPage() {
@@ -38,42 +49,45 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [lifecycleStats, setLifecycleStats] = useState<LifecycleStats | null>(null);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
 
-  useEffect(() => {
-    fetch('/api/admin/users')
-      .then(res => {
-        if (res.status === 401 || res.status === 403) {
-          redirect('/dashboard');
-        }
-        return res.json();
-      })
-      .then(data => {
-        if (data?.error) {
-          setError(data.error);
-        } else {
-          setUsers(data);
-          setFilteredUsers(data);
-        }
-      })
-      .catch(err => {
-        console.error('[admin-users-page] Fetch error:', err);
-        setError('Failed to load users');
-      })
-      .finally(() => setLoading(false));
-  }, []);
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (search) params.set('search', search);
+      if (filterStatus) params.set('status', filterStatus);
+      const res = await fetch(`/api/admin/users?${params}`);
+      const data = await res.json();
+      if (!data.success || data.error) {
+        setError(data.error || 'Failed to load users');
+      } else {
+        setUsers(data.users || []);
+        setFilteredUsers(data.users || []);
+      }
+    } catch {
+      setError('Failed to load users');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchLifecycleStats = async () => {
+    try {
+      const res = await fetch('/api/admin/users/lifecycle-stats');
+      const data = await res.json();
+      if (data.success) setLifecycleStats(data.stats);
+    } catch {}
+  };
+
+  useEffect(() => { fetchUsers(); fetchLifecycleStats(); }, []);
 
   useEffect(() => {
-    if (search) {
-      const filtered = users.filter(u => 
-        u.name?.toLowerCase().includes(search.toLowerCase()) ||
-        u.email.toLowerCase().includes(search.toLowerCase())
-      );
-      setFilteredUsers(filtered);
-    } else {
-      setFilteredUsers(users);
-    }
-  }, [search, users]);
+    const timer = setTimeout(fetchUsers, 300);
+    return () => clearTimeout(timer);
+  }, [search, filterStatus]);
 
   const handleToggleActive = async (userId: string, currentStatus: boolean) => {
     const currentUsers = [...users];
@@ -117,11 +131,12 @@ export default function AdminUsersPage() {
         setUsers(currentUsers);
         alert(`Failed: ${data.error}`);
       } else {
-        // Refetch to ensure sync
         const refetch = await fetch('/api/admin/users');
         if (refetch.ok) {
           const fresh = await refetch.json();
-          setUsers(fresh);
+          if (fresh.success) {
+            setUsers(fresh.users);
+          }
         }
       }
     } catch (e) {
@@ -164,18 +179,51 @@ export default function AdminUsersPage() {
         <p className="text-muted-foreground">Manage all registered users on the platform</p>
       </div>
 
+      {lifecycleStats && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-card border rounded-xl p-4">
+            <p className="text-2xl font-bold">{lifecycleStats.totalFree}</p>
+            <p className="text-xs text-muted-foreground mt-1">Total FREE accounts</p>
+          </div>
+          <div className="bg-card border rounded-xl p-4">
+            <p className="text-2xl font-bold text-amber-600">{lifecycleStats.inactive60Days}</p>
+            <p className="text-xs text-muted-foreground mt-1">Inactive 60+ days</p>
+          </div>
+          <div className="bg-card border rounded-xl p-4">
+            <p className="text-2xl font-bold text-red-600">{lifecycleStats.deactivated}</p>
+            <p className="text-xs text-muted-foreground mt-1">Deactivated (read-only)</p>
+          </div>
+          <div className="bg-card border rounded-xl p-4">
+            <p className="text-2xl font-bold text-red-800">{lifecycleStats.pendingDeletion}</p>
+            <p className="text-xs text-muted-foreground mt-1">Pending permanent deletion</p>
+          </div>
+        </div>
+      )}
+
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <CardTitle>All Users ({filteredUsers.length})</CardTitle>
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search users..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
-              />
+            <div className="flex items-center gap-3">
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="h-9 rounded-lg border bg-background px-3 text-sm"
+              >
+                <option value="">All status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="deactivated">Deactivated</option>
+              </select>
+              <div className="relative w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search users..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -190,6 +238,7 @@ export default function AdminUsersPage() {
                   <th className="text-left p-3 text-sm font-medium">Role</th>
                   <th className="text-left p-3 text-sm font-medium">Plan</th>
                   <th className="text-left p-3 text-sm font-medium">Status</th>
+                  <th className="text-left p-3 text-sm font-medium">Lifecycle</th>
                   <th className="text-left p-3 text-sm font-medium">Verified</th>
                   <th className="text-left p-3 text-sm font-medium">Joined</th>
                   <th className="text-left p-3 text-sm font-medium">Actions</th>
@@ -235,6 +284,24 @@ export default function AdminUsersPage() {
                         <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
                           Inactive
                         </Badge>
+                      )}
+                    </td>
+                    <td className="p-3">
+                      {user.isDeactivated ? (
+                        <div className="text-xs space-y-0.5">
+                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                            Deactivated
+                          </Badge>
+                          {user.scheduledDeletionAt && (
+                            <p className="text-red-600 mt-1">
+                              Deletion: {new Date(user.scheduledDeletionAt).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                      ) : user.plan === 'FREE' && user.lastActiveAt && (
+                        <span className="text-xs text-muted-foreground">
+                          Last active: {new Date(user.lastActiveAt).toLocaleDateString()}
+                        </span>
                       )}
                     </td>
                     <td className="p-3">
@@ -301,7 +368,7 @@ export default function AdminUsersPage() {
                 ))}
                 {filteredUsers.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={9} className="p-8 text-center text-muted-foreground">
                       No users found
                     </td>
                   </tr>

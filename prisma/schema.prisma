@@ -122,6 +122,10 @@ enum NotificationType {
   TICKET_ESCALATED
   SLA_BREACH_WARNING
   AGENT_REPLY
+  ACCOUNT_INACTIVE
+  ACCOUNT_DEACTIVATED
+  ACCOUNT_DELETION_WARNING
+  ACCOUNT_REACTIVATED
 }
 
 enum AuditAction {
@@ -199,6 +203,15 @@ model User {
   emailSupport      Boolean @default(true)
   emailMaintenance  Boolean @default(true)
   emailBilling      Boolean @default(true)
+
+  // Inactivity lifecycle (FREE accounts only)
+  lastActiveAt          DateTime?
+  isDeactivated         Boolean   @default(false)
+  deactivatedAt         DateTime?
+  scheduledDeletionAt   DateTime?
+  deactivationReason    String?
+  inactivityWarningSentAt   DateTime?
+  finalWarningSentAt        DateTime?
 
   organizationId   String?
   organization     Organization? @relation(fields: [organizationId], references: [id])

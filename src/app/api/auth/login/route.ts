@@ -163,6 +163,12 @@ export async function POST(request: Request) {
 
     await logSuccessfulLogin(user.id, normalizedEmail, ip, userAgent);
 
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastActiveAt: new Date() },
+      select: { id: true },
+    });
+
     const sessionData = {
       id: user.id,
       email: String(user.email),

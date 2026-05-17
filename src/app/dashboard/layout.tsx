@@ -7,12 +7,14 @@ import SupportWidget from '@/components/support-widget';
 import { DashboardClient } from '@/components/dashboard/DashboardClient';
 import { getSimpleUserSession } from '@/lib/customer-session';
 
-async function getUserLogo(userId: string) {
+import { DeactivatedBanner } from '@/components/dashboard/deactivated-banner';
+
+async function getUserInfo(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { companyLogoUrl: true },
+    select: { companyLogoUrl: true, isDeactivated: true, deactivationReason: true },
   });
-  return user?.companyLogoUrl;
+  return user;
 }
 
 export default async function DashboardLayout({
@@ -28,15 +30,16 @@ export default async function DashboardLayout({
 
   const userPlan = session.plan || 'FREE';
   const userRole = (session.role || 'EMPLOYEE') as Role;
-  const companyLogoUrl = await getUserLogo(session.userId);
+  const userInfo = await getUserInfo(session.userId);
 
   return (
     <DashboardClient userPlan={userPlan}>
       <div className="min-h-screen bg-background">
-        <Sidebar userRole={userRole} userPlan={userPlan} companyLogoUrl={companyLogoUrl} />
+        <Sidebar userRole={userRole} userPlan={userPlan} companyLogoUrl={userInfo?.companyLogoUrl} />
         <main className="lg:pl-64">
           <div className="container mx-auto p-6 space-y-6">
-            {userPlan === 'FREE' && <UpgradeBanner userPlan={userPlan} />}
+            {userInfo?.isDeactivated && <DeactivatedBanner reason={userInfo.deactivationReason} />}
+            {!userInfo?.isDeactivated && userPlan === 'FREE' && <UpgradeBanner userPlan={userPlan} />}
             {children}
           </div>
         </main>

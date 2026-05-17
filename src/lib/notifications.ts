@@ -124,4 +124,8 @@ export const NOTIFICATION_ICONS: Record<NotificationType, string> = {
   TICKET_ESCALATED: 'arrow-up-circle',
   SLA_BREACH_WARNING: 'alert-triangle',
   AGENT_REPLY: 'message-circle',
+  ACCOUNT_INACTIVE: 'clock',
+  ACCOUNT_DEACTIVATED: 'shield-off',
+  ACCOUNT_DELETION_WARNING: 'alert-triangle',
+  ACCOUNT_REACTIVATED: 'check-circle',
 } as const;
