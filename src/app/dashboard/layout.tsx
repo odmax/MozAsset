@@ -33,7 +33,7 @@ export default async function DashboardLayout({
   const userInfo = await getUserInfo(session.userId);
 
   return (
-    <DashboardClient userPlan={userPlan}>
+    <DashboardClient>
       <div className="min-h-screen bg-background">
         <Sidebar userRole={userRole} userPlan={userPlan} companyLogoUrl={userInfo?.companyLogoUrl} />
         <main className="lg:pl-64 pt-14 lg:pt-0">

@@ -20,7 +20,6 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { AssetStatus } from '@prisma/client';
 import { StatusPieChart, DepartmentBarChart, CategoryBarChart } from '@/components/dashboard/charts';
-import { UpgradePlanModal } from '@/components/plan/UpgradePlanModal';
 import { UpgradeButton } from '@/components/dashboard/UpgradeButton';
 import { getSimpleUserSession } from '@/lib/customer-session';
 

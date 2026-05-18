@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getPlanDetails, formatLimit, getUpgradeTarget } from '@/lib/billing';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -71,6 +71,7 @@ const planMeta = {
 
 export default function BillingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [billingData, setBillingData] = useState<BillingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -83,6 +84,12 @@ export default function BillingPage() {
       if (d.error) setError(d.error); else setBillingData(d);
     }).catch(() => setError('Failed to load billing data')).finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (searchParams.get('upgrade') === 'true') {
+      setUpgradeModalOpen(true);
+    }
+  }, [searchParams]);
 
   const handleBack = () => { if (window.history.length > 1) router.back(); else router.push('/dashboard'); };
 

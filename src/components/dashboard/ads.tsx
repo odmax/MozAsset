@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { X, Crown, Sparkles } from 'lucide-react';
-import Link from 'next/link';
 
 interface AdBannerProps {
   userPlan?: string;
@@ -13,6 +13,7 @@ interface AdBannerProps {
 }
 
 export function UpgradeBanner({ userPlan = 'FREE', onDismiss }: AdBannerProps) {
+  const router = useRouter();
   const [dismissed, setDismissed] = useState(false);
   const [visible, setVisible] = useState(false);
 
@@ -46,12 +47,14 @@ export function UpgradeBanner({ userPlan = 'FREE', onDismiss }: AdBannerProps) {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Link href="/dashboard/upgrade">
-                <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
-                  <Sparkles className="h-4 w-4 mr-1" />
-                  Upgrade
-                </Button>
-              </Link>
+              <Button
+                size="sm"
+                className="bg-purple-600 hover:bg-purple-700"
+                onClick={() => router.push('/billing?upgrade=true')}
+              >
+                <Sparkles className="h-4 w-4 mr-1" />
+                Upgrade
+              </Button>
               <Button variant="ghost" size="icon" onClick={handleDismiss}>
                 <X className="h-4 w-4" />
               </Button>
@@ -68,6 +71,7 @@ interface SidebarAdProps {
 }
 
 export function SidebarAd({ userPlan = 'FREE' }: SidebarAdProps) {
+  const router = useRouter();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -91,12 +95,14 @@ export function SidebarAd({ userPlan = 'FREE' }: SidebarAdProps) {
           <p className="text-xs text-muted-foreground mb-3">
             Remove ads and unlock all features
           </p>
-          <Link href="/dashboard/upgrade">
-            <Button size="sm" className="w-full bg-purple-600 hover:bg-purple-700">
-              <Sparkles className="h-3 w-3 mr-1" />
-              Upgrade
-            </Button>
-          </Link>
+          <Button
+            size="sm"
+            className="w-full bg-purple-600 hover:bg-purple-700"
+            onClick={() => router.push('/billing?upgrade=true')}
+          >
+            <Sparkles className="h-3 w-3 mr-1" />
+            Upgrade
+          </Button>
         </CardContent>
       </Card>
     </div>
@@ -108,6 +114,8 @@ interface ReportsAdProps {
 }
 
 export function ReportsAd({ userPlan = 'FREE' }: ReportsAdProps) {
+  const router = useRouter();
+
   if (userPlan !== 'FREE') return null;
 
   return (
@@ -118,12 +126,13 @@ export function ReportsAd({ userPlan = 'FREE' }: ReportsAdProps) {
         <p className="text-sm text-purple-700 mb-4">
           Get advanced analytics, custom reports, and export features with Pro
         </p>
-        <Link href="/dashboard/upgrade">
-          <Button className="bg-purple-600 hover:bg-purple-700">
-            <Sparkles className="h-4 w-4 mr-2" />
-            Upgrade Now
-          </Button>
-        </Link>
+        <Button
+          className="bg-purple-600 hover:bg-purple-700"
+          onClick={() => router.push('/billing?upgrade=true')}
+        >
+          <Sparkles className="h-4 w-4 mr-2" />
+          Upgrade Now
+        </Button>
       </CardContent>
     </Card>
   );
