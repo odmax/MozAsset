@@ -56,8 +56,6 @@ export function VendorsClient({ initialVendors, canManage }: VendorsClientProps)
     setDeleteDialogOpen(true);
   };
 
-  if (vendors.length === 0) return null;
-
   return (
     <>
       {error && (
@@ -67,6 +65,17 @@ export function VendorsClient({ initialVendors, canManage }: VendorsClientProps)
         </div>
       )}
 
+      {vendors.length === 0 ? (
+        <div className="rounded-md border p-12 text-center">
+          <Truck className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+          <p className="text-muted-foreground mb-4">No vendors found</p>
+          {canManage && (
+            <Link href="/dashboard/vendors/new">
+              <Button>Add your first vendor</Button>
+            </Link>
+          )}
+        </div>
+      ) : (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {vendors.map((vendor) => (
           <Card key={vendor.id}>
@@ -115,6 +124,7 @@ export function VendorsClient({ initialVendors, canManage }: VendorsClientProps)
           </Card>
         ))}
       </div>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

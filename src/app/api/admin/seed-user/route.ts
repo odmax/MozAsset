@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { hasPermission } from '@/lib/admin-permissions';
 import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
@@ -9,14 +10,22 @@ export async function POST(request: Request) {
   try {
     const { email, password, name } = await request.json();
 
-    const adminSession = cookies().get('adminSession');
-    if (!adminSession?.value) {
+    const adminCookie = cookies().get('adminSession');
+    if (!adminCookie?.value) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const decoded = JSON.parse(Buffer.from(adminSession.value, 'base64').toString('utf-8'));
+    const decoded = JSON.parse(Buffer.from(adminCookie.value, 'base64').toString('utf-8'));
     if (!decoded.isInternalAdmin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const dbAdmin = await prisma.internalAdmin.findUnique({
+      where: { id: decoded.id },
+      select: { id: true, role: true, permissions: true },
+    });
+    if (!dbAdmin || !hasPermission(dbAdmin, 'users:modify')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const existingUser = await prisma.user.findUnique({

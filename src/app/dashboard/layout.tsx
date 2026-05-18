@@ -36,8 +36,8 @@ export default async function DashboardLayout({
     <DashboardClient userPlan={userPlan}>
       <div className="min-h-screen bg-background">
         <Sidebar userRole={userRole} userPlan={userPlan} companyLogoUrl={userInfo?.companyLogoUrl} />
-        <main className="lg:pl-64">
-          <div className="container mx-auto p-6 space-y-6">
+        <main className="lg:pl-64 pt-14 lg:pt-0">
+          <div className="container mx-auto p-4 sm:p-6 space-y-6">
             {userInfo?.isDeactivated && <DeactivatedBanner reason={userInfo.deactivationReason} />}
             {!userInfo?.isDeactivated && userPlan === 'FREE' && <UpgradeBanner userPlan={userPlan} />}
             {children}

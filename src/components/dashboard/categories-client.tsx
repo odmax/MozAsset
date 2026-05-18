@@ -52,8 +52,6 @@ export function CategoriesClient({ initialCategories, canManage }: CategoriesCli
     setDeleteDialogOpen(true);
   };
 
-  if (categories.length === 0) return null;
-
   return (
     <>
       {error && (
@@ -63,6 +61,17 @@ export function CategoriesClient({ initialCategories, canManage }: CategoriesCli
         </div>
       )}
 
+      {categories.length === 0 ? (
+        <div className="rounded-md border p-12 text-center">
+          <Package className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+          <p className="text-muted-foreground mb-4">No categories found</p>
+          {canManage && (
+            <Link href="/dashboard/categories/new">
+              <Button>Add your first category</Button>
+            </Link>
+          )}
+        </div>
+      ) : (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {categories.map((category) => (
           <Card key={category.id}>
@@ -102,6 +111,7 @@ export function CategoriesClient({ initialCategories, canManage }: CategoriesCli
           </Card>
         ))}
       </div>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

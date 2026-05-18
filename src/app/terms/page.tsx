@@ -115,7 +115,7 @@ export default function TermsPage() {
             </p>
             <ul className="list-disc list-inside text-muted-foreground space-y-2">
               <li><strong>Free Plan:</strong> Up to 50 assets, 1 department, 1 location</li>
-              <li><strong>Pro Plan:</strong> R149/month or R1,490/year - Up to 1,000 assets, unlimited departments and locations</li>
+              <li><strong>Pro Plan:</strong> R149/month or R1,490/year - Up to 500 assets, 5 departments and 5 locations</li>
               <li><strong>Enterprise Plan:</strong> R599/month or R5,990/year - Unlimited assets, multi-branch support, API access</li>
             </ul>
           </section>

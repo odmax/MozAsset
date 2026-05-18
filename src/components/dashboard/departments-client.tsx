@@ -53,8 +53,6 @@ export function DepartmentsClient({ initialDepartments, canManage }: Departments
     setDeleteDialogOpen(true);
   };
 
-  if (departments.length === 0) return null;
-
   return (
     <>
       {error && (
@@ -64,6 +62,17 @@ export function DepartmentsClient({ initialDepartments, canManage }: Departments
         </div>
       )}
 
+      {departments.length === 0 ? (
+        <div className="rounded-md border p-12 text-center">
+          <Building2 className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+          <p className="text-muted-foreground mb-4">No departments found</p>
+          {canManage && (
+            <Link href="/dashboard/departments/new">
+              <Button>Add your first department</Button>
+            </Link>
+          )}
+        </div>
+      ) : (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {departments.map((dept) => (
           <Card key={dept.id}>
@@ -104,6 +113,7 @@ export function DepartmentsClient({ initialDepartments, canManage }: Departments
           </Card>
         ))}
       </div>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

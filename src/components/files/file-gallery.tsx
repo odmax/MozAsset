@@ -2,8 +2,12 @@
 
 import { useState } from 'react';
 import {
-  File, Image, FileText, Download, Trash2, ZoomIn, X, AlertCircle,
+  File, Image, FileText, Download, Trash2, ZoomIn, X,
 } from 'lucide-react';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 export interface FileItem {
   id: string;
@@ -43,6 +47,7 @@ function getFileIcon(mimeType: string, type: string) {
 
 export default function FileGallery({ files, onDelete, readonly }: FileGalleryProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   if (files.length === 0) {
     return (
@@ -114,9 +119,7 @@ export default function FileGallery({ files, onDelete, readonly }: FileGalleryPr
                 </a>
                 {!readonly && onDelete && (
                   <button
-                    onClick={() => {
-                      if (confirm('Delete this file?')) onDelete(file.id);
-                    }}
+                    onClick={() => setDeleteId(file.id)}
                     className="p-1.5 rounded-lg bg-red-50/90 border border-red-200 shadow-sm hover:bg-red-100 text-red-600"
                     title="Delete"
                   >
@@ -128,6 +131,31 @@ export default function FileGallery({ files, onDelete, readonly }: FileGalleryPr
           );
         })}
       </div>
+
+      <Dialog open={deleteId !== null} onOpenChange={(o) => { if (!o) setDeleteId(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete File</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this file? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteId(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (deleteId && onDelete) onDelete(deleteId);
+                setDeleteId(null);
+              }}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {previewUrl && (
         <div

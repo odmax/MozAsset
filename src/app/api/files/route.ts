@@ -16,6 +16,7 @@ export async function GET(request: Request) {
     const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '20')));
     const type = searchParams.get('type');
     const assetId = searchParams.get('assetId');
+    const maintenanceId = searchParams.get('maintenanceId');
     const supportTicketId = searchParams.get('supportTicketId');
 
     const where: Record<string, unknown> = {};
@@ -24,6 +25,7 @@ export async function GET(request: Request) {
     }
     if (type) where.type = type;
     if (assetId) where.assetId = assetId;
+    if (maintenanceId) where.maintenanceId = maintenanceId;
     if (supportTicketId) where.supportTicketId = supportTicketId;
 
     const [files, total] = await Promise.all([

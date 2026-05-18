@@ -10,6 +10,14 @@ export async function GET(req: Request) {
     const admin = getSimpleAdminSession();
     if (!admin) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
+    const dbAdmin = await prisma.internalAdmin.findUnique({
+      where: { id: admin.adminId },
+      select: { id: true, role: true, permissions: true },
+    });
+    if (!dbAdmin || !hasPermission(dbAdmin, 'agents:read')) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    }
+
     const url = new URL(req.url);
     const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'));
     const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get('limit') || '20')));

@@ -41,7 +41,7 @@ export function AssetForm({
   users,
   initialData,
   assetId,
-  isEdit = false,
+  isEdit,
 }: AssetFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -485,7 +485,7 @@ export function AssetForm({
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.back()}
+            onClick={() => router.push(isEdit && assetId ? `/dashboard/assets/${assetId}` : '/dashboard/assets')}
           >
             Cancel
           </Button>

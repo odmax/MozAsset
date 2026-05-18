@@ -190,6 +190,17 @@ export function NotificationBell() {
     setMarkingAll(false);
   };
 
+  const getSafeLink = useCallback((notif: Notification): string => {
+    const link = notif.link;
+    if (!link) return '/dashboard/notifications';
+    if (link === '/reactivate' || link.startsWith('/reactivate')) return '/dashboard/notifications';
+    if (link.startsWith('/dashboard/support')) return '/dashboard/notifications';
+    if (link.startsWith('/admin/support-tickets/')) return '/admin/support-tickets';
+    const validPrefixes = ['/dashboard/assets/', '/dashboard/users', '/dashboard/notifications', '/dashboard', '/billing', '/admin/'];
+    if (validPrefixes.some((p) => link.startsWith(p))) return link;
+    return '/dashboard/notifications';
+  }, []);
+
   const handleNotificationClick = async (notif: Notification) => {
     if (!notif.isRead) {
       try {
@@ -201,7 +212,8 @@ export function NotificationBell() {
       } catch {}
     }
     setOpen(false);
-    if (notif.link) router.push(notif.link);
+    const target = getSafeLink(notif);
+    router.push(target);
   };
 
   const grouped = notifications.reduce<Record<string, Notification[]>>((acc, n) => {
@@ -216,27 +228,28 @@ export function NotificationBell() {
   const getDropdownStyle = (): React.CSSProperties => {
     if (!bellRect || !mounted) return {};
     const gap = 8;
-    const dropdownWidth = Math.min(384, window.innerWidth - 32);
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const preferredHeight = Math.min(vh * 0.8, 500);
     let top = bellRect.bottom + gap;
-    let right: number | undefined;
-    let left: number | undefined;
-    const bottomSpace = window.innerHeight - top;
-    if (bottomSpace < 400 && top > 400) {
-      top = Math.max(8, bellRect.top - gap - 600);
+    const spaceBelow = vh - top;
+    const spaceAbove = bellRect.top - gap;
+    if (spaceBelow < preferredHeight && spaceAbove > spaceBelow) {
+      top = Math.max(gap, bellRect.top - gap - preferredHeight);
     }
-    const rightSpace = window.innerWidth - bellRect.right;
-    if (rightSpace >= dropdownWidth - 16) {
-      right = window.innerWidth - bellRect.right + 4;
-    } else {
-      right = 16;
-    }
-    return { position: 'fixed', top, right, width: dropdownWidth, zIndex: 9999 };
+    top = Math.max(gap, Math.min(top, vh - 60));
+    const idealRight = vw - bellRect.right + 4;
+    const maxWidth = Math.min(384, vw * 0.9);
+    const minRight = 8;
+    const maxRight = Math.max(minRight, vw - maxWidth - 8);
+    const right = Math.max(minRight, Math.min(idealRight, maxRight));
+    return { position: 'fixed', top, right, zIndex: 9999 };
   };
 
   const dropdownPanel = (
     <div
       ref={dropdownRef}
-      className="bg-card border rounded-2xl shadow-2xl max-h-[600px] flex flex-col animate-in fade-in slide-in-from-top-2 duration-200"
+      className="bg-card border rounded-2xl shadow-2xl max-w-[90vw] max-h-[80vh] overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200"
       style={isMobile ? {
         position: 'fixed',
         top: 0, left: 0, right: 0, bottom: 0,

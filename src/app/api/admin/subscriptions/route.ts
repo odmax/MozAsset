@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { hasPermission } from '@/lib/admin-permissions';
 import prisma from '@/lib/prisma';
 import { cookies } from 'next/headers';
 
@@ -20,6 +21,15 @@ export async function GET(request: Request) {
   if (!admin || !admin.isInternalAdmin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const dbAdmin = await prisma.internalAdmin.findUnique({
+    where: { id: admin.id },
+    select: { id: true, role: true, permissions: true },
+  });
+  if (!dbAdmin || !hasPermission(dbAdmin, 'subscriptions:read')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';

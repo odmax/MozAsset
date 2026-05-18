@@ -4,11 +4,15 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import {
+  Sheet, SheetContent, SheetTrigger,
+} from '@/components/ui/sheet';
 import {
   LayoutDashboard, Users, Building2, CreditCard, Mail,
   Package, UserCog, DollarSign, Receipt, MessageSquare,
   Shield, HardDrive, Activity, Headphones, UserPlus,
-  ChevronDown, ChevronRight, Wifi, WifiOff,
+  ChevronDown, ChevronRight, Menu,
   Clock, Circle,
 } from 'lucide-react';
 import LogoutButton from '@/app/admin/logout-button';
@@ -96,6 +100,7 @@ const statusDot: Record<string, string> = {
 
 export function AdminSidebar({ email, role }: { email: string; role: string }) {
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [agentsOnline, setAgentsOnline] = useState(0);
   const [myStatus, setMyStatus] = useState('');
@@ -167,10 +172,10 @@ export function AdminSidebar({ email, role }: { email: string; role: string }) {
   const statusLabel = myOnline ? (myBusy ? 'Busy' : 'Online') : 'Offline';
   const statusColor = myOnline ? (myBusy ? 'text-amber-400' : 'text-emerald-400') : 'text-slate-500';
 
-  return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white flex flex-col shadow-2xl border-r border-slate-800/50">
+  const sidebarContent = (
+    <div className="flex h-full flex-col">
       <div className="flex h-16 items-center border-b border-slate-800/60 px-6 shrink-0 bg-slate-900/80 backdrop-blur-sm">
-        <Link href="/admin" className="flex items-center gap-2 font-bold text-lg group">
+        <Link href="/admin" className="flex items-center gap-2 font-bold text-lg group" onClick={() => setOpen(false)}>
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/20 group-hover:shadow-primary/30 transition-shadow">
             <Package className="h-4 w-4 text-white" />
           </div>
@@ -209,6 +214,7 @@ export function AdminSidebar({ email, role }: { email: string; role: string }) {
                       <li key={item.href}>
                         <Link
                           href={item.href}
+                          onClick={() => setOpen(false)}
                           className={cn(
                             'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200',
                             active
@@ -235,7 +241,6 @@ export function AdminSidebar({ email, role }: { email: string; role: string }) {
         })}
       </nav>
 
-      {/* My Presence Status */}
       <div className="px-4 py-3 border-t border-slate-800/60 bg-slate-900/60 space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -270,7 +275,6 @@ export function AdminSidebar({ email, role }: { email: string; role: string }) {
         )}
       </div>
 
-      {/* Footer */}
       <div className="border-t border-slate-800/60 p-4 shrink-0 bg-slate-900/80 backdrop-blur-sm">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/10 shrink-0">
@@ -285,6 +289,27 @@ export function AdminSidebar({ email, role }: { email: string; role: string }) {
         </div>
         <LogoutButton />
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Mobile Sidebar */}
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetTrigger asChild className="lg:hidden">
+          <Button variant="ghost" size="icon" className="fixed top-4 left-4 z-50">
+            <Menu className="h-5 w-5" />
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="w-64 p-0 bg-slate-900 text-white">
+          {sidebarContent}
+        </SheetContent>
+      </Sheet>
+
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white shadow-2xl border-r border-slate-800/50">
+        {sidebarContent}
+      </aside>
+    </>
   );
 }

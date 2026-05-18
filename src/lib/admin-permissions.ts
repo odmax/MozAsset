@@ -77,6 +77,7 @@ const SUPPORT_MANAGER_PERMISSIONS: Permission[] = [
   'organizations:read',
   'analytics:read',
   'audit:read',
+  'subscriptions:read',
 ];
 
 const SUPPORT_AGENT_PERMISSIONS: Permission[] = [

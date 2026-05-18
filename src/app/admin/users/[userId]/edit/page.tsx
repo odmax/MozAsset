@@ -270,7 +270,7 @@ export default function AdminUserEditPage({ params }: { params: { userId: string
                     className="w-full border rounded px-3 py-2"
                   >
                     <option value="FREE">Free (50 assets, 1 dept/loc)</option>
-                    <option value="PRO">Pro (1,000 assets, unlimited)</option>
+                    <option value="PRO">Pro (500 assets, 5 dept/loc)</option>
                     <option value="ENTERPRISE">Enterprise (unlimited)</option>
                   </select>
                 </div>

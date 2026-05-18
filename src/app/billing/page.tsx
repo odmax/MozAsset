@@ -285,7 +285,7 @@ export default function BillingPage() {
                 {plan === 'PRO' && <Badge className="text-[10px]">Current</Badge>}
               </div>
               <p className="text-3xl font-bold mb-1">R149<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
-              <p className="text-xs text-muted-foreground mb-4">1,000 assets, unlimited depts &amp; locations</p>
+              <p className="text-xs text-muted-foreground mb-4">500 assets, 5 depts &amp; 5 locations</p>
               <ul className="space-y-2 mb-5 text-sm">
                 <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-primary" />Advanced reports &amp; charts</li>
                 <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-primary" />CSV exports</li>

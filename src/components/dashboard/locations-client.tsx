@@ -56,8 +56,6 @@ export function LocationsClient({ initialLocations, canManage }: LocationsClient
     setDeleteDialogOpen(true);
   };
 
-  if (locations.length === 0) return null;
-
   return (
     <>
       {error && (
@@ -67,6 +65,17 @@ export function LocationsClient({ initialLocations, canManage }: LocationsClient
         </div>
       )}
 
+      {locations.length === 0 ? (
+        <div className="rounded-md border p-12 text-center">
+          <MapPin className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+          <p className="text-muted-foreground mb-4">No locations found</p>
+          {canManage && (
+            <Link href="/dashboard/locations/new">
+              <Button>Add your first location</Button>
+            </Link>
+          )}
+        </div>
+      ) : (
       <Card>
         <Table>
           <TableHeader>
@@ -114,6 +123,7 @@ export function LocationsClient({ initialLocations, canManage }: LocationsClient
           </TableBody>
         </Table>
       </Card>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

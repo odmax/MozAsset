@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { hasPermission } from '@/lib/admin-permissions';
 import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
@@ -22,6 +23,14 @@ export async function GET() {
   const admin = getAdminSession();
   if (!admin?.isInternalAdmin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  }
+
+  const dbAdmin = await prisma.internalAdmin.findUnique({
+    where: { id: admin.id },
+    select: { id: true, role: true, permissions: true },
+  });
+  if (!dbAdmin || !hasPermission(dbAdmin, 'agents:read')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   try {

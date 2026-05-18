@@ -42,6 +42,7 @@ export default async function AssetDetailPage({
       <AssetDetail
         asset={asset}
         canManage={canManage}
+        userPlan={user.plan}
         categories={categories}
         departments={departments}
         locations={locations}

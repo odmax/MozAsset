@@ -97,8 +97,8 @@ export function RetireForm({ assetId, assetTag, assetName }: RetireFormProps) {
             Dispose Asset
           </Button>
           <Button
-            variant="ghost"
-            onClick={() => router.back()}
+            variant="outline"
+            onClick={() => router.push(`/dashboard/assets/${assetId}`)}
           >
             Cancel
           </Button>

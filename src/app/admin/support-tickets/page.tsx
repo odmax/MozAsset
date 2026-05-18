@@ -22,6 +22,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import FileAttachmentSection from '@/components/files/file-attachment-section';
 import { 
   Search, 
   Loader2,
@@ -314,6 +315,18 @@ export default function SupportTicketsPage() {
                 })
               )}
             </div>
+
+            {selectedTicket && (
+              <div className="border-t pt-4">
+                <FileAttachmentSection
+                  entityType="supportTicketId"
+                  entityId={selectedTicket.id}
+                  fileType="SUPPORT_ATTACHMENT"
+                  userPlan="ENTERPRISE"
+                  canManage={true}
+                />
+              </div>
+            )}
 
             <div className="flex gap-2">
               <Textarea

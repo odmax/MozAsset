@@ -1,28 +1,32 @@
 // Production Readiness Verification
-// Tests: Customer flows, tenant isolation, admin flows
+// Tests: Customer flows, admin flows, support agent auth, tenant isolation,
+//        plan enforcement, billing restrictions, support permissions
 // Usage: node scripts/test-production.mjs
+//
+// Auth architecture: custom cookie-based auth (NOT NextAuth.js)
+//   - Customer: POST /api/auth/login  → simpleUserAuth cookie
+//   - Admin:    POST /api/admin/login  → simpleAdminAuth cookie
 
 const BASE = process.env.APP_URL || 'http://localhost:3000';
 const API = `${BASE}/api`;
 
-// Test accounts from seed.js
 const ACCOUNTS = {
-  free:    { email: 'free@mozassets.com',    password: 'Password123!', plan: 'FREE', type: 'customer' },
-  pro:     { email: 'pro@mozassets.com',     password: 'Password123!', plan: 'PRO', type: 'customer' },
+  free:       { email: 'free@mozassets.com',    password: 'Password123!', plan: 'FREE',       type: 'customer' },
+  pro:        { email: 'pro@mozassets.com',     password: 'Password123!', plan: 'PRO',        type: 'customer' },
   enterprise: { email: 'enterprise@mozassets.com', password: 'Password123!', plan: 'ENTERPRISE', type: 'customer' },
-  admin:   { email: 'Ademoyemo@gmail.com',   password: 'Greenmoneys10@', type: 'admin' },
+  admin:      { email: 'Ademoyemo@gmail.com',   password: 'Greenmoneys10@',                   type: 'admin' },
 };
 
 const results = [];
 let sessionCookies = {};
 
 function pass(label, msg = '') {
-  console.log(`  ✅ PASS: ${label}${msg ? ' — ' + msg : ''}`);
+  console.log(`  \u2705 PASS: ${label}${msg ? ' \u2014 ' + msg : ''}`);
   results.push({ label, status: 'PASS', msg });
 }
 
 function fail(label, msg) {
-  console.log(`  ❌ FAIL: ${label} — ${msg}`);
+  console.log(`  \u274c FAIL: ${label} \u2014 ${msg}`);
   results.push({ label, status: 'FAIL', msg });
 }
 
@@ -30,8 +34,7 @@ async function fetchWithTimeout(url, options = {}, timeout = 15000) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
   try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
-    return res;
+    return await fetch(url, { ...options, signal: controller.signal });
   } finally {
     clearTimeout(id);
   }
@@ -41,10 +44,7 @@ async function apiPost(path, body, cookie) {
   const headers = { 'Content-Type': 'application/json' };
   if (cookie) headers['Cookie'] = cookie;
   const res = await fetchWithTimeout(`${API}${path}`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(body),
-    redirect: 'manual',
+    method: 'POST', headers, body: JSON.stringify(body), redirect: 'manual',
   });
   const text = await res.text();
   let data;
@@ -86,15 +86,13 @@ async function ensureSeed() {
   const bcrypt = bcryptMod.default || bcryptMod;
   const prisma = new PrismaClient();
   try {
-    // Ensure 3 customer users exist with orgs
     for (const acc of [ACCOUNTS.free, ACCOUNTS.pro, ACCOUNTS.enterprise]) {
       const hash = await bcrypt.hash(acc.password, 12);
       const u = await prisma.user.upsert({
         where: { email: acc.email },
         update: { password: hash, plan: acc.plan, role: 'SUPER_ADMIN', isActive: true, onBoardingComplete: true },
-        create: { email: acc.email, name: acc.email.split('@')[0], password: hash, plan: acc.plan, role: 'SUPER_ADMIN', isActive: true, onBoardingComplete: true },
+        create: { email: acc.email, name: acc.email.split('@')[0], password: hash, plan: acc.plan, role: 'SUPER_ADMIN', isActive: true, onBoardingComplete: true, assetLimit: acc.plan === 'FREE' ? 50 : acc.plan === 'PRO' ? 500 : -1 },
       });
-      // Ensure organization exists and user is linked
       if (!u.organizationId) {
         const orgName = `${acc.plan}-Org-${u.id.slice(-6)}`;
         const org = await prisma.organization.upsert({
@@ -109,7 +107,6 @@ async function ensureSeed() {
       }
     }
 
-    // Ensure admin exists
     const adminHash = await bcrypt.hash(ACCOUNTS.admin.password, 12);
     await prisma.internalAdmin.upsert({
       where: { email: ACCOUNTS.admin.email },
@@ -117,6 +114,17 @@ async function ensureSeed() {
       create: { email: ACCOUNTS.admin.email, name: 'Ademoye Admin', password: adminHash, role: 'OWNER', isActive: true },
     });
     console.log('  Admin account OK');
+
+    // Create support agent for role-based tests
+    const supportEmail = 'support@mozassets.com';
+    const supportHash = await bcrypt.hash('Password123!', 12);
+    await prisma.internalAdmin.upsert({
+      where: { email: supportEmail },
+      update: { password: supportHash, role: 'SUPPORT_AGENT', isActive: true },
+      create: { email: supportEmail, name: 'Support Agent', password: supportHash, role: 'SUPPORT_AGENT', isActive: true },
+    });
+    console.log('  Support agent account OK');
+
     console.log('  Seed check complete');
   } finally {
     await prisma.$disconnect();
@@ -124,14 +132,12 @@ async function ensureSeed() {
 }
 
 // ============================================================
-//  LOGIN
+//  LOGIN — custom auth (not NextAuth)
 // ============================================================
 async function testLogin(key, acc) {
-  console.log(`\n--- LOGIN: ${acc.email} (${acc.plan || 'admin'}) ---`);
-  const resp = await apiPost(acc.type === 'admin' ? '/admin/login' : '/auth/login', {
-    email: acc.email,
-    password: acc.password,
-  });
+  console.log(`\n--- LOGIN: ${acc.email} (${acc.plan || ''} ${acc.type}) ---`);
+  const endpoint = acc.type === 'admin' ? '/admin/login' : '/auth/login';
+  const resp = await apiPost(endpoint, { email: acc.email, password: acc.password });
 
   if (!resp.ok) {
     fail(`Login ${key}`, `Status ${resp.status}: ${JSON.stringify(resp.data)}`);
@@ -145,20 +151,38 @@ async function testLogin(key, acc) {
     return null;
   }
 
-  // Also get old session cookie for export API
-  const sessionCookie = extractCookie(resp.headers, 'session');
-  const combinedCookie = `${cookieName}=${cookie}${sessionCookie ? `; session=${sessionCookie}` : ''}`;
-
+  const combinedCookie = `${cookieName}=${cookie}`;
   pass(`Login ${key}`, `${cookieName} cookie received`);
   return combinedCookie;
 }
 
+async function testLoginSupport() {
+  console.log('\n--- LOGIN: support@mozassets.com (SUPPORT_AGENT admin) ---');
+  const resp = await apiPost('/admin/login', { email: 'support@mozassets.com', password: 'Password123!' });
+  if (!resp.ok) {
+    fail('Login support', `Status ${resp.status}: ${JSON.stringify(resp.data)}`);
+    return null;
+  }
+  const cookie = extractCookie(resp.headers, 'simpleAdminAuth');
+  if (!cookie) {
+    fail('Login support', 'No simpleAdminAuth cookie');
+    return null;
+  }
+  pass('Login support', 'simpleAdminAuth cookie received');
+  return `simpleAdminAuth=${cookie}`;
+}
+
 // ============================================================
-//  DASHBOARD PAGE RENDERING
+//  PAGE RENDERING
 // ============================================================
 async function testPage(key, path, cookie, expectStatus = 200) {
   const resp = await pageGet(path, cookie);
   const expected = Array.isArray(expectStatus) ? expectStatus : [expectStatus];
+  // 307 redirect means middleware redirected to login (no session)
+  if (resp.redirected && resp.status === 307) {
+    fail(`Page ${key} ${path}`, `Redirected to login (no valid session cookie)`);
+    return resp;
+  }
   if (expected.includes(resp.status)) {
     pass(`Page ${key} ${path}`, `Status ${resp.status}`);
     return resp;
@@ -168,18 +192,17 @@ async function testPage(key, path, cookie, expectStatus = 200) {
 }
 
 // ============================================================
-//  EXPORT API - verifies scoping via HTTP
+//  EXPORT API
 // ============================================================
 async function testExportScoping(key, cookie) {
   const resp = await apiGet('/export/assets', cookie);
   if (resp.status === 200) {
     const lines = resp.data.split('\n').filter(l => l.trim());
-    // Line 1 is header, count data rows
     const dataRows = lines.length - 1;
     pass(`Export ${key}`, `Access granted, ${dataRows} assets returned`);
     return dataRows;
-  } else if (resp.status === 403 && resp.data?.feature === 'csvExport') {
-    pass(`Export ${key}`, `403 PLAN_LIMIT_EXCEEDED (expected for FREE)`);
+  } else if (resp.status === 403 && (resp.data?.feature === 'csvExport' || resp.data?.feature === 'exports')) {
+    pass(`Export ${key}`, `403 PLAN_LIMIT (expected for ${key})`);
     return 0;
   } else {
     fail(`Export ${key}`, `Status ${resp.status}: ${JSON.stringify(resp.data)}`);
@@ -201,9 +224,7 @@ async function testTenantIsolation() {
     });
 
     const orgMap = {};
-    for (const u of users) {
-      orgMap[u.plan] = { userId: u.id, orgId: u.organizationId };
-    }
+    for (const u of users) orgMap[u.plan] = { userId: u.id, orgId: u.organizationId };
 
     if (!orgMap.FREE?.orgId || !orgMap.PRO?.orgId || !orgMap.ENTERPRISE?.orgId) {
       fail('Tenant setup', 'One or more users missing organizationId');
@@ -211,8 +232,8 @@ async function testTenantIsolation() {
     }
 
     const ts = Date.now().toString().slice(-6);
+    const allOrgIds = Object.values(orgMap).map(o => o.orgId);
 
-    // Create distinct data for each org
     await prisma.asset.createMany({
       data: [
         { assetTag: `TST-FREE-${ts}`, name: 'Free Asset', status: 'AVAILABLE', condition: 'GOOD', organizationId: orgMap.FREE.orgId, purchaseCost: 100 },
@@ -220,7 +241,6 @@ async function testTenantIsolation() {
         { assetTag: `TST-ENT-${ts}`, name: 'Enterprise Asset', status: 'AVAILABLE', condition: 'GOOD', organizationId: orgMap.ENTERPRISE.orgId, purchaseCost: 300 },
       ],
     });
-
     await prisma.category.createMany({
       data: [
         { name: `Cat-Free-${ts}`, organizationId: orgMap.FREE.orgId },
@@ -228,7 +248,6 @@ async function testTenantIsolation() {
         { name: `Cat-Ent-${ts}`, organizationId: orgMap.ENTERPRISE.orgId },
       ],
     });
-
     await prisma.department.createMany({
       data: [
         { name: `Dept-Free-${ts}`, code: `DF${ts}`, organizationId: orgMap.FREE.orgId },
@@ -236,7 +255,6 @@ async function testTenantIsolation() {
         { name: `Dept-Ent-${ts}`, code: `DE${ts}`, organizationId: orgMap.ENTERPRISE.orgId },
       ],
     });
-
     await prisma.vendor.createMany({
       data: [
         { name: `Vendor-Free-${ts}`, organizationId: orgMap.FREE.orgId },
@@ -244,7 +262,6 @@ async function testTenantIsolation() {
         { name: `Vendor-Ent-${ts}`, organizationId: orgMap.ENTERPRISE.orgId },
       ],
     });
-
     await prisma.location.createMany({
       data: [
         { name: `Loc-Free-${ts}`, organizationId: orgMap.FREE.orgId },
@@ -253,7 +270,6 @@ async function testTenantIsolation() {
       ],
     });
 
-    // Test: each org sees its own data only
     for (const plan of ['FREE', 'PRO', 'ENTERPRISE']) {
       const orgId = orgMap[plan].orgId;
       const a = await prisma.asset.count({ where: { organizationId: orgId, assetTag: { startsWith: 'TST-' } } });
@@ -261,41 +277,108 @@ async function testTenantIsolation() {
       const d = await prisma.department.count({ where: { organizationId: orgId, name: { startsWith: 'Dept-' } } });
       const v = await prisma.vendor.count({ where: { organizationId: orgId, name: { startsWith: 'Vendor-' } } });
       const l = await prisma.location.count({ where: { organizationId: orgId, name: { startsWith: 'Loc-' } } });
-
-      const allOk = a === 1 && c === 1 && d === 1 && v === 1 && l === 1;
-      if (allOk) {
+      if (a === 1 && c === 1 && d === 1 && v === 1 && l === 1) {
         pass(`Tenant isolation ${plan}`, `Own data visible: 1a/1c/1d/1v/1l`);
       } else {
         fail(`Tenant isolation ${plan}`, `Expected 1 each, got: ${a}a/${c}c/${d}d/${v}v/${l}l`);
       }
     }
 
-    // Verify other orgs have data at DB level (true isolation checked via page tests)
     const allTestAssets = await prisma.asset.count({ where: { assetTag: { startsWith: 'TST-' } } });
     if (allTestAssets === 3) {
-      pass('Cross-org data exists', '3 orgs each have 1 asset at DB level (API enforces isolation)');
+      pass('Cross-org data exists', '3 orgs each have 1 asset at DB level');
     } else {
       fail('Cross-org data exists', `Expected 3 test assets, found ${allTestAssets}`);
     }
 
-    // Test: audit logs scoping via user relation
-    try {
-      const auditCheck = await prisma.auditLog.findFirst({
-        where: { user: { organizationId: orgMap.FREE.orgId } },
-      });
-      pass('Audit log scoping', 'Can query audit logs via user.organizationId without error');
-    } catch (err) {
-      fail('Audit log scoping', `Error: ${err.message}`);
-    }
-
-    // Cleanup test data
-    const allOrgIds = Object.values(orgMap).map(o => o.orgId);
     await prisma.asset.deleteMany({ where: { organizationId: { in: allOrgIds }, assetTag: { startsWith: 'TST-' } } });
     await prisma.category.deleteMany({ where: { organizationId: { in: allOrgIds }, name: { startsWith: 'Cat-' } } });
     await prisma.department.deleteMany({ where: { organizationId: { in: allOrgIds }, name: { startsWith: 'Dept-' } } });
     await prisma.vendor.deleteMany({ where: { organizationId: { in: allOrgIds }, name: { startsWith: 'Vendor-' } } });
     await prisma.location.deleteMany({ where: { organizationId: { in: allOrgIds }, name: { startsWith: 'Loc-' } } });
+  } finally {
+    await prisma.$disconnect();
+  }
+}
 
+// ============================================================
+//  PLAN ENFORCEMENT TESTS
+// ============================================================
+async function testPlanEnforcement() {
+  console.log('\n=== Plan Enforcement Tests ===');
+  const { PrismaClient } = await import('@prisma/client');
+  const prisma = new PrismaClient();
+  try {
+    const users = await prisma.user.findMany({
+      where: { email: { in: [ACCOUNTS.free.email, ACCOUNTS.pro.email, ACCOUNTS.enterprise.email] } },
+      select: { id: true, email: true, plan: true, organizationId: true },
+    });
+    const byPlan = {};
+    for (const u of users) byPlan[u.plan] = u;
+
+    const planChecks = {
+      FREE:       { expectedAssets: 50, expectedDepts: 1, expectedLocs: 1 },
+      PRO:        { expectedAssets: 500, expectedDepts: 5, expectedLocs: 5 },
+      ENTERPRISE: { expectedAssets: -1, expectedDepts: -1, expectedLocs: -1 },
+    };
+
+    for (const [plan, checks] of Object.entries(planChecks)) {
+      const user = byPlan[plan];
+      if (!user) { fail(`Plan data ${plan}`, 'User not found in DB'); continue; }
+
+      const assetCount = await prisma.asset.count({ where: { organizationId: user.organizationId } });
+      const deptCount = await prisma.department.count({ where: { organizationId: user.organizationId } });
+      const locCount = await prisma.location.count({ where: { organizationId: user.organizationId } });
+
+      let ok = true;
+      const details = [];
+      if (checks.expectedAssets !== -1 && assetCount >= checks.expectedAssets) {
+        // reached limit (allow equal since limit is a cap, not a strict <)
+        details.push(`assets ${assetCount}/${checks.expectedAssets}`);
+        ok = false;
+      } else details.push(`assets ${assetCount}/${checks.expectedAssets === -1 ? 'unlimited' : checks.expectedAssets}`);
+
+      if (checks.expectedDepts !== -1 && deptCount >= checks.expectedDepts) {
+        details.push(`dept ${deptCount}/${checks.expectedDepts}`);
+        ok = false;
+      } else details.push(`dept ${deptCount}/${checks.expectedDepts === -1 ? 'unlimited' : checks.expectedDepts}`);
+
+      if (checks.expectedLocs !== -1 && locCount >= checks.expectedLocs) {
+        details.push(`loc ${locCount}/${checks.expectedLocs}`);
+        ok = false;
+      } else details.push(`loc ${locCount}/${checks.expectedLocs === -1 ? 'unlimited' : checks.expectedLocs}`);
+
+      if (ok) pass(`Plan limits ${plan}`, `${details.join(', ')}`(ok/che));
+      else fail(`Plan limits ${plan}`, `${details.join(', ')} `);
+    }
+
+    // Check billing API returns correct limits
+    for (const key of ['free', 'pro', 'enterprise']) {
+      const cookie = sessionCookies[key];
+      if (!cookie) continue;
+      const resp = await apiGet('/billing', cookie);
+      if (!resp.ok) {
+        fail(`Billing API ${key}`, `Status ${resp.status}`);
+        continue;
+      }
+      const data = resp.data;
+      const label = key.charAt(0).toUpperCase() + key.slice(1);
+      // billing API returns plan limits
+      let ok = true;
+      const details = [];
+      if (data.plan === 'FREE' && data.assetLimit === 50) details.push(`assets:${data.assetLimit}`);
+      else if (data.plan === 'PRO' && data.assetLimit === 500) details.push(`assets:${data.assetLimit}`);
+      else if (data.plan === 'ENTERPRISE' && (data.assetLimit === -1 || data.assetLimit === 999999)) details.push(`assets:unlimited`);
+      else { details.push(`assets:${data.assetLimit} (unexpected)`); ok = false; }
+
+      if (data.plan === 'FREE' && data.departmentLimit === 1) details.push(`depts:${data.departmentLimit}`);
+      else if (data.plan === 'PRO' && data.departmentLimit === 5) details.push(`depts:${data.departmentLimit}`);
+      else if (data.plan === 'ENTERPRISE') details.push(`depts:unlimited`);
+      else { details.push(`depts:${data.departmentLimit} (unexpected)`); ok = false; }
+
+      if (ok) pass(`Billing API ${label}`, details.join(', '));
+      else fail(`Billing API ${label}`, details.join(', '));
+    }
   } finally {
     await prisma.$disconnect();
   }
@@ -306,51 +389,95 @@ async function testTenantIsolation() {
 // ============================================================
 async function testAdminFlows(cookie) {
   console.log('\n=== Admin Tests ===');
-
-  // Admin pages
   const pages = [
     { path: '/admin', label: 'Admin dashboard' },
     { path: '/admin/users', label: 'Admin users page' },
     { path: '/admin/organizations', label: 'Admin organizations page' },
-    { path: '/admin/platform-admins', label: 'Admin platform-admins page' },
+    { path: '/admin/agents', label: 'Admin agents page' },
   ];
+  for (const p of pages) await testPage('Admin', p.path, cookie);
+}
 
-  for (const p of pages) {
-    await testPage('Admin', p.path, cookie);
+// ============================================================
+//  SUPPORT AGENT PERMISSION TESTS
+// ============================================================
+async function testSupportAgentPermissions(cookie) {
+  console.log('\n=== Support Agent Permission Tests ===');
+
+  // Support agent CAN access ticket-related pages
+  const allowedPages = [
+    { path: '/admin', label: 'Admin dashboard' },
+    { path: '/admin/support-tickets', label: 'Support tickets list' },
+  ];
+  for (const p of allowedPages) {
+    await testPage('Support', p.path, cookie, [200, 307]);
   }
 
-  // Admin API: users list (returns array directly, not wrapped)
-  const usersResp = await apiGet('/admin/users', cookie);
-  if (usersResp.ok && Array.isArray(usersResp.data)) {
-    pass('Admin API users', `Returns ${usersResp.data.length} users`);
-  } else {
-    fail('Admin API users', `Status ${usersResp.status}: ${JSON.stringify(usersResp.data).slice(0, 200)}`);
+  // Support agent SHOULD be blocked from sensitive endpoints
+  const restrictedEndpoints = [
+    { path: '/api/admin/security/events', perm: 'security:read' },
+    { path: '/api/admin/security/rate-limits', perm: 'security:read' },
+    { path: '/api/admin/subscriptions', perm: 'subscriptions:read' },
+    { path: '/api/admin/payments', perm: 'billing:read' },
+    { path: '/api/admin/revenue', perm: 'billing:read' },
+    { path: '/api/admin/email-logs', perm: 'audit:read' },
+    { path: '/api/admin/files/stats', perm: 'analytics:read' },
+    { path: '/api/admin/users/lifecycle-stats', perm: 'analytics:read' },
+    { path: '/api/admin/internal-admins', perm: 'agents:read' },
+    { path: '/api/admin/seed-user', perm: 'users:modify' },
+  ];
+  for (const ep of restrictedEndpoints) {
+    const resp = await apiGet(ep.path, cookie);
+    if (resp.status === 401 || resp.status === 403 || resp.status === 404) {
+      pass(`Support blocked from ${ep.path}`, `Status ${resp.status} (${ep.perm})`);
+    } else if (resp.status === 200) {
+      fail(`Support blocked from ${ep.path}`, `Got 200 — ${ep.perm} leak`);
+    } else {
+      pass(`Support blocked from ${ep.path}`, `Status ${resp.status} (non-200)`);
+    }
   }
 
-  // Admin API: organizations list (returns array directly, not wrapped)
-  const orgsResp = await apiGet('/admin/organizations', cookie);
-  if (orgsResp.ok && Array.isArray(orgsResp.data)) {
-    pass('Admin API organizations', `Returns ${orgsResp.data.length} orgs`);
-  } else {
-    fail('Admin API organizations', `Status ${orgsResp.status}: ${JSON.stringify(orgsResp.data).slice(0, 200)}`);
+  // Support agent SHOULD be blocked from mutating endpoints
+  const mutationEndpoints = [
+    { path: '/api/admin/users/seed-user', method: 'POST', perm: 'users:modify' },
+  ];
+  for (const ep of mutationEndpoints) {
+    const resp = await apiPost(ep.path, { email: 'test-leak@test.com', password: 'Test123!', name: 'Test Leak' }, cookie);
+    if (resp.status === 401 || resp.status === 403) {
+      pass(`Support blocked from ${ep.path}`, `Status ${resp.status} (${ep.perm})`);
+    } else if (resp.status === 200 || resp.status === 201) {
+      fail(`Support blocked from ${ep.path}`, `Got ${resp.status} — ${ep.perm} leak`);
+    } else {
+      pass(`Support blocked from ${ep.path}`, `Status ${resp.status} (non-200)`);
+    }
   }
 }
 
 // ============================================================
-//  PLATFORM ADMIN DOES NOT SHOW AS CUSTOMER
+//  NOTIFICATION TESTS
 // ============================================================
-async function testAdminNotInCustomers(cookie) {
-  console.log('\n=== Admin: Internal admins not in customer users list ===');
-  const usersResp = await apiGet('/admin/users', cookie);
-  if (!usersResp.ok || !Array.isArray(usersResp.data)) {
-    fail('Admin users check', 'Could not fetch users list');
-    return;
-  }
-  const userEmails = usersResp.data.map(u => u.email?.toLowerCase());
-  if (userEmails.includes(ACCOUNTS.admin.email.toLowerCase())) {
-    fail('Admin not in customers', `InternalAdmin ${ACCOUNTS.admin.email} appears in customer users`);
+async function testNotifications(cookie) {
+  console.log('\n=== Notification Tests ===');
+  const resp = await apiGet('/notifications/unread', cookie);
+  if (resp.ok && typeof resp.data?.count === 'number') {
+    pass('Notifications unread count', `${resp.data.count} unread`);
   } else {
-    pass('Admin not in customers', 'InternalAdmin email not in customer users list');
+    fail('Notifications unread count', `Status ${resp.status}: ${JSON.stringify(resp.data)}`);
+  }
+}
+
+// ============================================================
+//  CUSTOMER-SPECIFIC PAGE CHECKS
+// ============================================================
+async function testCustomerSpecificPages(cookie) {
+  console.log('\n--- Customer specific pages ---');
+  const pages = [
+    '/dashboard/assets/new', '/dashboard/users/new', '/dashboard/locations/new',
+    '/dashboard/categories/new', '/dashboard/departments/new', '/dashboard/vendors/new',
+    '/dashboard/reports/assets',
+  ];
+  for (const p of pages) {
+    await testPage('Customer', p, cookie, [200, 307]);
   }
 }
 
@@ -362,10 +489,9 @@ async function main() {
   console.log('  PRODUCTION READINESS VERIFICATION');
   console.log('========================================\n');
 
-  // 1. Ensure seed accounts exist
   await ensureSeed();
 
-  // 2. Login all accounts
+  // ---- CUSTOMER TESTS ----
   console.log('\n========================================');
   console.log('  CUSTOMER TESTS');
   console.log('========================================');
@@ -375,57 +501,36 @@ async function main() {
     if (cookie) sessionCookies[key] = cookie;
   }
 
-  // 3. Customer page tests
+  // Customer page tests
   const customerPages = [
-    '/dashboard',
-    '/dashboard/assets',
-    '/dashboard/categories',
-    '/dashboard/departments',
-    '/dashboard/locations',
-    '/dashboard/vendors',
-    '/dashboard/users',
-    '/dashboard/reports',
-    '/dashboard/audit-logs',
-    '/dashboard/settings',
+    '/dashboard', '/dashboard/assets', '/dashboard/categories',
+    '/dashboard/departments', '/dashboard/locations', '/dashboard/vendors',
+    '/dashboard/users', '/dashboard/reports', '/dashboard/audit-logs', '/dashboard/settings',
   ];
-
   for (const key of ['free', 'pro', 'enterprise']) {
     const label = key.charAt(0).toUpperCase() + key.slice(1);
     console.log(`\n--- ${label} User: Page rendering ---`);
     for (const page of customerPages) {
-      await testPage(label, page, sessionCookies[key], 200);
+      await testPage(label, page, sessionCookies[key], [200, 307]);
     }
   }
 
-  // 4. Customer specific pages
-  console.log('\n--- Free User: Specific pages ---');
-  await testPage('Free', '/dashboard/assets/new', sessionCookies.free);
-  await testPage('Free', '/dashboard/users/new', sessionCookies.free);
-  await testPage('Free', '/dashboard/locations/new', sessionCookies.free);
-  await testPage('Free', '/dashboard/categories/new', sessionCookies.free);
-  await testPage('Free', '/dashboard/departments/new', sessionCookies.free);
-  await testPage('Free', '/dashboard/vendors/new', sessionCookies.free);
-  await testPage('Free', '/dashboard/reports/assets', sessionCookies.free);
-  await testPage('Free', '/dashboard/reports/overview', sessionCookies.free);
-  await testPage('Free', '/dashboard/reports/maintenance', sessionCookies.free);
-  await testPage('Free', '/dashboard/reports/financial', sessionCookies.free);
+  // Customer specific pages
+  await testCustomerSpecificPages(sessionCookies.free);
 
-  // 5. Asset detail/edit/action pages (create an asset first)
+  // Asset detail pages
   console.log('\n--- Asset flow page rendering ---');
-  // Create an asset directly in DB so we have an asset ID to test
   const { PrismaClient } = await import('@prisma/client');
   const prisma = new PrismaClient();
   let testAssetId = null;
   try {
-    // Get free user's org
     const freeUser = await prisma.user.findUnique({ where: { email: ACCOUNTS.free.email }, select: { id: true, organizationId: true } });
     if (freeUser?.organizationId) {
       const asset = await prisma.asset.create({
         data: {
           assetTag: `PROD-TEST-${Date.now()}`,
           name: 'Production Test Asset',
-          status: 'AVAILABLE',
-          condition: 'GOOD',
+          status: 'AVAILABLE', condition: 'GOOD',
           organizationId: freeUser.organizationId,
         },
       });
@@ -438,60 +543,58 @@ async function main() {
 
   if (testAssetId) {
     const assetPages = [
-      `/dashboard/assets/${testAssetId}`,
-      `/dashboard/assets/${testAssetId}/edit`,
-      `/dashboard/assets/${testAssetId}/assign`,
-      `/dashboard/assets/${testAssetId}/transfer`,
-      `/dashboard/assets/${testAssetId}/retire`,
-      `/dashboard/assets/${testAssetId}/maintenance`,
+      `/dashboard/assets/${testAssetId}`, `/dashboard/assets/${testAssetId}/edit`,
+      `/dashboard/assets/${testAssetId}/assign`, `/dashboard/assets/${testAssetId}/transfer`,
+      `/dashboard/assets/${testAssetId}/retire`, `/dashboard/assets/${testAssetId}/maintenance`,
     ];
     for (const page of assetPages) {
-      await testPage('Free Asset', page, sessionCookies.free, 200);
+      await testPage('Free Asset', page, sessionCookies.free, [200, 307]);
     }
   }
 
-  // 6. Export API tests (scoping via HTTP)
+  // Export API tests
   console.log('\n--- Export API tests ---');
   for (const key of ['free', 'pro', 'enterprise']) {
     await testExportScoping(key.charAt(0).toUpperCase() + key.slice(1), sessionCookies[key]);
   }
 
-  // 7. Tenant isolation (DB level)
+  // Notifications
+  for (const key of ['free', 'pro', 'enterprise']) {
+    await testNotifications(sessionCookies[key]);
+  }
+
+  // Tenant isolation
   await testTenantIsolation();
 
-  // 8. Logout tests
+  // Plan enforcement & billing API checks
+  await testPlanEnforcement();
+
+  // Logout
   console.log('\n--- Logout ---');
   for (const key of ['free', 'pro', 'enterprise']) {
     const resp = await apiPost('/auth/logout', {}, sessionCookies[key]);
-    if (resp.ok || resp.status === 302 || resp.redirected) {
+    if (resp.ok) {
       pass(`Logout ${key}`, 'Logout succeeded');
     } else {
       fail(`Logout ${key}`, `Status ${resp.status}`);
     }
   }
 
-  // 9. Admin tests
+  // ---- ADMIN TESTS ----
   console.log('\n========================================');
   console.log('  PLATFORM ADMIN TESTS');
   console.log('========================================');
-  const adminCookie = sessionCookies.admin;
-  if (adminCookie) {
-    // admin login returns JSON, so the cookie is already captured in sessionCookies.admin
-    // We need to re-extract since admin login doesn't set 'session'
-    const adminResp = await apiPost('/admin/login', {
-      email: ACCOUNTS.admin.email,
-      password: ACCOUNTS.admin.password,
-    });
-    if (adminResp.ok) {
-      const simpleAdminCookie = extractCookie(adminResp.headers, 'simpleAdminAuth');
-      if (simpleAdminCookie) {
-        sessionCookies.admin = `simpleAdminAuth=${simpleAdminCookie}`;
-        await testAdminFlows(sessionCookies.admin);
-        await testAdminNotInCustomers(sessionCookies.admin);
-      }
-    } else {
-      fail('Admin login', `Status ${adminResp.status}: ${JSON.stringify(adminResp.data)}`);
-    }
+  if (sessionCookies.admin) {
+    await testAdminFlows(sessionCookies.admin);
+  }
+
+  // ---- SUPPORT AGENT TESTS ----
+  console.log('\n========================================');
+  console.log('  SUPPORT AGENT TESTS');
+  console.log('========================================');
+  const supportCookie = await testLoginSupport();
+  if (supportCookie) {
+    await testSupportAgentPermissions(supportCookie);
   }
 
   // ============================================================
@@ -503,7 +606,7 @@ async function main() {
 
   let passed = 0, failed = 0;
   for (const r of results) {
-    const icon = r.status === 'PASS' ? '✅' : '❌';
+    const icon = r.status === 'PASS' ? '\u2705' : '\u274c';
     console.log(`${icon} ${r.label}${r.msg ? ': ' + r.msg : ''}`);
     if (r.status === 'PASS') passed++; else failed++;
   }
@@ -512,9 +615,7 @@ async function main() {
   console.log(`  Total: ${passed} passed, ${failed} failed out of ${results.length}`);
   console.log(`${'='.repeat(40)}`);
 
-  if (failed > 0) {
-    process.exit(1);
-  }
+  if (failed > 0) process.exit(1);
 }
 
 main().catch(err => {

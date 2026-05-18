@@ -6,6 +6,7 @@ export interface PlanLimits {
   departmentLimit: number;
   locationLimit: number;
   userLimit: number;
+  vendorLimit: number;
 }
 
 export interface PlanDetails {
@@ -16,6 +17,8 @@ export interface PlanDetails {
   departments: number;
   locations: number;
   users: number;
+  vendors: number;
+  storageMB: number;
   features: {
     exports: boolean;
     advancedReports: boolean;
@@ -37,6 +40,8 @@ export const PLAN_CONFIG: Record<Plan, PlanDetails> = {
     departments: 1,
     locations: 1,
     users: -1,
+    vendors: 50,
+    storageMB: 100,
     features: {
       exports: false,
       advancedReports: false,
@@ -52,10 +57,12 @@ export const PLAN_CONFIG: Record<Plan, PlanDetails> = {
     name: 'Pro',
     price: 149,
     period: 'month',
-    assets: 1000,
-    departments: -1,
-    locations: -1,
+    assets: 500,
+    departments: 5,
+    locations: 5,
     users: -1,
+    vendors: -1,
+    storageMB: 500,
     features: {
       exports: true,
       advancedReports: true,
@@ -75,6 +82,8 @@ export const PLAN_CONFIG: Record<Plan, PlanDetails> = {
     departments: -1,
     locations: -1,
     users: -1,
+    vendors: -1,
+    storageMB: 1000,
     features: {
       exports: true,
       advancedReports: true,
@@ -97,6 +106,7 @@ export function getPlanLimits(plan: Plan): PlanLimits {
     departmentLimit: details.departments,
     locationLimit: details.locations,
     userLimit: details.users,
+    vendorLimit: details.vendors,
   };
 }
 
@@ -116,6 +126,14 @@ export function getUserLimit(plan: Plan): number {
   return PLAN_CONFIG[plan].users;
 }
 
+export function getVendorLimit(plan: Plan): number {
+  return PLAN_CONFIG[plan].vendors;
+}
+
+export function getStorageLimit(plan: Plan): number {
+  return PLAN_CONFIG[plan].storageMB;
+}
+
 export function canAddAssets(plan: Plan, currentCount: number): { allowed: boolean; message?: string } {
   const limit = PLAN_CONFIG[plan].assets;
   if (limit === -1) return { allowed: true };
@@ -123,13 +141,13 @@ export function canAddAssets(plan: Plan, currentCount: number): { allowed: boole
     if (plan === 'FREE') {
       return {
         allowed: false,
-        message: `You've hit the wall! Your FREE plan caps at ${limit} assets. Time to level up to PRO for unlimited assets!`,
+        message: `Your FREE plan caps at ${limit} assets. Upgrade to PRO for 500 assets or Enterprise for unlimited!`,
       };
     }
     if (plan === 'PRO') {
       return {
         allowed: false,
-        message: `Asset cap reached (${limit}). Go Enterprise for unlimited!`,
+        message: `Asset cap reached (${limit}). Go Enterprise for unlimited assets!`,
       };
     }
   }
@@ -143,7 +161,13 @@ export function canAddCategories(plan: Plan, currentCount: number): { allowed: b
     if (plan === 'FREE') {
       return {
         allowed: false,
-        message: `FREE tier = ${limit} category max. PRO unlocks unlimited!`,
+        message: `FREE tier = ${limit} category max. PRO gives 5 departments!`,
+      };
+    }
+    if (plan === 'PRO') {
+      return {
+        allowed: false,
+        message: `Department limit reached (${limit}). Go Enterprise for unlimited!`,
       };
     }
   }
@@ -157,7 +181,13 @@ export function canAddDepartments(plan: Plan, currentCount: number): { allowed: 
     if (plan === 'FREE') {
       return {
         allowed: false,
-        message: `Your FREE plan allows only ${limit} department. PRO = unlimited departments!`,
+        message: `Your FREE plan allows only ${limit} department. PRO gives 5 departments!`,
+      };
+    }
+    if (plan === 'PRO') {
+      return {
+        allowed: false,
+        message: `Department limit reached (${limit}). Go Enterprise for unlimited!`,
       };
     }
   }
@@ -171,7 +201,13 @@ export function canAddLocations(plan: Plan, currentCount: number): { allowed: bo
     if (plan === 'FREE') {
       return {
         allowed: false,
-        message: `${limit} location max on FREE. PRO unlocks infinite locations!`,
+        message: `${limit} location max on FREE. PRO gives 5 locations!`,
+      };
+    }
+    if (plan === 'PRO') {
+      return {
+        allowed: false,
+        message: `Location limit reached (${limit}). Go Enterprise for unlimited!`,
       };
     }
   }
@@ -179,12 +215,12 @@ export function canAddLocations(plan: Plan, currentCount: number): { allowed: bo
 }
 
 export function canAddVendors(plan: Plan, currentCount: number): { allowed: boolean; message?: string } {
-  // FREE capped at 50 vendors; PRO+ unlimited
-  if (plan !== 'FREE') return { allowed: true };
-  if (currentCount >= 50) {
+  const limit = PLAN_CONFIG[plan].vendors;
+  if (limit === -1) return { allowed: true };
+  if (currentCount >= limit) {
     return {
       allowed: false,
-      message: '50 vendors max on FREE. Need more? PRO has you covered!',
+      message: `${limit} vendor max on ${plan}. Need more? PRO has you covered!`,
     };
   }
   return { allowed: true };

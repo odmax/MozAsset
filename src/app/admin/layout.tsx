@@ -20,8 +20,8 @@ export default async function AdminLayout({
   return (
     <div className="min-h-screen bg-slate-50">
       <AdminSidebar email={session.email} role={session.role} />
-      <main className="pl-64">
-        <div className="container mx-auto p-6">
+      <main className="lg:pl-64 pt-14 lg:pt-0">
+        <div className="container mx-auto p-4 sm:p-6">
           {children}
         </div>
       </main>

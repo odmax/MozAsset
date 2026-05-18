@@ -126,7 +126,7 @@ export function TransferForm({ assetId, departments, locations, users }: Transfe
             <Button
               type="button"
               variant="outline"
-              onClick={() => router.back()}
+              onClick={() => router.push(`/dashboard/assets/${assetId}`)}
             >
               Cancel
             </Button>

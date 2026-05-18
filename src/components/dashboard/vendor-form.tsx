@@ -93,7 +93,7 @@ export function VendorForm({ vendor, isEdit = false }: VendorFormProps) {
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isEdit ? 'Update' : 'Create'}
             </Button>
-            <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => router.push('/dashboard/vendors')}>Cancel</Button>
           </div>
         </form>
       </CardContent>

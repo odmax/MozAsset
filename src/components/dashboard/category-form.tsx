@@ -68,7 +68,7 @@ export function CategoryForm({ category, isEdit = false }: CategoryFormProps) {
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isEdit ? 'Update' : 'Create'}
             </Button>
-            <Button type="button" variant="outline" onClick={() => router.back()}>
+            <Button type="button" variant="outline" onClick={() => router.push('/dashboard/categories')}>
               Cancel
             </Button>
           </div>

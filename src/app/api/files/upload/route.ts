@@ -4,6 +4,7 @@ import { getCurrentUserContext } from '@/lib/user-context';
 import { uploadFile, validateFile } from '@/lib/storage';
 import { uploadLimiter } from '@/lib/rate-limiter';
 import { sanitizePlainText } from '@/lib/security';
+import { getStorageLimit } from '@/lib/billing';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,6 +33,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
+    // Check plan storage limit
+    if (context.organizationId) {
+      const storageLimitMB = getStorageLimit(context.plan);
+      if (storageLimitMB !== -1) {
+        const storageResult = await prisma.file.aggregate({
+          where: { organizationId: context.organizationId },
+          _sum: { size: true },
+        });
+        const usedBytes = storageResult._sum.size || 0;
+        const limitBytes = storageLimitMB * 1024 * 1024;
+        if (usedBytes + fileField.size > limitBytes) {
+          return NextResponse.json({
+            error: `Storage limit of ${storageLimitMB} MB exceeded. Upgrade your plan for more storage.`,
+          }, { status: 403 });
+        }
+      }
+    }
+
     const fileType = sanitizePlainText((formData.get('type') as string) || 'OTHER');
     const assetId = (formData.get('assetId') as string) || undefined;
     const maintenanceId = (formData.get('maintenanceId') as string) || undefined;
@@ -45,14 +64,12 @@ export async function POST(request: Request) {
 
     validateFile({ name: fileField.name, size: fileField.size, type: fileField.type });
 
-    // For asset images, validate it's actually an image
     if (fileType === 'ASSET_IMAGE' && !fileField.type.startsWith('image/')) {
       return NextResponse.json({ error: 'Asset images must be image files' }, { status: 400 });
     }
 
     const buffer = Buffer.from(await fileField.arrayBuffer());
 
-    // If replacing, delete old file first
     if (replaceId) {
       const oldFile = await prisma.file.findFirst({
         where: { id: replaceId, organizationId: context.organizationId },

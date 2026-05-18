@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { hasPermission } from '@/lib/admin-permissions';
 import prisma from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { sendEmail } from '@/lib/email';
@@ -28,6 +29,14 @@ export async function GET(
     const admin = getAdminSession();
     if (!admin || !admin.isInternalAdmin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const dbAdmin = await prisma.internalAdmin.findUnique({
+      where: { id: admin.id },
+      select: { id: true, role: true, permissions: true },
+    });
+    if (!dbAdmin || !hasPermission(dbAdmin, 'tickets:read')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const ticket = await prisma.supportTicket.findUnique({
@@ -74,6 +83,14 @@ export async function POST(
     const admin = getAdminSession();
     if (!admin || !admin.isInternalAdmin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const dbAdmin = await prisma.internalAdmin.findUnique({
+      where: { id: admin.id },
+      select: { id: true, role: true, permissions: true },
+    });
+    if (!dbAdmin || !hasPermission(dbAdmin, 'tickets:reply')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     if (!message?.trim()) {

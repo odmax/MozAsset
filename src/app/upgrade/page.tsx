@@ -7,19 +7,19 @@ const features = [
   {
     name: 'Asset Limit',
     free: '50',
-    pro: '1,000',
+    pro: '500',
     enterprise: 'Unlimited',
   },
   {
     name: 'Departments',
     free: '1',
-    pro: 'Unlimited',
+    pro: '5',
     enterprise: 'Unlimited',
   },
   {
     name: 'Locations',
     free: '1',
-    pro: 'Unlimited',
+    pro: '5',
     enterprise: 'Unlimited',
   },
   {
@@ -106,7 +106,7 @@ const reasons = [
   {
     icon: Package,
     title: 'More Assets',
-    description: 'Move from 50 to 1,000 assets (or unlimited with Enterprise)'
+    description: 'Move from 50 to 500 assets (or unlimited with Enterprise)'
   },
   {
     icon: Zap,

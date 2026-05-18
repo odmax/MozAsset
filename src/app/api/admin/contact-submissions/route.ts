@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { hasPermission } from '@/lib/admin-permissions';
 import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 
@@ -26,10 +27,23 @@ function getAdminSession() {
 
 export async function GET() {
   const user = getSessionUser();
-  const admin = getAdminSession();
+  const adminUser = getAdminSession();
   
-  if (!user?.isPlatformAdmin && !admin?.isInternalAdmin) {
+  const isPlatformAdmin = user?.isPlatformAdmin === true;
+  const isInternalAdmin = adminUser?.isInternalAdmin === true || user?.isInternalAdmin === true;
+  
+  if (!isPlatformAdmin && !isInternalAdmin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  }
+
+  if (!isPlatformAdmin && isInternalAdmin && adminUser) {
+    const dbAdmin = await prisma.internalAdmin.findUnique({
+      where: { id: adminUser.id },
+      select: { id: true, role: true, permissions: true },
+    });
+    if (!dbAdmin || !hasPermission(dbAdmin, 'users:read')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
   }
 
   try {

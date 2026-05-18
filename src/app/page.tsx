@@ -40,9 +40,9 @@ const plans = [
     saveMsg: 'Save R298/yr',
     description: 'For growing businesses',
     features: [
-      'Up to 1,000 assets',
-      'Unlimited departments',
-      'Unlimited locations',
+      'Up to 500 assets',
+      '5 departments',
+      '5 locations',
       'Full reports & exports',
       'Maintenance tracking',
       'Stock verification',
@@ -96,7 +96,7 @@ const howItWorks = [
 const faqs = [
   {
     question: 'How many assets can I track?',
-    answer: 'It depends on your plan. Free includes up to 50 assets, Pro up to 1,000, and Enterprise is unlimited.'
+    answer: 'It depends on your plan. Free includes up to 50 assets, Pro up to 500, and Enterprise is unlimited.'
   },
   {
     question: 'Can I export my data?',

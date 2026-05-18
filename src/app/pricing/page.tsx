@@ -173,15 +173,15 @@ export default function PricingPage() {
                 <ul className="space-y-3 mb-8">
                   <li className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-green-500 shrink-0" />
-                    <span>Up to 1,000 assets</span>
+                    <span>Up to 500 assets</span>
                   </li>
                   <li className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-green-500 shrink-0" />
-                    <span>Unlimited departments</span>
+                    <span>5 departments</span>
                   </li>
                   <li className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-green-500 shrink-0" />
-                    <span>Unlimited locations</span>
+                    <span>5 locations</span>
                   </li>
                   <li className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-green-500 shrink-0" />
@@ -362,19 +362,19 @@ export default function PricingPage() {
                 <tr className="border-b">
                   <td className="py-4 px-4">Asset Limit</td>
                   <td className="text-center py-4 px-4">50</td>
-                  <td className="text-center py-4 px-4">1,000</td>
+                  <td className="text-center py-4 px-4">500</td>
                   <td className="text-center py-4 px-4">Unlimited</td>
                 </tr>
                 <tr className="border-b">
                   <td className="py-4 px-4">Departments</td>
                   <td className="text-center py-4 px-4">1</td>
-                  <td className="text-center py-4 px-4">Unlimited</td>
+                  <td className="text-center py-4 px-4">5</td>
                   <td className="text-center py-4 px-4">Unlimited</td>
                 </tr>
                 <tr className="border-b">
                   <td className="py-4 px-4">Locations</td>
                   <td className="text-center py-4 px-4">1</td>
-                  <td className="text-center py-4 px-4">Unlimited</td>
+                  <td className="text-center py-4 px-4">5</td>
                   <td className="text-center py-4 px-4">Unlimited</td>
                 </tr>
                 <tr className="border-b">

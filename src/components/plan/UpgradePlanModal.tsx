@@ -27,9 +27,9 @@ const PLAN_OPTIONS = [
     borderColor: 'border-purple-200 hover:border-purple-400',
     ringColor: 'ring-purple-500',
     features: [
-      'Up to 1,000 assets',
-      'Unlimited departments',
-      'Unlimited locations',
+      'Up to 500 assets',
+      '5 departments',
+      '5 locations',
       'CSV Export',
       'Advanced Reports',
       'Stock Verification',

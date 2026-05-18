@@ -13,8 +13,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { Edit, Eye, Trash2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Edit, Eye, Trash2, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, AlertCircle } from 'lucide-react';
 import { deleteAsset } from '@/app/dashboard/assets/actions';
 import { cn } from '@/lib/utils';
 
@@ -48,6 +49,9 @@ export function AssetList({ assets, totalPages, currentPage, canManage, sortBy =
   const router = useRouter();
   const searchParams = useSearchParams();
   const [currentPath, setCurrentPath] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     setCurrentPath(window.location.pathname);
@@ -66,15 +70,23 @@ export function AssetList({ assets, totalPages, currentPage, canManage, sortBy =
     return sortOrder === 'desc' ? <ArrowDown className="h-4 w-4 ml-1" /> : <ArrowUp className="h-4 w-4 ml-1" />;
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this asset?')) {
-      try {
-        await deleteAsset(id);
-        router.refresh();
-      } catch (error) {
-        console.error('Failed to delete:', error);
-      }
+  const handleDeleteConfirm = async () => {
+    if (!deletingId) return;
+    try {
+      await deleteAsset(deletingId);
+      setDeleteDialogOpen(false);
+      setDeletingId(null);
+      router.refresh();
+    } catch (error: any) {
+      setDeleteError(error.message || 'Failed to delete asset');
+      setTimeout(() => setDeleteError(''), 5000);
     }
+  };
+
+  const openDeleteDialog = (id: string) => {
+    setDeletingId(id);
+    setDeleteError('');
+    setDeleteDialogOpen(true);
   };
 
   if (assets.length === 0) {
@@ -172,7 +184,7 @@ export function AssetList({ assets, totalPages, currentPage, canManage, sortBy =
                           variant="ghost" 
                           size="icon" 
                           className="text-red-500 hover:text-red-600"
-                          onClick={() => handleDelete(asset.id)}
+                          onClick={() => openDeleteDialog(asset.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -205,6 +217,28 @@ export function AssetList({ assets, totalPages, currentPage, canManage, sortBy =
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Asset</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this asset? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError && (
+            <div className="p-3 text-sm text-red-500 bg-red-50 rounded-lg flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              {deleteError}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>Delete Asset</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

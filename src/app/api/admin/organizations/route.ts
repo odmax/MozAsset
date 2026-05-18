@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSimpleAdminSession } from '@/lib/admin-session';
+import { hasPermission } from '@/lib/admin-permissions';
 import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -9,6 +10,14 @@ export async function GET() {
 
   if (!admin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const dbAdmin = await prisma.internalAdmin.findUnique({
+    where: { id: admin.adminId },
+    select: { id: true, role: true, permissions: true },
+  });
+  if (!dbAdmin || !hasPermission(dbAdmin, 'organizations:read')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   try {

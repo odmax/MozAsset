@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { hasPermission } from '@/lib/admin-permissions';
 import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 
@@ -31,12 +32,21 @@ export async function POST(
   const sessionUser = getSessionUser();
   const adminUser = getAdminSession();
   
-  // Check both session formats
   const isPlatformAdmin = sessionUser?.isPlatformAdmin === true;
   const isInternalAdmin = adminUser?.isInternalAdmin === true || sessionUser?.isInternalAdmin === true;
   
   if (!isPlatformAdmin && !isInternalAdmin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  }
+
+  if (!isPlatformAdmin && isInternalAdmin && adminUser) {
+    const dbAdmin = await prisma.internalAdmin.findUnique({
+      where: { id: adminUser.id },
+      select: { id: true, role: true, permissions: true },
+    });
+    if (!dbAdmin || !hasPermission(dbAdmin, 'users:modify')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
   }
 
   try {

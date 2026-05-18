@@ -1,7 +1,7 @@
 'use client';
 
 import type { Plan } from '@prisma/client';
-import { getAssetLimit } from '@/lib/plan';
+import { getAssetLimit, getPlanDetails } from '@/lib/billing';
 
 export type Feature = 'EXPORTS' | 'ADVANCED_REPORTS' | 'STOCK_VERIFICATION' | 'BULK_IMPORT' | 'API_ACCESS';
 
@@ -40,14 +40,15 @@ export function checkAssetLimit(plan: Plan, currentCount: number): { allowed: bo
 }
 
 export function usePlanCheck(plan: Plan) {
+  const details = getPlanDetails(plan);
   return {
-    canExport: true,
-    canAdvancedReports: true,
-    canStockVerification: true,
-    canBulkImport: true,
-    canApiAccess: plan !== 'FREE',
+    canExport: details.features.exports,
+    canAdvancedReports: details.features.advancedReports,
+    canStockVerification: details.features.stockVerification,
+    canBulkImport: details.features.stockVerification,
+    canApiAccess: details.features.apiAccess,
     isPro: plan === 'PRO' || plan === 'ENTERPRISE',
     isEnterprise: plan === 'ENTERPRISE',
-    assetLimit: getAssetLimit(plan),
+    assetLimit: details.assets,
   };
 }

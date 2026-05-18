@@ -20,12 +20,14 @@ import {
   MapPin,
   Building2,
   Package,
+  Paperclip,
   Calendar,
   DollarSign,
   Shield,
   User,
 } from 'lucide-react';
 import { checkInAsset } from '@/app/dashboard/assets/actions';
+import FileAttachmentSection from '@/components/files/file-attachment-section';
 
 const statusColors: Record<string, string> = {
   AVAILABLE: 'bg-green-100 text-green-800',
@@ -47,6 +49,7 @@ const conditionColors: Record<string, string> = {
 interface AssetDetailProps {
   asset: any;
   canManage: boolean;
+  userPlan: string;
   categories: { id: string; name: string }[];
   departments: { id: string; name: string }[];
   locations: { id: string; name: string }[];
@@ -57,6 +60,7 @@ interface AssetDetailProps {
 export function AssetDetail({
   asset,
   canManage,
+  userPlan,
   categories,
   departments,
   locations,
@@ -306,6 +310,10 @@ export function AssetDetail({
           <TabsTrigger value="history">History</TabsTrigger>
           <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
           <TabsTrigger value="assignments">Assignments</TabsTrigger>
+          <TabsTrigger value="attachments">
+            <Paperclip className="h-3.5 w-3.5 mr-1.5" />
+            Attachments
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="history" className="mt-4">
@@ -403,6 +411,16 @@ export function AssetDetail({
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="attachments" className="mt-4">
+          <FileAttachmentSection
+            entityType="assetId"
+            entityId={asset.id}
+            fileType="ASSET_IMAGE"
+            userPlan={userPlan as any}
+            canManage={canManage}
+          />
         </TabsContent>
       </Tabs>
     </div>

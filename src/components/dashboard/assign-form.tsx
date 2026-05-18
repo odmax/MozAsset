@@ -85,7 +85,7 @@ export function AssignForm({ assetId, users }: AssignFormProps) {
             <Button
               type="button"
               variant="outline"
-              onClick={() => router.back()}
+              onClick={() => router.push(`/dashboard/assets/${assetId}`)}
             >
               Cancel
             </Button>

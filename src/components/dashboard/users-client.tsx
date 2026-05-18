@@ -175,8 +175,6 @@ export function UsersClient({ initialUsers, currentUserId, totalCount }: UsersCl
     return sortOrder === 'asc' ? cmp : -cmp;
   });
 
-  if (users.length === 0) return null;
-
   return (
     <>
       {error && (
@@ -201,6 +199,12 @@ export function UsersClient({ initialUsers, currentUserId, totalCount }: UsersCl
       </form>
 
       <Card>
+        {users.length === 0 ? (
+          <div className="p-12 text-center">
+            <Users className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+            <p className="text-muted-foreground mb-4">No users found</p>
+          </div>
+        ) : (<>
         <Table>
           <TableHeader>
             <TableRow>
@@ -313,6 +317,7 @@ export function UsersClient({ initialUsers, currentUserId, totalCount }: UsersCl
             </div>
           </div>
         )}
+        </>)}
       </Card>
 
       {/* Delete Confirmation Dialog */}
