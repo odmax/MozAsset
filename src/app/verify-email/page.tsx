@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Package, Loader2, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { Loader2, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
@@ -77,8 +77,7 @@ function VerifyEmailContent() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
-              <Package className="h-8 w-8 text-primary" />
-              <span>MozAssets</span>
+              <img src="/logo.png" alt="MozAssets" className="h-8 w-auto" />
             </Link>
           </div>
           <Card>
@@ -106,8 +105,7 @@ function VerifyEmailContent() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
-              <Package className="h-8 w-8 text-primary" />
-              <span>MozAssets</span>
+              <img src="/logo.png" alt="MozAssets" className="h-8 w-auto" />
             </Link>
           </div>
           <Card>
@@ -134,8 +132,7 @@ function VerifyEmailContent() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
-            <Package className="h-8 w-8 text-primary" />
-            <span>MozAssets</span>
+              <img src="/logo.png" alt="MozAssets" className="h-8 w-auto" />
           </Link>
         </div>
         <Card>

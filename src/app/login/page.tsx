@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Package } from 'lucide-react';
+
 import { BackButton } from '@/components/ui/back-button';
 
 function LoginForm() {
@@ -66,8 +66,7 @@ export default function LoginPage() {
         </div>
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
-            <Package className="h-8 w-8 text-primary" />
-            <span>MozAssets</span>
+            <img src="/logo.png" alt="MozAssets" className="h-8 w-auto" />
           </Link>
           <p className="text-sm text-muted-foreground mt-1">by Mozetech</p>
         </div>

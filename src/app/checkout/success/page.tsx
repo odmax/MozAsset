@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Package, Loader2, CheckCircle, Clock } from 'lucide-react';
+import { Loader2, CheckCircle, Clock } from 'lucide-react';
 
 function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
@@ -66,9 +66,8 @@ function CheckoutSuccessContent() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
-              <Package className="h-8 w-8 text-primary" />
-              <span>MozAssets</span>
-            </Link>
+            <img src="/logo.png" alt="MozAssets" className="h-8 w-auto" />
+          </Link>
           </div>
           <Card>
             <CardHeader className="text-center">
@@ -98,8 +97,7 @@ function CheckoutSuccessContent() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
-            <Package className="h-8 w-8 text-primary" />
-            <span>MozAssets</span>
+            <img src="/logo.png" alt="MozAssets" className="h-8 w-auto" />
           </Link>
         </div>
 

@@ -95,7 +95,8 @@ export default function EditAdminPage({ params }: { params: { adminId: string } 
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
             <Shield className="h-8 w-8 text-primary" />
-            <span>MozAssets Admin</span>
+            <img src="/logo.png" alt="MozAssets" className="h-6 w-auto" />
+            <span>Admin</span>
           </Link>
           <p className="text-sm text-muted-foreground mt-1">Edit platform admin</p>
         </div>

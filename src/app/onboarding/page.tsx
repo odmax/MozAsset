@@ -343,8 +343,7 @@ export default function OnboardingPage() {
         <CardHeader className="text-center">
           <div className="flex items-center justify-center mb-4">
             <Link href="/" className="flex items-center gap-2 font-bold">
-              <Package className="h-6 w-6 text-primary" />
-              <span>MozAssets</span>
+              <img src="/logo.png" alt="MozAssets" className="h-6 w-auto" />
             </Link>
           </div>
           <Progress value={(currentStep / (steps.length - 1)) * 100} className="h-2" />

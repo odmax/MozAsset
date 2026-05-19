@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Package } from 'lucide-react';
+
 
 export default function TermsPage() {
   return (
@@ -8,8 +8,7 @@ export default function TermsPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2 font-bold text-xl">
-              <Package className="h-6 w-6 text-primary" />
-              <span>MozAssets</span>
+              <img src="/logo.png" alt="MozAssets" className="h-6 w-auto" />
             </Link>
             <Link href="/" className="text-sm text-primary hover:underline">
               Back to Home

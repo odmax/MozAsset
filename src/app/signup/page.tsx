@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Package, CheckCircle } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { BackButton } from '@/components/ui/back-button';
 
 export default function SignupPage() {
@@ -74,10 +74,12 @@ export default function SignupPage() {
           </div>
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
-              <Package className="h-8 w-8 text-primary" />
-              <span>MozAssets</span>
+              <img src="/logo.png" alt="MozAssets" className="h-8 w-auto" />
             </Link>
-            <p className="text-sm text-muted-foreground mt-1">by Mozetech</p>
+          </div>
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold">Create an account</h1>
+            <p className="text-sm text-muted-foreground mt-1">Get started with MozAssets</p>
           </div>
 
           <Card>
@@ -118,8 +120,7 @@ export default function SignupPage() {
         </div>
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
-            <Package className="h-8 w-8 text-primary" />
-            <span>MozAssets</span>
+            <img src="/logo.png" alt="MozAssets" className="h-8 w-auto" />
           </Link>
           <p className="text-sm text-muted-foreground mt-1">by Mozetech</p>
         </div>

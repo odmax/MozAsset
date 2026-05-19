@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Package, XCircle } from 'lucide-react';
+import { XCircle } from 'lucide-react';
 
 export default function CheckoutCancelPage() {
   return (
@@ -11,8 +11,7 @@ export default function CheckoutCancelPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
-            <Package className="h-8 w-8 text-primary" />
-            <span>MozAssets</span>
+            <img src="/logo.png" alt="MozAssets" className="h-8 w-auto" />
           </Link>
         </div>
 

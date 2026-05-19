@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/sheet';
 import {
   LayoutDashboard, Users, Building2, CreditCard, Mail,
-  Package, UserCog, DollarSign, Receipt, MessageSquare,
+  UserCog, DollarSign, Receipt, MessageSquare,
   Shield, HardDrive, Activity, Headphones, UserPlus,
   ChevronDown, ChevronRight, Menu,
   Clock, Circle,
@@ -176,9 +176,7 @@ export function AdminSidebar({ email, role }: { email: string; role: string }) {
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center border-b border-slate-800/60 px-6 shrink-0 bg-slate-900/80 backdrop-blur-sm">
         <Link href="/admin" className="flex items-center gap-2 font-bold text-lg group" onClick={() => setOpen(false)}>
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/20 group-hover:shadow-primary/30 transition-shadow">
-            <Package className="h-4 w-4 text-white" />
-          </div>
+          <img src="/logo.png" alt="MozAssets" className="h-8 w-auto" />
           <span className="bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
             MozAssets
           </span>
