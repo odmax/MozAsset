@@ -122,7 +122,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center gap-2 font-bold text-xl">
-              <img src="/logo.png" alt="MozAssets" className="h-7 w-auto" />
+              <img src="/logo.png" alt="MozAssets" className="h-8 w-auto" />
             </Link>
             
             <nav className="hidden md:flex items-center gap-8">
@@ -183,7 +183,7 @@ export default function LandingPage() {
             </div>
 
             <p className="text-sm text-muted-foreground mt-4">
-              No credit card required • Free plan includes 50 assets
+              No credit card required â€¢ Free plan includes 50 assets
             </p>
           </div>
         </div>
@@ -420,7 +420,7 @@ export default function LandingPage() {
           </div>
           
           <div className="border-t border-slate-800 pt-8 text-sm text-center">
-            <p>© 2026 MozAssets by Mozetech. All rights reserved.</p>
+            <p>Â© 2026 MozAssets by Mozetech. All rights reserved.</p>
           </div>
         </div>
       </footer>

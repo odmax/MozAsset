@@ -143,7 +143,7 @@ export default function UpgradePage() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center gap-2 font-bold text-xl">
-              <img src="/logo.png" alt="MozAssets" className="h-7 w-auto" />
+              <img src="/logo.png" alt="MozAssets" className="h-8 w-auto" />
             </Link>
             <div className="flex items-center gap-3">
               <Link href="/login" className="text-sm font-medium">
@@ -304,7 +304,7 @@ export default function UpgradePage() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <Package className="h-5 w-5" />
-              <span>© 2026 MozAssets</span>
+              <span>Â© 2026 MozAssets</span>
             </div>
             <div className="flex items-center gap-6">
               <Link href="/" className="hover:text-foreground">Home</Link>

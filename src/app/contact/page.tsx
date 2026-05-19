@@ -69,7 +69,7 @@ export default function ContactPage() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center gap-2 font-bold text-xl">
-              <img src="/logo.png" alt="MozAssets" className="h-7 w-auto" />
+              <img src="/logo.png" alt="MozAssets" className="h-8 w-auto" />
             </Link>
             <div className="flex items-center gap-3">
               <Link href="/login" className="text-sm font-medium">
@@ -139,11 +139,11 @@ export default function ContactPage() {
                 <CardContent className="p-6">
                   <h3 className="font-semibold mb-4">What we can help with:</h3>
                   <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li>• Custom pricing for large organizations</li>
-                    <li>• On-premise installations</li>
-                    <li>• API and integration needs</li>
-                    <li>• Dedicated account management</li>
-                    <li>• SLA and compliance requirements</li>
+                    <li>â€¢ Custom pricing for large organizations</li>
+                    <li>â€¢ On-premise installations</li>
+                    <li>â€¢ API and integration needs</li>
+                    <li>â€¢ Dedicated account management</li>
+                    <li>â€¢ SLA and compliance requirements</li>
                   </ul>
                 </CardContent>
               </Card>
@@ -232,7 +232,7 @@ export default function ContactPage() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <Package className="h-5 w-5" />
-              <span>© 2026 MozAssets by Mozetech</span>
+              <span>Â© 2026 MozAssets by Mozetech</span>
             </div>
             <div className="flex items-center gap-6">
               <Link href="/privacy" className="hover:text-foreground">Privacy</Link>

@@ -8,7 +8,7 @@ export default function SecurityPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2 font-bold text-xl">
-              <img src="/logo.png" alt="MozAssets" className="h-7 w-auto" />
+              <img src="/logo.png" alt="MozAssets" className="h-8 w-auto" />
             </Link>
             <Link href="/" className="text-sm text-primary hover:underline">
               Back to Home
@@ -190,7 +190,7 @@ export default function SecurityPage() {
       <footer className="border-t py-8">
         <div className="container mx-auto px-4">
           <p className="text-sm text-muted-foreground text-center">
-            © 2026 MozAssets by Mozetech. All rights reserved.
+            Â© 2026 MozAssets by Mozetech. All rights reserved.
           </p>
         </div>
       </footer>

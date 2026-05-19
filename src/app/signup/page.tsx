@@ -74,7 +74,7 @@ export default function SignupPage() {
           </div>
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
-              <img src="/logo.png" alt="MozAssets" className="h-9 w-auto" />
+              <img src="/logo.png" alt="MozAssets" className="h-10 w-auto" />
             </Link>
           </div>
           <div className="text-center mb-8">
@@ -120,7 +120,7 @@ export default function SignupPage() {
         </div>
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
-            <img src="/logo.png" alt="MozAssets" className="h-9 w-auto" />
+            <img src="/logo.png" alt="MozAssets" className="h-10 w-auto" />
           </Link>
           <p className="text-sm text-muted-foreground mt-1">by Mozetech</p>
         </div>

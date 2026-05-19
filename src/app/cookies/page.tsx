@@ -8,7 +8,7 @@ export default function CookiesPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2 font-bold text-xl">
-              <img src="/logo.png" alt="MozAssets" className="h-7 w-auto" />
+              <img src="/logo.png" alt="MozAssets" className="h-8 w-auto" />
             </Link>
             <Link href="/" className="text-sm text-primary hover:underline">
               Back to Home
@@ -76,10 +76,10 @@ export default function CookiesPage() {
               You can control or disable cookies in your browser settings:
             </p>
             <ul className="list-disc list-inside text-muted-foreground space-y-2">
-              <li>Chrome: Settings → Privacy → Cookies</li>
-              <li>Firefox: Options → Privacy & Security</li>
-              <li>Safari: Preferences → Privacy</li>
-              <li>Edge: Settings → Cookies and site permissions</li>
+              <li>Chrome: Settings â†’ Privacy â†’ Cookies</li>
+              <li>Firefox: Options â†’ Privacy & Security</li>
+              <li>Safari: Preferences â†’ Privacy</li>
+              <li>Edge: Settings â†’ Cookies and site permissions</li>
             </ul>
             <p className="text-muted-foreground mt-4">
               Disabling essential cookies may limit functionality.
@@ -114,7 +114,7 @@ export default function CookiesPage() {
       <footer className="border-t py-8">
         <div className="container mx-auto px-4">
           <p className="text-sm text-muted-foreground text-center">
-            © 2026 MozAssets by Mozetech. All rights reserved.
+            Â© 2026 MozAssets by Mozetech. All rights reserved.
           </p>
         </div>
       </footer>

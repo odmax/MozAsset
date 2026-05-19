@@ -176,7 +176,7 @@ export function AdminSidebar({ email, role }: { email: string; role: string }) {
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center border-b border-slate-800/60 px-6 shrink-0 bg-slate-900/80 backdrop-blur-sm">
         <Link href="/admin" className="flex items-center gap-2 font-bold text-lg group" onClick={() => setOpen(false)}>
-          <img src="/logo.png" alt="MozAssets" className="h-9 w-auto" />
+          <img src="/logo.png" alt="MozAssets" className="h-10 w-auto" />
           <span className="bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
             MozAssets
           </span>
