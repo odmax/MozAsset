@@ -77,7 +77,7 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl text-white">
-            <img src="/logo.png" alt="MozAssets" className="h-8 w-auto" />
+            <img src="/logo.png" alt="MozAssets" className="h-9 w-auto" />
           </Link>
           <p className="text-slate-400 text-sm mt-1">Platform Admin</p>
         </div>
@@ -111,7 +111,7 @@ export default function AdminLoginPage() {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="••••••••"
+                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"

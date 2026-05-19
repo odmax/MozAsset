@@ -44,7 +44,7 @@ function LoginForm() {
             id="password"
             name="password"
             type="password"
-            placeholder="••••••••"
+            placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
             autoComplete="current-password"
             required
           />
@@ -66,7 +66,7 @@ export default function LoginPage() {
         </div>
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
-            <img src="/logo.png" alt="MozAssets" className="h-8 w-auto" />
+            <img src="/logo.png" alt="MozAssets" className="h-9 w-auto" />
           </Link>
           <p className="text-sm text-muted-foreground mt-1">by Mozetech</p>
         </div>

@@ -46,7 +46,7 @@ export default function PricingPage() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center gap-2 font-bold text-xl">
-              <img src="/logo.png" alt="MozAssets" className="h-6 w-auto" />
+              <img src="/logo.png" alt="MozAssets" className="h-7 w-auto" />
             </Link>
             
             <div className="flex items-center gap-3">
