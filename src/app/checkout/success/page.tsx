@@ -26,7 +26,7 @@ function CheckoutSuccessContent() {
           const res = await fetch('/api/billing');
           const data = await res.json();
           if (data.plan && data.plan !== 'FREE') {
-            // Plan upgraded Ã¢â‚¬â€ refresh session cookie
+            // Plan upgraded ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â refresh session cookie
             if (userId) {
               await fetch('/api/auth/refresh-session', {
                 method: 'POST',
@@ -66,7 +66,7 @@ function CheckoutSuccessContent() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
-            <img src="/logo.png" alt="MozAssets" className="h-10 w-auto" />
+            <img src="/logo.png" alt="MozAssets" className="h-11 w-auto" />
           </Link>
           </div>
           <Card>
@@ -97,7 +97,7 @@ function CheckoutSuccessContent() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
-            <img src="/logo.png" alt="MozAssets" className="h-10 w-auto" />
+            <img src="/logo.png" alt="MozAssets" className="h-11 w-auto" />
           </Link>
         </div>
 

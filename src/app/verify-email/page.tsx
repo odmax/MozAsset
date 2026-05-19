@@ -77,7 +77,7 @@ function VerifyEmailContent() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
-              <img src="/logo.png" alt="MozAssets" className="h-10 w-auto" />
+              <img src="/logo.png" alt="MozAssets" className="h-11 w-auto" />
             </Link>
           </div>
           <Card>
@@ -105,7 +105,7 @@ function VerifyEmailContent() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
-              <img src="/logo.png" alt="MozAssets" className="h-10 w-auto" />
+              <img src="/logo.png" alt="MozAssets" className="h-11 w-auto" />
             </Link>
           </div>
           <Card>
@@ -132,7 +132,7 @@ function VerifyEmailContent() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
-              <img src="/logo.png" alt="MozAssets" className="h-10 w-auto" />
+              <img src="/logo.png" alt="MozAssets" className="h-11 w-auto" />
           </Link>
         </div>
         <Card>
