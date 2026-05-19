@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,10 +9,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UpgradePlanModal } from '@/components/plan/UpgradePlanModal';
+import OrganizationSettings from '@/components/dashboard/organization-settings';
 import { 
   User, 
-  Mail, 
-  Lock, 
   Shield, 
   Loader2, 
   CheckCircle, 
@@ -25,10 +24,7 @@ import {
   X,
   Building2,
   Palette,
-  Upload,
-  Trash2,
   CreditCard,
-  Bell
 } from 'lucide-react';
 import { getPlanDetails } from '@/lib/billing';
 import Link from 'next/link';
@@ -42,7 +38,6 @@ interface UserProfile {
   emailVerified: string | null;
   appearanceMode: string;
   themeColor: string;
-  companyLogoUrl: string | null;
 }
 
 export default function SettingsPage() {
@@ -58,10 +53,6 @@ export default function SettingsPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const [appearanceMode, setAppearanceMode] = useState<'LIGHT' | 'DARK' | 'SYSTEM'>('SYSTEM');
-
-  const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
-  const [uploadingLogo, setUploadingLogo] = useState(false);
-  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -83,7 +74,6 @@ export default function SettingsPage() {
           setUser(data);
           setName(data.name || '');
           setAppearanceMode(data.appearanceMode || 'SYSTEM');
-          setCompanyLogoUrl(data.companyLogoUrl);
           if (data.appearanceMode) {
             setTheme(data.appearanceMode.toLowerCase());
           }
@@ -119,58 +109,6 @@ export default function SettingsPage() {
     }
 
     setSaving(false);
-  };
-
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadingLogo(true);
-    setError('');
-
-    try {
-      const formData = new FormData();
-      formData.append('logo', file);
-
-      const res = await fetch('/api/user/logo', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'Failed to upload logo');
-      } else {
-        setCompanyLogoUrl(data.logoUrl);
-      }
-    } catch {
-      setError('Failed to upload logo');
-    }
-
-    setUploadingLogo(false);
-    if (logoInputRef.current) {
-      logoInputRef.current.value = '';
-    }
-  };
-
-  const handleLogoDelete = async () => {
-    setError('');
-
-    try {
-      const res = await fetch('/api/user/logo', {
-        method: 'DELETE',
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error || 'Failed to delete logo');
-      } else {
-        setCompanyLogoUrl(null);
-      }
-    } catch {
-      setError('Failed to delete logo');
-    }
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
@@ -342,61 +280,7 @@ export default function SettingsPage() {
 
         {/* Organization Tab */}
         <TabsContent value="organization" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Company Logo</CardTitle>
-              <CardDescription>Upload your company logo to display in the sidebar</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-6">
-                <div className="w-24 h-24 border-2 border-dashed rounded-lg flex items-center justify-center overflow-hidden bg-muted/30">
-                  {companyLogoUrl ? (
-                    <img 
-                      src={companyLogoUrl} 
-                      alt="Company Logo" 
-                      className="w-full h-full object-contain"
-                    />
-                  ) : (
-                    <Building2 className="h-8 w-8 text-muted-foreground" />
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <input
-                    ref={logoInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/svg+xml"
-                    onChange={handleLogoUpload}
-                    className="hidden"
-                  />
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => logoInputRef.current?.click()}
-                    disabled={uploadingLogo}
-                  >
-                    {uploadingLogo ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Upload className="h-4 w-4 mr-2" />
-                    )}
-                    {companyLogoUrl ? 'Replace Logo' : 'Upload Logo'}
-                  </Button>
-                  {companyLogoUrl && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={handleLogoDelete}
-                      className="text-red-500 hover:text-red-600"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Remove
-                    </Button>
-                  )}
-                  <p className="text-xs text-muted-foreground">JPEG, PNG, WebP, SVG. Max 2MB.</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <OrganizationSettings />
         </TabsContent>
 
         {/* Appearance Tab */}

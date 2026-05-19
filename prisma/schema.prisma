@@ -252,6 +252,36 @@ model Organization {
   vendors         Vendor[]
   files           File[]
 
+  // General
+  description     String?
+  industry        String?
+  companySize     String?
+
+  // Contact
+  orgEmail        String?
+  phone           String?
+  alternatePhone  String?
+  website         String?
+  addressLine1    String?
+  addressLine2    String?
+  city            String?
+  province        String?
+  postalCode      String?
+  country         String?
+
+  // Branding
+  logo            String?
+  favicon         String?
+  primaryColor    String    @default("#3b82f6")
+  secondaryColor  String    @default("#6366f1")
+
+  // Preferences
+  timezone        String    @default("Africa/Johannesburg")
+  dateFormat      String    @default("DD/MM/YYYY")
+  currency        String    @default("ZAR")
+  defaultLanguage String    @default("en")
+
+  // Billing
   plan            Plan      @default(FREE)
   subscriptionStatus SubscriptionStatus @default(ACTIVE)
   billingProvider BillingProvider @default(NONE)
