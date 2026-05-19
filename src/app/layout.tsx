@@ -12,6 +12,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'MozAssets - Enterprise Asset Management',
   description: 'Track, manage, and maintain your company assets with MozAssets by Mozetech',
+  icons: {
+    icon: '/favicon.png',
+    apple: '/favicon.png',
+  },
 };
 
 export default function RootLayout({
