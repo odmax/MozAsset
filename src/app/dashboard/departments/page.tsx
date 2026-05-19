@@ -1,6 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Building2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { DepartmentsClient } from '@/components/dashboard/departments-client';
 import { getCurrentUserContext } from '@/lib/user-context';
@@ -38,16 +37,6 @@ export default async function DepartmentsPage() {
       </div>
 
       <DepartmentsClient initialDepartments={departments.map(d => ({ ...d, manager: null }))} canManage={canManage} />
-
-      {departments.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground mb-4">No departments yet</p>
-            {canManage && <Link href="/dashboard/departments/new"><Button>Add your first department</Button></Link>}
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

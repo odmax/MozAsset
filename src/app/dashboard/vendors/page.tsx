@@ -1,6 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Truck } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { VendorsClient } from '@/components/dashboard/vendors-client';
 import { getCurrentUserContext } from '@/lib/user-context';
@@ -36,16 +35,6 @@ export default async function VendorsPage() {
       </div>
 
       <VendorsClient initialVendors={vendors} canManage={canManage} />
-
-      {vendors.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Truck className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground mb-4">No vendors yet</p>
-            {canManage && <Link href="/dashboard/vendors/new"><Button>Add your first vendor</Button></Link>}
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
