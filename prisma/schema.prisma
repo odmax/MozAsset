@@ -783,3 +783,35 @@ model SlaRule {
 
   @@index([priority])
 }
+
+enum BackupStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+enum BackupStorageBackend {
+  LOCAL
+  S3
+  BACKBLAZE
+}
+
+model Backup {
+  id              String              @id @default(cuid())
+  status          BackupStatus        @default(PENDING)
+  storageBackend  BackupStorageBackend @default(LOCAL)
+  filePath        String?
+  fileSize        BigInt?
+  md5Hash         String?
+  errorMessage    String?
+  triggeredBy     String?
+  notes           String?
+  createdAt       DateTime            @default(now())
+  completedAt     DateTime?
+  updatedAt       DateTime            @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([completedAt])
+}

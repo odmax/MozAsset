@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     const verificationToken = randomBytes(32).toString('hex');
     const orgName = organization || name || 'My Organization';
     // If user provided organization name at signup, onboarding is complete
-    const hasOrgName = organization && organization.trim() !== '';
+    const hasOrgName = typeof organization === 'string' && organization.trim().length > 0;
 
     // Create user and organization in a transaction
     const result = await prisma.$transaction(async (tx) => {

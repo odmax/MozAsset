@@ -32,7 +32,9 @@ export type Permission =
   | 'subscriptions:read'
   | 'subscriptions:modify'
   | 'owner:controls'
-  | 'audit:read';
+  | 'audit:read'
+  | 'backups:read'
+  | 'backups:create';
 
 const OWNER_PERMISSIONS: Permission[] = [
   'agents:read', 'agents:create', 'agents:update', 'agents:delete',
@@ -49,6 +51,8 @@ const OWNER_PERMISSIONS: Permission[] = [
   'subscriptions:read', 'subscriptions:modify',
   'owner:controls',
   'audit:read',
+  'backups:read',
+  'backups:create',
 ];
 
 const SUPER_ADMIN_PERMISSIONS: Permission[] = [
