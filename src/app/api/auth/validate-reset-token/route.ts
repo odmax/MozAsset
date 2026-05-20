@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { hashToken } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,9 +16,11 @@ export async function GET(request: Request) {
       );
     }
 
+    const hashed = hashToken(token);
+
     const user = await prisma.user.findFirst({
       where: {
-        resetToken: token as any,
+        resetToken: hashed as any,
         resetTokenExpiry: {
           gt: new Date(),
         },

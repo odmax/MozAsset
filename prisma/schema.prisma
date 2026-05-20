@@ -156,6 +156,9 @@ enum AuditAction {
   PERMISSION_CHANGED
   INTERNAL_NOTE_ADDED
   TICKET_PRIORITY_CHANGED
+  EMAIL_VERIFIED
+  PASSWORD_RESET_REQUEST
+  PASSWORD_RESET_SUCCESS
 }
 
 model User {
@@ -192,6 +195,7 @@ model User {
   resetToken      String?
   resetTokenExpiry DateTime?
   emailVerificationToken String?
+  verificationTokenExpiry DateTime?
   emailVerifiedAt DateTime?
   
   appearanceMode  AppearanceMode @default(SYSTEM)

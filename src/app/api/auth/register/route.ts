@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-import { sendVerificationEmail } from '@/lib/email';
+import { sendVerificationEmail, sendWelcomeEmail, hashToken } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,14 +29,12 @@ export async function POST(request: Request) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const verificationToken = randomBytes(32).toString('hex');
+    const rawToken = randomBytes(32).toString('hex');
+    const hashedToken = hashToken(rawToken);
     const orgName = organization || name || 'My Organization';
-    // If user provided organization name at signup, onboarding is complete
     const hasOrgName = typeof organization === 'string' && organization.trim().length > 0;
 
-    // Create user and organization in a transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Create user first
       const user = await tx.user.create({
         data: {
           name: name || orgName,
@@ -45,13 +43,13 @@ export async function POST(request: Request) {
           role: 'SUPER_ADMIN',
           plan: 'FREE',
           assetLimit: 50,
-          onBoardingComplete: hasOrgName, // Skip onboarding if org name provided
+          onBoardingComplete: hasOrgName,
           isActive: true,
-          emailVerificationToken: verificationToken,
+          emailVerificationToken: hashedToken,
+          verificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
         },
       });
 
-      // Create the organization with user as owner
       const org = await tx.organization.create({
         data: {
           name: orgName,
@@ -59,7 +57,6 @@ export async function POST(request: Request) {
         },
       });
 
-      // Link user to organization
       await tx.user.update({
         where: { id: user.id },
         data: { organizationId: org.id },
@@ -68,9 +65,12 @@ export async function POST(request: Request) {
       return { user, org };
     });
 
-    await sendVerificationEmail(result.user.email, result.user.name, verificationToken);
+    // Send emails
+    await sendVerificationEmail(result.user.email, result.user.name, rawToken);
+    if (hasOrgName) {
+      await sendWelcomeEmail(result.user.email, result.user.name);
+    }
 
-    // Auto-login: set session cookie
     const sessionData = {
       id: result.user.id,
       email: String(result.user.email),
@@ -78,12 +78,12 @@ export async function POST(request: Request) {
       role: 'SUPER_ADMIN',
       plan: 'FREE',
       assetLimit: 50,
-      onBoardingComplete: hasOrgName, // Skip onboarding if org name provided
+      onBoardingComplete: hasOrgName,
       isPlatformAdmin: false,
       organizationId: result.org.id,
+      emailVerified: false,
     };
 
-    // Redirect based on onboarding status
     const redirectUrl = hasOrgName ? '/dashboard' : '/onboarding';
 
     const sessionToken = Buffer.from(JSON.stringify(sessionData)).toString('base64');

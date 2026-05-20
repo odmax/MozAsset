@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { hashToken } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,9 +16,11 @@ export async function GET(request: Request) {
       );
     }
 
+    const hashed = hashToken(token);
+
     const user = await prisma.user.findFirst({
       where: {
-        emailVerificationToken: token as any,
+        emailVerificationToken: hashed as any,
       },
     });
 
@@ -30,6 +33,13 @@ export async function GET(request: Request) {
 
     if (user.emailVerifiedAt) {
       return NextResponse.json({ valid: true, alreadyVerified: true });
+    }
+
+    if (user.verificationTokenExpiry && new Date() > user.verificationTokenExpiry) {
+      return NextResponse.json(
+        { error: 'Verification token has expired', valid: false, expired: true },
+        { status: 400 }
+      );
     }
 
     return NextResponse.json({ valid: true, alreadyVerified: false });
@@ -53,9 +63,11 @@ export async function POST(request: Request) {
       );
     }
 
+    const hashed = hashToken(token);
+
     const user = await prisma.user.findFirst({
       where: {
-        emailVerificationToken: token as any,
+        emailVerificationToken: hashed as any,
       },
     });
 
@@ -66,11 +78,32 @@ export async function POST(request: Request) {
       );
     }
 
+    if (user.emailVerifiedAt) {
+      return NextResponse.json({ message: 'Email already verified' });
+    }
+
+    if (user.verificationTokenExpiry && new Date() > user.verificationTokenExpiry) {
+      return NextResponse.json(
+        { error: 'Verification token has expired' },
+        { status: 400 }
+      );
+    }
+
     await prisma.user.update({
       where: { id: user.id },
       data: {
         emailVerifiedAt: new Date() as any,
         emailVerificationToken: null as any,
+        verificationTokenExpiry: null as any,
+      },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        action: 'EMAIL_VERIFIED' as any,
+        entityType: 'User',
+        entityId: user.id,
+        userId: user.id,
       },
     });
 

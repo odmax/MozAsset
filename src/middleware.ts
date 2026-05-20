@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-// TEMP_ADMIN_AUTH: simple admin auth until full platform auth is rebuilt.
 import { getSimpleAdminSessionFromHeader } from '@/lib/admin-session';
-// TEMP_USER_AUTH: simple customer auth until full auth is rebuilt.
 import { getSimpleUserSessionFromHeader } from '@/lib/customer-session';
 import { generateCsrfToken, getCsrfCookieOptions } from '@/lib/csrf';
 
@@ -28,15 +26,19 @@ const SECURITY_HEADERS: Record<string, string> = {
   'Content-Security-Policy': CSP_DIRECTIVES,
 };
 
-function isMutationMethod(method: string): boolean {
-  return ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase());
-}
+const UNVERIFIED_ALLOWED_PATHS = [
+  '/verify-email',
+  '/api/auth/verify-email',
+  '/api/auth/resend-verification',
+  '/api/auth/logout',
+  '/logout',
+  '/api/auth/validate-reset-token',
+];
 
 export async function middleware(request: Request) {
   const url = new URL(request.url);
   const method = request.method;
 
-  // Build response
   let response: NextResponse;
 
   // Skip middleware for login pages and API routes
@@ -45,11 +47,9 @@ export async function middleware(request: Request) {
   } else {
     const isAdminRoute = url.pathname.startsWith('/admin');
 
-    // Allow non-admin, non-protected routes
     if (!isAdminRoute && !url.pathname.startsWith('/dashboard') && !url.pathname.startsWith('/onboarding')) {
       response = NextResponse.next();
     } else {
-      // TEMP_ADMIN_AUTH: check simpleAdminAuth cookie for /admin routes only
       if (isAdminRoute) {
         const cookieHeader = request.headers.get('cookie') || '';
         const adminSession = getSimpleAdminSessionFromHeader(cookieHeader);
@@ -60,7 +60,6 @@ export async function middleware(request: Request) {
           response = NextResponse.redirect(new URL('/admin-login', request.url));
         }
       } else {
-        // TEMP_USER_AUTH: check simpleUserAuth cookie for /dashboard and /onboarding
         const cookieHeader = request.headers.get('cookie') || '';
         const userSession = getSimpleUserSessionFromHeader(cookieHeader);
 
@@ -73,18 +72,30 @@ export async function middleware(request: Request) {
     }
   }
 
-  // Add security headers to all responses
+  // Redirect unverified users from protected routes
+  if (url.pathname.startsWith('/dashboard')) {
+    const cookieHeader = request.headers.get('cookie') || '';
+    const userSession = getSimpleUserSessionFromHeader(cookieHeader);
+
+    if (userSession && userSession.emailVerified === false) {
+      const allowed = UNVERIFIED_ALLOWED_PATHS.some((p) => url.pathname.startsWith(p) || url.pathname === '/verify-email');
+      if (!allowed) {
+        const verifyUrl = new URL('/verify-email', request.url);
+        verifyUrl.searchParams.set('info', 'verify');
+        response = NextResponse.redirect(verifyUrl);
+        return response;
+      }
+    }
+  }
+
+  // Add security headers
   for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
     response.headers.set(key, value);
   }
 
-  // Add CSRF token cookie if user has a session (for client-side JS to read)
-  // Only set the CSRF cookie on non-API page responses
+  // Add CSRF token cookie
   if (!url.pathname.startsWith('/api/')) {
     const cookieHeader = request.headers.get('cookie') || '';
-    const userSession = getSimpleUserSessionFromHeader(cookieHeader);
-    const adminSession = getSimpleAdminSessionFromHeader(cookieHeader);
-
     const sessionValue =
       parseCookie(cookieHeader, 'session') ||
       parseCookie(cookieHeader, 'simpleUserAuth') ||

@@ -1,5 +1,10 @@
+import { createHash } from 'crypto';
 import prisma from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
+
+export function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
 
 export interface EmailOptions {
   to: string;
@@ -19,7 +24,7 @@ class SMTPEmailProvider implements EmailProvider {
   private fromName: string;
 
   constructor() {
-    this.fromEmail = process.env.EMAIL_FROM || 'noreply@mozassets.com';
+    this.fromEmail = process.env.EMAIL_FROM || 'noreply@mozetech.co.za';
     this.fromName = process.env.EMAIL_FROM_NAME || 'MozAssets';
   }
 
@@ -73,7 +78,7 @@ class ResendEmailProvider implements EmailProvider {
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
-    this.fromEmail = process.env.EMAIL_FROM || 'noreply@mozassets.com';
+    this.fromEmail = process.env.EMAIL_FROM || 'noreply@mozetech.co.za';
     this.fromName = process.env.EMAIL_FROM_NAME || 'MozAssets';
   }
 
@@ -122,7 +127,7 @@ class BrevoEmailProvider implements EmailProvider {
         body: JSON.stringify({
           sender: {
             name: process.env.EMAIL_FROM_NAME || 'MozAssets',
-            email: process.env.EMAIL_FROM || 'noreply@mozassets.com',
+            email: process.env.EMAIL_FROM || 'noreply@mozetech.co.za',
           },
           to: [{ email: options.to }],
           subject: options.subject,
@@ -203,6 +208,7 @@ async function logEmail(options: EmailOptions, status: string, error?: string) {
 }
 
 export function getBaseUrl(): string {
+  if (process.env.APP_URL) return process.env.APP_URL;
   if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
   return 'http://localhost:3000';
@@ -244,6 +250,38 @@ export async function sendPasswordResetEmail(
     html,
     text: `Reset your password: ${resetUrl}`,
     type: 'password_reset',
+  });
+}
+
+export async function sendWelcomeEmail(
+  email: string,
+  name: string | null
+): Promise<{ success: boolean; error?: string }> {
+  const { renderWelcomeEmail } = await import('@/lib/email-templates');
+  const html = renderWelcomeEmail({ name: name || 'there' });
+  return sendEmail({
+    to: email,
+    subject: 'Welcome to MozAssets',
+    html,
+    text: 'Welcome to MozAssets! Start managing your assets.',
+    type: 'welcome',
+  });
+}
+
+export async function sendLoginAlertEmail(
+  email: string,
+  name: string | null,
+  ip: string,
+  time: string
+): Promise<{ success: boolean; error?: string }> {
+  const { renderLoginAlertEmail } = await import('@/lib/email-templates');
+  const html = renderLoginAlertEmail({ name: name || 'there', time, ip });
+  return sendEmail({
+    to: email,
+    subject: 'New Login to Your MozAssets Account',
+    html,
+    text: `New login detected at ${time} from IP ${ip}`,
+    type: 'login_alert',
   });
 }
 
@@ -306,7 +344,7 @@ function buildEmailHtml(props: EmailTemplateProps): string {
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="font-size:20px;font-weight:700;color:#1e293b;">
-                    <span style="color:${BRAND_COLOR};">●</span> MozAssets
+                    <img src="${getBaseUrl()}/logo.png" alt="MozAssets" style="height:28px;width:auto;vertical-align:middle;margin-right:8px;" />
                     <span style="font-size:12px;font-weight:400;color:#94a3b8;"> by Mozetech</span>
                   </td>
                 </tr>

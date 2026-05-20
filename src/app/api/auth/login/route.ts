@@ -163,11 +163,20 @@ export async function POST(request: Request) {
 
     await logSuccessfulLogin(user.id, normalizedEmail, ip, userAgent);
 
+    // Send login alert (non-blocking)
+    try {
+      const { sendLoginAlertEmail } = await import('@/lib/email');
+      const now = new Date().toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg' });
+      sendLoginAlertEmail(user.email, user.name, ip, now);
+    } catch {}
+
     await prisma.user.update({
       where: { id: user.id },
       data: { lastActiveAt: new Date() },
       select: { id: true },
     });
+
+    const isEmailVerified = Boolean(user.emailVerifiedAt);
 
     const sessionData = {
       id: user.id,
@@ -179,6 +188,7 @@ export async function POST(request: Request) {
       onBoardingComplete: Boolean(user.onBoardingComplete),
       organizationId: user.organizationId,
       isPlatformAdmin: Boolean(user.isPlatformAdmin),
+      emailVerified: isEmailVerified,
     };
 
     const sessionToken = Buffer.from(JSON.stringify(sessionData)).toString('base64');
@@ -190,6 +200,7 @@ export async function POST(request: Request) {
       role: user.role,
       plan: user.plan,
       organizationId: user.organizationId,
+      emailVerified: isEmailVerified,
       isUser: true,
     };
 

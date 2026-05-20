@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { randomBytes } from 'crypto';
-import { sendPasswordResetEmail } from '@/lib/email';
+import { sendPasswordResetEmail, hashToken } from '@/lib/email';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
@@ -25,26 +27,36 @@ export async function POST(request: Request) {
       );
     }
 
-    const resetToken = randomBytes(32).toString('hex');
-    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
+    const rawToken = randomBytes(32).toString('hex');
+    const hashedToken = hashToken(rawToken);
+    const tokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        resetToken: resetToken as any,
-        resetTokenExpiry: resetTokenExpiry as any,
+        resetToken: hashedToken as any,
+        resetTokenExpiry: tokenExpiry as any,
       },
     });
 
-    const emailResult = await sendPasswordResetEmail(email, resetToken);
-    
+    await prisma.auditLog.create({
+      data: {
+        action: 'PASSWORD_RESET_REQUEST' as any,
+        entityType: 'User',
+        entityId: user.id,
+        userId: user.id,
+      },
+    });
+
+    const emailResult = await sendPasswordResetEmail(email, rawToken);
+
     if (!emailResult.success) {
       console.error('Failed to send reset email:', emailResult.error);
     }
 
     return NextResponse.json({
       message: 'Password reset link sent',
-      resetToken: process.env.NODE_ENV === 'development' ? resetToken : undefined,
+      resetToken: process.env.NODE_ENV === 'development' ? rawToken : undefined,
     });
   } catch (error) {
     console.error('Forgot password error:', error);
