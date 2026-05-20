@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UpgradePlanModal } from '@/components/plan/UpgradePlanModal';
 import OrganizationSettings from '@/components/dashboard/organization-settings';
+import EmailVerificationCard from '@/components/dashboard/email-verification-card';
 import { 
   User, 
   Shield, 
@@ -20,8 +21,6 @@ import {
   EyeOff,
   Crown,
   Package,
-  Check,
-  X,
   Building2,
   Palette,
   CreditCard,
@@ -244,21 +243,7 @@ export default function SettingsPage() {
                     className="bg-muted"
                   />
                 </div>
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    {user?.emailVerified ? (
-                      <>
-                        <Check className="h-4 w-4 text-green-500" />
-                        <span className="text-sm text-green-600">Email verified</span>
-                      </>
-                    ) : (
-                      <>
-                        <X className="h-4 w-4 text-yellow-500" />
-                        <span className="text-sm text-yellow-600">Email not verified</span>
-                      </>
-                    )}
-                  </div>
-                </div>
+                <EmailVerificationCard userId={user?.id} initiallyVerified={!!user?.emailVerified} />
                 <div className="space-y-2">
                   <Label>Role</Label>
                   <Input value={user?.role || ''} disabled className="bg-muted" />
