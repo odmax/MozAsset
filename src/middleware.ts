@@ -30,8 +30,10 @@ const UNVERIFIED_ALLOWED = [
   '/verify-email',
   '/api/auth/resend-verification',
   '/api/auth/verify-email',
+  '/api/auth/verification-status',
   '/api/auth/logout',
   '/logout',
+  '/dashboard/settings',
 ];
 
 export async function middleware(request: Request) {
