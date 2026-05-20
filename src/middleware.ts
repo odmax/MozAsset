@@ -13,7 +13,7 @@ const CSP_DIRECTIVES = [
   "frame-src 'self' https://*.payfast.co.za",
   "frame-ancestors 'none'",
   "base-uri 'self'",
-  "form-action 'self'",
+  "form-action 'self' https://*.payfast.co.za",
 ].join('; ');
 
 const SECURITY_HEADERS: Record<string, string> = {
