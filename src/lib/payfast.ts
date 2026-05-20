@@ -73,10 +73,11 @@ export function getPayfastBaseUrl(): string {
 }
 
 function phpUrlencode(value: string): string {
-  // PHP's urlencode encodes all non-alphanumeric characters except -_.
+  // PHP's urlencode(trim(val)) — trim FIRST, then encode.
+  // PHP's urlencode encodes all non-alphanumeric except -_.
   // JS encodeURIComponent preserves !~*'() which PHP encodes.
   // Also convert spaces to + (PHP style).
-  const encoded = encodeURIComponent(value)
+  const encoded = encodeURIComponent(value.trim())
     .replace(/%20/g, '+')
     .replace(/!/g, '%21')
     .replace(/'/g, '%27')
@@ -120,17 +121,26 @@ export function generateSignature(data: Record<string, string>): string {
   
   const sig = crypto.createHash('md5').update(signatureString).digest('hex');
   
-  // Safe debug logging — no merchant key, passphrase, or secrets
+  // Debug logging — log field values (safe, no secrets in field values)
+  const debugFields: Record<string, string> = {};
+  for (const key of sortedKeys) {
+    debugFields[key] = validData[key] === config.merchantKey ? '[REDACTED]' :
+      key === 'passphrase' ? '[REDACTED]' : validData[key];
+  }
   console.log('[Payfast] Signature debug:', {
     mode: config.mode,
     endpoint: config.mode === 'sandbox'
       ? 'https://sandbox.payfast.co.za/eng/process'
       : 'https://www.payfast.co.za/eng/process',
     hasPassphrase: !!(config.passphrase && config.passphrase.length > 0),
+    passphraseLength: (config.passphrase || '').length,
     fields: sortedKeys,
     fieldCount: sortedKeys.length,
-    // Log first 30 chars of signature string for debug; never log full string with secrets
-    signatureStringPrefix: signatureString.substring(0, 30) + '...',
+    fieldValues: debugFields,
+    // Log first 60 chars of signature string for debug; never log full string with secrets
+    signatureStringPrefix: signatureString.substring(0, 60),
+    signatureStringSuffix: signatureString.slice(-20),
+    md5: sig,
   });
   
   return sig;
