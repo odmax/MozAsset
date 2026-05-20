@@ -217,9 +217,10 @@ export default function AdminUserEditPage({ params }: { params: { userId: string
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                     className="w-full border rounded px-3 py-2"
                   >
+                    <option value="SUPER_ADMIN">Super Admin</option>
+                    <option value="ASSET_MANAGER">Asset Manager</option>
+                    <option value="DEPARTMENT_MANAGER">Department Manager</option>
                     <option value="EMPLOYEE">Employee</option>
-                    <option value="MANAGER">Manager</option>
-                    <option value="ADMIN">Admin</option>
                   </select>
                 </div>
               </div>

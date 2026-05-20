@@ -137,13 +137,13 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
     }
 
-    // Validate role if provided
-    if (role && !['EMPLOYEE', 'MANAGER', 'ADMIN'].includes(role)) {
+    // Validate role if provided (must match Prisma Role enum)
+    if (role && !['SUPER_ADMIN', 'ASSET_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE'].includes(role)) {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
     }
 
     // Validate subscription status
-    if (subscriptionStatus && !['ACTIVE', 'CANCELED', 'PAST_DUE', 'PAUSED'].includes(subscriptionStatus)) {
+    if (subscriptionStatus && !['ACTIVE', 'CANCELED', 'PAST_DUE', 'PAUSED', 'TRIALING'].includes(subscriptionStatus)) {
       return NextResponse.json({ error: 'Invalid subscription status' }, { status: 400 });
     }
 
