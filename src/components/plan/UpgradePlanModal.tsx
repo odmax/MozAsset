@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useRef, useEffect } from 'react';
 import type { Plan } from '@prisma/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Check, Zap, Building2, Shield, Star } from 'lucide-react';
+import { Loader2, Check, Zap, Building2, Shield, Star, ExternalLink } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface UpgradePlanModalProps {
   isOpen: boolean;
@@ -60,13 +60,23 @@ const PLAN_OPTIONS = [
 ];
 
 export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanModalProps) {
-  const router = useRouter();
+  const { toast } = useToast();
   const [loading, setLoading] = useState<Plan | null>(null);
+  const [redirecting, setRedirecting] = useState(false);
   const [error, setError] = useState('');
+  const [manualUrl, setManualUrl] = useState('');
+  const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimer.current) clearTimeout(redirectTimer.current);
+    };
+  }, []);
 
   const handleUpgrade = async (plan: Plan) => {
     setLoading(plan);
     setError('');
+    setManualUrl('');
 
     try {
       const res = await fetch('/api/billing', {
@@ -78,12 +88,16 @@ export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanMo
       const data = await res.json();
 
       if (!res.ok || data.error) {
-        setError(data.error || 'Failed to start checkout');
+        const msg = data.error || 'Failed to start checkout';
+        setError(msg);
         setLoading(null);
+        toast({ variant: 'destructive', title: 'Checkout Failed', description: msg });
         return;
       }
 
       if (data.checkoutUrl && data.checkoutData) {
+        setRedirecting(true);
+
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = data.checkoutUrl;
@@ -97,15 +111,27 @@ export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanMo
         });
 
         document.body.appendChild(form);
+
+        redirectTimer.current = setTimeout(() => {
+          if (!document.body.contains(form)) return;
+          setRedirecting(false);
+          setLoading(null);
+          setManualUrl(data.checkoutUrl);
+          setError('Redirect to Payfast did not complete. Use the manual link below.');
+          toast({ variant: 'destructive', title: 'Redirect Blocked', description: 'Please use the manual redirect link below.' });
+        }, 8000);
+
         form.submit();
-        onClose();
       } else {
         setError('Invalid checkout response');
         setLoading(null);
+        toast({ variant: 'destructive', title: 'Checkout Error', description: 'Invalid response from server.' });
       }
     } catch {
-      setError('Failed to process checkout');
+      const msg = 'Failed to process checkout';
+      setError(msg);
       setLoading(null);
+      toast({ variant: 'destructive', title: 'Checkout Error', description: msg });
     }
   };
 
@@ -143,10 +169,26 @@ export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanMo
         {error && (
           <div className="mb-4 p-3 text-sm text-red-500 bg-red-50 rounded-lg text-center">
             {error}
+            {manualUrl && (
+              <form method="POST" action={manualUrl} className="mt-3">
+                <Button type="submit" size="sm" variant="outline" className="gap-2">
+                  <ExternalLink className="h-3 w-3" />
+                  Proceed to Payfast Manually
+                </Button>
+              </form>
+            )}
           </div>
         )}
 
-        {availablePlans.length > 0 ? (
+        {redirecting && (
+          <div className="mb-4 p-4 text-sm text-primary bg-primary/5 rounded-lg text-center space-y-2">
+            <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+            <p className="font-medium">Redirecting to secure checkout...</p>
+            <p className="text-xs text-muted-foreground">You will be redirected to Payfast to complete payment</p>
+          </div>
+        )}
+
+        {!redirecting && availablePlans.length > 0 && (
           <div className="grid md:grid-cols-2 gap-4 mt-6">
             {availablePlans.map((p) => {
               const Icon = p.icon;
@@ -193,7 +235,7 @@ export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanMo
                     {isLoading ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Redirecting...
+                        Processing...
                       </>
                     ) : (
                       `Upgrade to ${p.name}`
@@ -203,7 +245,9 @@ export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanMo
               );
             })}
           </div>
-        ) : (
+        )}
+
+        {!redirecting && availablePlans.length === 0 && (
           <div className="text-center py-8">
             <Shield className="h-12 w-12 mx-auto text-amber-500 mb-4" />
             <p className="text-muted-foreground">

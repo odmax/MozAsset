@@ -1,18 +1,14 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-
 export type PlanType = 'PRO' | 'ENTERPRISE';
 
-interface CheckoutResult {
+export interface CheckoutResult {
   success: boolean;
   error?: string;
+  checkoutUrl?: string;
 }
 
-export async function startPayfastCheckout(
-  plan: PlanType,
-  router: ReturnType<typeof useRouter>
-): Promise<CheckoutResult> {
+export async function startPayfastCheckout(plan: PlanType): Promise<CheckoutResult> {
   try {
     const res = await fetch('/api/billing', {
       method: 'POST',
@@ -40,6 +36,13 @@ export async function startPayfastCheckout(
       });
 
       document.body.appendChild(form);
+
+      setTimeout(() => {
+        if (document.body.contains(form)) {
+          console.warn('[Checkout] Form not submitted within timeout');
+        }
+      }, 5000);
+
       form.submit();
       return { success: true };
     }
