@@ -55,13 +55,13 @@ export interface PayfastPaymentData {
 
 export function getPayfastConfig(): PayfastConfig {
   return {
-    merchantId: process.env.PAYFAST_MERCHANT_ID || '',
-    merchantKey: process.env.PAYFAST_MERCHANT_KEY || '',
-    passphrase: process.env.PAYFAST_PASSPHRASE || '',
-    mode: (process.env.PAYFAST_MODE as 'sandbox' | 'live') || 'sandbox',
-    itnUrl: process.env.PAYFAST_ITN_URL || '',
-    returnUrl: process.env.PAYFAST_RETURN_URL || '',
-    cancelUrl: process.env.PAYFAST_CANCEL_URL || '',
+    merchantId: (process.env.PAYFAST_MERCHANT_ID || '').trim(),
+    merchantKey: (process.env.PAYFAST_MERCHANT_KEY || '').trim(),
+    passphrase: (process.env.PAYFAST_PASSPHRASE || '').trim(),
+    mode: ((process.env.PAYFAST_MODE as 'sandbox' | 'live') || 'sandbox').trim() as 'sandbox' | 'live',
+    itnUrl: (process.env.PAYFAST_ITN_URL || '').trim(),
+    returnUrl: (process.env.PAYFAST_RETURN_URL || '').trim(),
+    cancelUrl: (process.env.PAYFAST_CANCEL_URL || '').trim(),
   };
 }
 
