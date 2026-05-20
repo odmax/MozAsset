@@ -26,13 +26,12 @@ const SECURITY_HEADERS: Record<string, string> = {
   'Content-Security-Policy': CSP_DIRECTIVES,
 };
 
-const UNVERIFIED_ALLOWED_PATHS = [
+const UNVERIFIED_ALLOWED = [
   '/verify-email',
-  '/api/auth/verify-email',
   '/api/auth/resend-verification',
+  '/api/auth/verify-email',
   '/api/auth/logout',
   '/logout',
-  '/api/auth/validate-reset-token',
 ];
 
 export async function middleware(request: Request) {
@@ -41,7 +40,6 @@ export async function middleware(request: Request) {
 
   let response: NextResponse;
 
-  // Skip middleware for login pages and API routes
   if (url.pathname === '/login' || url.pathname === '/admin-login' || url.pathname.startsWith('/api/')) {
     response = NextResponse.next();
   } else {
@@ -72,28 +70,24 @@ export async function middleware(request: Request) {
     }
   }
 
-  // Redirect unverified users from protected routes
-  if (url.pathname.startsWith('/dashboard')) {
+  if (url.pathname.startsWith('/dashboard') || url.pathname.startsWith('/onboarding')) {
     const cookieHeader = request.headers.get('cookie') || '';
     const userSession = getSimpleUserSessionFromHeader(cookieHeader);
 
     if (userSession && userSession.emailVerified === false) {
-      const allowed = UNVERIFIED_ALLOWED_PATHS.some((p) => url.pathname.startsWith(p) || url.pathname === '/verify-email');
+      const allowed = UNVERIFIED_ALLOWED.some((p) => url.pathname.startsWith(p));
       if (!allowed) {
-        const verifyUrl = new URL('/verify-email', request.url);
-        verifyUrl.searchParams.set('info', 'verify');
+        const verifyUrl = new URL('/verify-email/pending', request.url);
         response = NextResponse.redirect(verifyUrl);
         return response;
       }
     }
   }
 
-  // Add security headers
   for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
     response.headers.set(key, value);
   }
 
-  // Add CSRF token cookie
   if (!url.pathname.startsWith('/api/')) {
     const cookieHeader = request.headers.get('cookie') || '';
     const sessionValue =

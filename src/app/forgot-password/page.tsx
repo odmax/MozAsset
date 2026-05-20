@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -35,6 +36,7 @@ export default function ForgotPasswordPage() {
       }
 
       setSuccess(true);
+      toast({ title: 'Reset email sent', description: 'Check your inbox for the password reset link.' });
     } catch (err) {
       setError('An error occurred. Please try again.');
     }
@@ -61,15 +63,19 @@ export default function ForgotPasswordPage() {
           <CardContent>
             {success ? (
               <div className="text-center py-6">
-                <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                <div className="flex justify-center mb-4">
+                  <div className="rounded-full bg-green-100 p-3">
+                    <CheckCircle className="h-10 w-10 text-green-600" />
+                  </div>
+                </div>
                 <p className="text-green-700 font-medium">Check your email</p>
                 <p className="text-sm text-muted-foreground mt-2">
                   We've sent a password reset link to <strong>{email}</strong>
                 </p>
                 <p className="text-sm text-muted-foreground mt-4">
                   Didn't receive the email? Check your spam folder or{' '}
-                  <button 
-                    onClick={() => setSuccess(false)} 
+                  <button
+                    onClick={() => setSuccess(false)}
                     className="text-primary hover:underline"
                   >
                     try again

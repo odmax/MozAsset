@@ -8,12 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, CheckCircle, AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
-  
+
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -79,6 +80,7 @@ function ResetPasswordForm() {
       }
 
       setSuccess(true);
+      toast({ title: 'Password reset successful!', description: 'Redirecting to login...' });
       setTimeout(() => {
         router.push('/login');
       }, 2000);
@@ -115,7 +117,11 @@ function ResetPasswordForm() {
           </div>
           <Card>
             <CardContent className="py-12 text-center">
-              <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <div className="flex justify-center mb-4">
+                <div className="rounded-full bg-red-100 p-3">
+                  <AlertTriangle className="h-10 w-10 text-red-600" />
+                </div>
+              </div>
               <h2 className="text-xl font-semibold mb-2">Invalid Reset Link</h2>
               <p className="text-muted-foreground mb-6">{error}</p>
               <Link href="/forgot-password">
@@ -145,7 +151,11 @@ function ResetPasswordForm() {
           <CardContent>
             {success ? (
               <div className="text-center py-6">
-                <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                <div className="flex justify-center mb-4">
+                  <div className="rounded-full bg-green-100 p-3">
+                    <CheckCircle className="h-10 w-10 text-green-600" />
+                  </div>
+                </div>
                 <p className="text-green-700 font-medium">Password reset successful!</p>
                 <p className="text-sm text-muted-foreground mt-2">
                   Redirecting to login...

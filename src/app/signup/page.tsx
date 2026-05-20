@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle } from 'lucide-react';
 import { BackButton } from '@/components/ui/back-button';
 
 export default function SignupPage() {
@@ -19,7 +18,6 @@ export default function SignupPage() {
   const [terms, setTerms] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [registered, setRegistered] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,65 +50,12 @@ export default function SignupPage() {
         return;
       }
 
-      // Redirect based on onboarding status from API
-      if (data.redirectUrl) {
-        window.location.href = data.redirectUrl;
-        return;
-      }
-
-      setRegistered(true);
+      router.push('/verify-email/pending');
     } catch (err) {
       setError('Something went wrong');
       setIsLoading(false);
     }
   };
-
-  if (registered) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
-        <div className="w-full max-w-md">
-          <div className="mb-4">
-            <BackButton />
-          </div>
-          <div className="text-center mb-8">
-            <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
-              <img src="/logo.png" alt="MozAssets" className="h-11 w-auto" />
-            </Link>
-          </div>
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold">Create an account</h1>
-            <p className="text-sm text-muted-foreground mt-1">Get started with MozAssets</p>
-          </div>
-
-          <Card>
-            <CardHeader className="text-center">
-              <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-              <CardTitle className="text-2xl">Check your email</CardTitle>
-              <CardDescription>
-                We've sent a verification link to <strong>{email}</strong>
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-center space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Please click the link in the email to verify your account.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Didn't receive the email? Check your spam folder or{' '}
-                <Link href="/login" className="text-primary hover:underline font-medium">
-                  try again
-                </Link>
-              </p>
-            </CardContent>
-            <CardFooter className="justify-center">
-              <Link href="/login" className="text-sm text-primary hover:underline">
-                Back to sign in
-              </Link>
-            </CardFooter>
-          </Card>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
@@ -165,7 +110,7 @@ export default function SignupPage() {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="Create a password"
+                    placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     autoComplete="new-password"
