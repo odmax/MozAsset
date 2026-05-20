@@ -1,9 +1,8 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Loader2, CheckCircle, AlertTriangle, Mail, RefreshCw, ExternalLink } from 'lucide-react';
+import { Loader2, CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface VerificationStatus {
@@ -19,7 +18,6 @@ export default function EmailVerificationCard({
   userId?: string;
   initiallyVerified: boolean;
 }) {
-  const router = useRouter();
   const [verified, setVerified] = useState(initiallyVerified);
   const [pending, setPending] = useState(false);
   const [resending, setResending] = useState(false);
@@ -98,20 +96,11 @@ export default function EmailVerificationCard({
           <p className="text-xs text-amber-600 mt-0.5">
             {pending
               ? 'Waiting for verification...'
-              : 'Please verify your email address to access all features.'}
+              : 'Verify your email to enhance account security.'}
           </p>
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5"
-          onClick={() => router.push('/verify-email/pending')}
-        >
-          <ExternalLink className="h-3.5 w-3.5" />
-          Verify Email
-        </Button>
         <Button
           variant="outline"
           size="sm"

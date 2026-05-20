@@ -81,7 +81,6 @@ export async function POST(request: Request) {
       onBoardingComplete: hasOrgName,
       isPlatformAdmin: false,
       organizationId: result.org.id,
-      emailVerified: false,
     };
 
     const redirectUrl = hasOrgName ? '/dashboard' : '/onboarding';

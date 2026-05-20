@@ -176,8 +176,6 @@ export async function POST(request: Request) {
       select: { id: true },
     });
 
-    const isEmailVerified = Boolean(user.emailVerifiedAt);
-
     const sessionData = {
       id: user.id,
       email: String(user.email),
@@ -188,19 +186,16 @@ export async function POST(request: Request) {
       onBoardingComplete: Boolean(user.onBoardingComplete),
       organizationId: user.organizationId,
       isPlatformAdmin: Boolean(user.isPlatformAdmin),
-      emailVerified: isEmailVerified,
     };
 
     const sessionToken = Buffer.from(JSON.stringify(sessionData)).toString('base64');
 
-    // TEMP_USER_AUTH: simple user auth cookie
     const simpleUserData = {
       userId: user.id,
       email: user.email,
       role: user.role,
       plan: user.plan,
       organizationId: user.organizationId,
-      emailVerified: isEmailVerified,
       isUser: true,
     };
 

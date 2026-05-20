@@ -26,19 +26,8 @@ const SECURITY_HEADERS: Record<string, string> = {
   'Content-Security-Policy': CSP_DIRECTIVES,
 };
 
-const UNVERIFIED_ALLOWED = [
-  '/verify-email',
-  '/api/auth/resend-verification',
-  '/api/auth/verify-email',
-  '/api/auth/verification-status',
-  '/api/auth/logout',
-  '/logout',
-  '/dashboard/settings',
-];
-
 export async function middleware(request: Request) {
   const url = new URL(request.url);
-  const method = request.method;
 
   let response: NextResponse;
 
@@ -68,20 +57,6 @@ export async function middleware(request: Request) {
         } else {
           response = NextResponse.next();
         }
-      }
-    }
-  }
-
-  if (url.pathname.startsWith('/dashboard') || url.pathname.startsWith('/onboarding')) {
-    const cookieHeader = request.headers.get('cookie') || '';
-    const userSession = getSimpleUserSessionFromHeader(cookieHeader);
-
-    if (userSession && userSession.emailVerified === false) {
-      const allowed = UNVERIFIED_ALLOWED.some((p) => url.pathname.startsWith(p));
-      if (!allowed) {
-        const verifyUrl = new URL('/verify-email/pending', request.url);
-        response = NextResponse.redirect(verifyUrl);
-        return response;
       }
     }
   }

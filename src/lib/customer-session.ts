@@ -7,7 +7,6 @@ export interface SimpleUserSession {
   role: string;
   plan: string;
   organizationId: string | null;
-  emailVerified?: boolean;
   isUser: true;
 }
 
@@ -26,7 +25,6 @@ export function getSimpleUserSession(): SimpleUserSession | null {
           role: session.role || 'EMPLOYEE',
           plan: session.plan || 'FREE',
           organizationId: session.organizationId || null,
-          emailVerified: session.emailVerified === true,
           isUser: true,
         };
       }
@@ -58,7 +56,6 @@ export function getSimpleUserSessionFromHeader(cookieHeader: string): SimpleUser
           role: session.role || 'EMPLOYEE',
           plan: session.plan || 'FREE',
           organizationId: session.organizationId || null,
-          emailVerified: session.emailVerified === true,
           isUser: true,
         };
       }
