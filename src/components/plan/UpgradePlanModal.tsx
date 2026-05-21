@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from 'react';
 import type { Plan } from '@prisma/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Loader2, Check, Zap, Building2, Shield, Star, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -65,11 +64,13 @@ export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanMo
   const [redirecting, setRedirecting] = useState(false);
   const [error, setError] = useState('');
   const [manualUrl, setManualUrl] = useState('');
-  const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [manualData, setManualData] = useState<Record<string, string> | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
     return () => {
-      if (redirectTimer.current) clearTimeout(redirectTimer.current);
+      timers.current.forEach(clearTimeout);
     };
   }, []);
 
@@ -77,6 +78,7 @@ export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanMo
     setLoading(plan);
     setError('');
     setManualUrl('');
+    setManualData(null);
 
     try {
       const res = await fetch('/api/billing', {
@@ -97,31 +99,34 @@ export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanMo
 
       if (data.checkoutUrl && data.checkoutData) {
         setRedirecting(true);
+        setManualUrl(data.checkoutUrl);
+        setManualData(data.checkoutData);
 
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = data.checkoutUrl;
-
-        Object.entries(data.checkoutData).forEach(([key, value]) => {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = key;
-          input.value = value as string;
-          form.appendChild(input);
-        });
-
-        document.body.appendChild(form);
-
-        redirectTimer.current = setTimeout(() => {
-          if (!document.body.contains(form)) return;
+        // Redirect fallback: after 15s, show manual button instead of spinner
+        timers.current.push(setTimeout(() => {
           setRedirecting(false);
           setLoading(null);
-          setManualUrl(data.checkoutUrl);
-          setError('Redirect to Payfast did not complete. Use the manual link below.');
-          toast({ variant: 'destructive', title: 'Redirect Blocked', description: 'Please use the manual redirect link below.' });
-        }, 8000);
+          setError('Redirect to Payfast did not complete. Use the button below to proceed manually.');
+          toast({ variant: 'destructive', title: 'Redirect Blocked', description: 'Please use the manual redirect button below.' });
+        }, 15000));
 
-        form.submit();
+        // Submit form after a brief delay so state persists for manual fallback
+        timers.current.push(setTimeout(() => {
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = data.checkoutUrl;
+
+          Object.entries(data.checkoutData).forEach(([key, value]) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = value as string;
+            form.appendChild(input);
+          });
+
+          document.body.appendChild(form);
+          form.submit();
+        }, 100));
       } else {
         setError('Invalid checkout response');
         setLoading(null);
@@ -169,8 +174,11 @@ export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanMo
         {error && (
           <div className="mb-4 p-3 text-sm text-red-500 bg-red-50 rounded-lg text-center">
             {error}
-            {manualUrl && (
-              <form method="POST" action={manualUrl} className="mt-3">
+            {manualUrl && manualData && (
+              <form ref={formRef} method="POST" action={manualUrl} className="mt-3">
+                {Object.entries(manualData).map(([key, value]) => (
+                  <input key={key} type="hidden" name={key} value={value} />
+                ))}
                 <Button type="submit" size="sm" variant="outline" className="gap-2">
                   <ExternalLink className="h-3 w-3" />
                   Proceed to Payfast Manually
