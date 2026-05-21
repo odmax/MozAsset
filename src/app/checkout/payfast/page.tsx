@@ -14,22 +14,30 @@ function PayfastRedirectForm() {
   const payfastUrl = searchParams.get('url') ? decodeURIComponent(searchParams.get('url')!) : '';
 
   useEffect(() => {
-    if (formSubmitted.current || !rawData || !payfastUrl) return;
+    if (formSubmitted.current || !rawData || !payfastUrl) {
+      if (!rawData || !payfastUrl) setError(true);
+      return;
+    }
     formSubmitted.current = true;
 
     let payfastData: Record<string, string> | null = null;
     try {
       const decoded = atob(rawData);
       payfastData = JSON.parse(decoded);
-    } catch {
+    } catch (e) {
+      console.error('[Payfast] Failed to decode checkout data:', e);
       setError(true);
       return;
     }
 
     if (!payfastData) {
+      console.error('[Payfast] No checkout data after decode');
       setError(true);
       return;
     }
+
+    console.log('[Payfast] Submitting form to:', payfastUrl);
+    console.log('[Payfast] Fields:', Object.keys(payfastData).join(', '));
 
     // Create a form dynamically and submit it (avoids Next.js hydration issues)
     const form = document.createElement('form');
@@ -46,11 +54,19 @@ function PayfastRedirectForm() {
     }
 
     document.body.appendChild(form);
-    form.submit();
+
+    try {
+      form.submit();
+    } catch (e) {
+      console.error('[Payfast] form.submit() failed:', e);
+      setManualUrl(payfastUrl);
+      return;
+    }
 
     // If still here after 5s, show the manual button
     setTimeout(() => {
       if (document.body.contains(form)) {
+        console.log('[Payfast] Form did not navigate, showing manual button');
         setManualUrl(payfastUrl);
       }
     }, 5000);

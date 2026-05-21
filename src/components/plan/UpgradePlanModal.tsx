@@ -68,54 +68,73 @@ export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanMo
     setError('');
 
     try {
+      console.log('[Payfast] Upgrade clicked:', plan);
+
       const res = await fetch('/api/billing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'checkout', plan }),
       });
 
+      console.log('[Payfast] API response status:', res.status);
       const data = await res.json();
+      console.log('[Payfast] API response:', { checkoutUrl: data.checkoutUrl, hasData: !!data.checkoutData, error: data.error });
 
       if (!res.ok || data.error) {
         const msg = data.error || 'Failed to start checkout';
+        console.error('[Payfast] API error:', msg);
         setError(msg);
         setLoading(null);
         toast({ variant: 'destructive', title: 'Checkout Failed', description: msg });
         return;
       }
 
-      if (data.checkoutUrl && data.checkoutData) {
-        // Direct form POST to Payfast (standard Payfast custom integration pattern)
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = data.checkoutUrl;
-        form.style.display = 'none';
-
-        for (const [key, value] of Object.entries(data.checkoutData)) {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = key;
-          input.value = String(value);
-          form.appendChild(input);
-        }
-
-        document.body.appendChild(form);
-        form.submit();
-
-        // Fallback: redirect to the server-rendered form page if still here after 3s
-        const encoded = btoa(JSON.stringify(data.checkoutData));
-        const url = encodeURIComponent(data.checkoutUrl);
-        setTimeout(() => {
-          if (document.body.contains(form)) {
-            window.location.href = `/checkout/payfast?data=${encoded}&url=${url}`;
-          }
-        }, 3000);
-      } else {
-        setError('Invalid checkout response');
+      if (!data.checkoutUrl || !data.checkoutData) {
+        const msg = 'Invalid checkout response from server';
+        console.error('[Payfast] Missing checkoutUrl or checkoutData');
+        setError(msg);
         setLoading(null);
-        toast({ variant: 'destructive', title: 'Checkout Error', description: 'Invalid response from server.' });
+        toast({ variant: 'destructive', title: 'Checkout Error', description: msg });
+        return;
       }
-    } catch {
+
+      // Validate the checkout URL is a known Payfast host
+      try {
+        const parsed = new URL(data.checkoutUrl);
+        const allowedHosts = ['www.payfast.co.za', 'sandbox.payfast.co.za', 'payfast.co.za'];
+        const isAllowed = allowedHosts.some(h => parsed.hostname === h || parsed.hostname.endsWith('.' + h));
+        if (!isAllowed) {
+          throw new Error(`Untrusted host: ${parsed.hostname}`);
+        }
+      } catch (e) {
+        console.error('[Payfast] Invalid checkoutUrl:', data.checkoutUrl, e);
+        setError('Invalid payment URL configuration');
+        setLoading(null);
+        toast({ variant: 'destructive', title: 'Checkout Error', description: 'Invalid payment URL' });
+        return;
+      }
+
+      // Close modal before navigation
+      onClose();
+      setLoading(null);
+
+      // Navigate to the Payfast redirect page which handles form submission
+      let encoded: string;
+      try {
+        encoded = btoa(JSON.stringify(data.checkoutData));
+      } catch {
+        // btoa can fail on non-Latin1 characters; fall back to direct redirect
+        console.error('[Payfast] btoa failed, falling back to direct URL redirect');
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+
+      const encodedUrl = encodeURIComponent(data.checkoutUrl);
+      const redirectUrl = `/checkout/payfast?data=${encoded}&url=${encodedUrl}`;
+      console.log('[Payfast] Redirecting to:', redirectUrl);
+      window.location.href = redirectUrl;
+    } catch (e) {
+      console.error('[Payfast] Checkout error:', e);
       const msg = 'Failed to process checkout';
       setError(msg);
       setLoading(null);
