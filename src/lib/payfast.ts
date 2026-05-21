@@ -246,7 +246,7 @@ export async function updatePlanFromConfirmedPayment(
       data: {
         plan,
         subscriptionStatus: 'ACTIVE' as SubscriptionStatus,
-        billingProvider: 'PAYSTACK' as BillingProvider,
+        billingProvider: 'PAYFAST' as BillingProvider,
         billingCustomerId,
         billingSubscriptionId,
         billingPeriodStart,

@@ -85,9 +85,31 @@ export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanMo
       }
 
       if (data.checkoutUrl && data.checkoutData) {
+        // Direct form POST to Payfast (standard Payfast custom integration pattern)
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = data.checkoutUrl;
+        form.style.display = 'none';
+
+        for (const [key, value] of Object.entries(data.checkoutData)) {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = key;
+          input.value = String(value);
+          form.appendChild(input);
+        }
+
+        document.body.appendChild(form);
+        form.submit();
+
+        // Fallback: redirect to the server-rendered form page if still here after 3s
         const encoded = btoa(JSON.stringify(data.checkoutData));
         const url = encodeURIComponent(data.checkoutUrl);
-        window.location.href = `/checkout/payfast?data=${encoded}&url=${url}`;
+        setTimeout(() => {
+          if (document.body.contains(form)) {
+            window.location.href = `/checkout/payfast?data=${encoded}&url=${url}`;
+          }
+        }, 3000);
       } else {
         setError('Invalid checkout response');
         setLoading(null);
