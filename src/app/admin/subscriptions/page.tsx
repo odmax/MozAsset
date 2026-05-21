@@ -41,8 +41,8 @@ export default function AdminSubscriptionsPage() {
   const [charts, setCharts] = useState<SubscriptionChartData | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [planFilter, setPlanFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [planFilter, setPlanFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -64,8 +64,8 @@ export default function AdminSubscriptionsPage() {
     try {
       const params = new URLSearchParams();
       if (search) params.append('search', search);
-      if (statusFilter) params.append('status', statusFilter);
-      if (planFilter) params.append('plan', planFilter);
+      if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter);
+      if (planFilter && planFilter !== 'all') params.append('plan', planFilter);
       params.append('page', String(page));
       params.append('limit', '20');
       params.append('sortBy', sortBy);
@@ -308,7 +308,7 @@ export default function AdminSubscriptionsPage() {
               <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
                 <SelectTrigger className="w-[150px]"><SelectValue placeholder="All Status" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Status</SelectItem>
+                  <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="ACTIVE">Active</SelectItem>
                   <SelectItem value="CANCELED">Canceled</SelectItem>
                   <SelectItem value="PAST_DUE">Past Due</SelectItem>
@@ -319,7 +319,7 @@ export default function AdminSubscriptionsPage() {
               <Select value={planFilter} onValueChange={(v) => { setPlanFilter(v); setPage(1); }}>
                 <SelectTrigger className="w-[150px]"><SelectValue placeholder="All Plans" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Plans</SelectItem>
+                  <SelectItem value="all">All Plans</SelectItem>
                   <SelectItem value="FREE">Free</SelectItem>
                   <SelectItem value="PRO">Pro</SelectItem>
                   <SelectItem value="ENTERPRISE">Enterprise</SelectItem>

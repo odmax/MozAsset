@@ -41,9 +41,9 @@ export default function RevenuePage() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [planFilter, setPlanFilter] = useState('');
-  const [providerFilter, setProviderFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [planFilter, setPlanFilter] = useState('all');
+  const [providerFilter, setProviderFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [page, setPage] = useState(1);
@@ -55,9 +55,9 @@ export default function RevenuePage() {
     try {
       const params = new URLSearchParams();
       if (search) params.append('search', search);
-      if (statusFilter) params.append('status', statusFilter);
-      if (planFilter) params.append('plan', planFilter);
-      if (providerFilter) params.append('provider', providerFilter);
+      if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter);
+      if (planFilter && planFilter !== 'all') params.append('plan', planFilter);
+      if (providerFilter && providerFilter !== 'all') params.append('provider', providerFilter);
       if (dateFrom) params.append('dateFrom', dateFrom);
       if (dateTo) params.append('dateTo', dateTo);
       params.append('page', String(page));
@@ -244,7 +244,7 @@ export default function RevenuePage() {
         <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
           <SelectTrigger className="w-[150px]"><SelectValue placeholder="All Status" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Status</SelectItem>
+            <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="COMPLETED">Completed</SelectItem>
             <SelectItem value="FAILED">Failed</SelectItem>
             <SelectItem value="PENDING">Pending</SelectItem>
@@ -254,7 +254,7 @@ export default function RevenuePage() {
         <Select value={planFilter} onValueChange={(v) => { setPlanFilter(v); setPage(1); }}>
           <SelectTrigger className="w-[130px]"><SelectValue placeholder="All Plans" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Plans</SelectItem>
+            <SelectItem value="all">All Plans</SelectItem>
             <SelectItem value="FREE">Free</SelectItem>
             <SelectItem value="PRO">Pro</SelectItem>
             <SelectItem value="ENTERPRISE">Enterprise</SelectItem>
@@ -263,7 +263,7 @@ export default function RevenuePage() {
         <Select value={providerFilter} onValueChange={(v) => { setProviderFilter(v); setPage(1); }}>
           <SelectTrigger className="w-[140px]"><SelectValue placeholder="All Providers" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Providers</SelectItem>
+            <SelectItem value="all">All Providers</SelectItem>
             <SelectItem value="PAYFAST">Payfast</SelectItem>
             <SelectItem value="STRIPE">Stripe</SelectItem>
             <SelectItem value="NONE">None</SelectItem>
