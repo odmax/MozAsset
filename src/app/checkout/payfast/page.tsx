@@ -1,82 +1,73 @@
-'use client';
-
-import { useEffect, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
-
-export default function PayfastRedirectPage() {
-  const searchParams = useSearchParams();
-  const formRef = useRef<HTMLFormElement>(null);
-  const submitted = useRef(false);
-
-  const rawData = searchParams.get('data');
-  const payfastUrl = searchParams.get('url');
+export default function PayfastRedirectPage({
+  searchParams,
+}: {
+  searchParams: { data?: string; url?: string };
+}) {
+  const rawData = searchParams.data;
+  const payfastUrl = searchParams.url ? decodeURIComponent(searchParams.url) : '';
 
   let payfastData: Record<string, string> | null = null;
 
   if (rawData) {
     try {
-      const decoded = atob(rawData);
+      const decoded = Buffer.from(rawData, 'base64').toString('utf-8');
       payfastData = JSON.parse(decoded);
     } catch {
       // Invalid data
     }
   }
 
-  useEffect(() => {
-    if (formRef.current && payfastData && payfastUrl && !submitted.current) {
-      submitted.current = true;
-      formRef.current.submit();
-    }
-  }, [payfastData, payfastUrl]);
-
-  if (!payfastUrl || !payfastData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <h1 className="text-2xl font-bold text-red-600">Invalid Checkout Data</h1>
-          <p className="text-muted-foreground">
-            No payment data received. Please go back and try again.
-          </p>
-          <a href="/dashboard" className="text-primary hover:underline">
-            Return to Dashboard
-          </a>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center space-y-4">
-        <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-        <p className="text-lg font-medium">Redirecting to Payfast...</p>
-        <p className="text-sm text-muted-foreground">
-          Please wait while we redirect you to the secure payment page.
-        </p>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', fontFamily: 'system-ui, sans-serif', flexDirection: 'column' }}>
+      {payfastUrl && payfastData ? (
+        <>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite', marginBottom: '1rem' }}>
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+          </svg>
+          <p style={{ fontSize: '1.125rem', fontWeight: 500, margin: '0 0 0.5rem' }}>Redirecting to Payfast...</p>
+          <p style={{ fontSize: '0.875rem', color: '#666', margin: 0 }}>Please wait while we redirect you to the secure payment page.</p>
 
-        <form ref={formRef} method="POST" action={payfastUrl} className="hidden">
-          {Object.entries(payfastData).map(([key, value]) => (
-            <input key={key} type="hidden" name={key} value={value} />
-          ))}
-        </form>
+          <form id="payfast-form" method="POST" action={payfastUrl} style={{ display: 'none' }}>
+            {Object.entries(payfastData).map(([key, value]) => (
+              <input key={key} type="hidden" name={key} value={value} />
+            ))}
+          </form>
 
-        <noscript>
-          <div className="mt-4">
-            <form method="POST" action={payfastUrl}>
-              {Object.entries(payfastData).map(([key, value]) => (
-                <input key={key} type="hidden" name={key} value={value} />
-              ))}
-              <button
-                type="submit"
-                className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-              >
-                Proceed to Payfast
-              </button>
-            </form>
-          </div>
-        </noscript>
-      </div>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                document.addEventListener('DOMContentLoaded', function() {
+                  var form = document.getElementById('payfast-form');
+                  if (form) {
+                    setTimeout(function() { form.submit(); }, 100);
+                  }
+                });
+              `,
+            }}
+          />
+
+          <noscript>
+            <div style={{ marginTop: '1rem' }}>
+              <form method="POST" action={payfastUrl}>
+                {Object.entries(payfastData).map(([key, value]) => (
+                  <input key={key} type="hidden" name={key} value={value} />
+                ))}
+                <button type="submit" style={{ padding: '0.75rem 1.5rem', backgroundColor: '#000', color: '#fff', border: 'none', borderRadius: '0.375rem', fontSize: '0.875rem', cursor: 'pointer' }}>
+                  Proceed to Payfast
+                </button>
+              </form>
+            </div>
+          </noscript>
+        </>
+      ) : (
+        <>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#dc2626', margin: '0 0 0.5rem' }}>Invalid Checkout Data</h1>
+          <p style={{ color: '#666', margin: '0 0 1rem' }}>No payment data received. Please go back and try again.</p>
+          <a href="/dashboard" style={{ color: '#0066cc', textDecoration: 'underline' }}>Return to Dashboard</a>
+        </>
+      )}
     </div>
   );
 }
