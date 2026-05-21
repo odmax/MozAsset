@@ -304,7 +304,7 @@ export default function UpgradePage() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <Package className="h-5 w-5" />
-              <span>Â© 2026 MozAssets</span>
+              <span>© 2026 MozAssets</span>
             </div>
             <div className="flex items-center gap-6">
               <Link href="/" className="hover:text-foreground">Home</Link>

@@ -183,7 +183,7 @@ export default function LandingPage() {
             </div>
 
             <p className="text-sm text-muted-foreground mt-4">
-              No credit card required â€¢ Free plan includes 50 assets
+              No credit card required - Free plan includes 50 assets
             </p>
           </div>
         </div>
@@ -420,7 +420,7 @@ export default function LandingPage() {
           </div>
           
           <div className="border-t border-slate-800 pt-8 text-sm text-center">
-            <p>Â© 2026 MozAssets by Mozetech. All rights reserved.</p>
+            <p>© 2026 MozAssets by Mozetech. All rights reserved.</p>
           </div>
         </div>
       </footer>

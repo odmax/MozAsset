@@ -121,7 +121,7 @@ export default function BillingPage() {
         <ArrowLeft className="h-4 w-4 mr-2" />Back
       </Button>
 
-      {/* â•â•â• Header â•â•â• */}
+      {/* --- Header --- */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Billing</h1>
@@ -143,7 +143,7 @@ export default function BillingPage() {
         </div>
       )}
 
-      {/* â•â•â• Current Plan â•â•â• */}
+      {/* --- Current Plan --- */}
       <Card className={`overflow-hidden border ${plan === 'PRO' ? 'border-primary/30 shadow-md shadow-primary/5' : plan === 'ENTERPRISE' ? 'border-amber-200 shadow-md shadow-amber-100/30' : ''}`}>
         <div className={`bg-gradient-to-r ${meta.gradient} px-6 pt-5 pb-4`}>
           <div className="flex items-start justify-between">
@@ -211,7 +211,7 @@ export default function BillingPage() {
         </CardContent>
       </Card>
 
-      {/* â•â•â• Subscription Details â•â•â• */}
+      {/* --- Subscription Details --- */}
       {plan !== 'FREE' && (
         <Card>
           <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-primary" />Subscription Details</CardTitle></CardHeader>
@@ -242,7 +242,7 @@ export default function BillingPage() {
         </Card>
       )}
 
-      {/* â•â•â• Usage â•â•â• */}
+      {/* --- Usage --- */}
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><BarChart3 className="h-5 w-5 text-primary" />Current Usage</CardTitle></CardHeader>
         <CardContent className="space-y-5">
@@ -253,7 +253,7 @@ export default function BillingPage() {
         </CardContent>
       </Card>
 
-      {/* â•â•â• Plans Comparison â•â•â• */}
+      {/* --- Plans Comparison --- */}
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Crown className="h-5 w-5 text-primary" />Available Plans</CardTitle></CardHeader>
         <CardContent>
@@ -324,7 +324,7 @@ export default function BillingPage() {
               <p className="text-xs text-muted-foreground mb-4">Unlimited everything</p>
               <ul className="space-y-2 mb-5 text-sm">
                 <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />Unlimited assets</li>
-                <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" /><span className="text-amber-600 text-xs font-bold">âˆž</span> All Pro features + more</li>
+                <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" /><span className="text-amber-600 text-xs font-bold">∞</span> All Pro features + more</li>
                 <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />API access</li>
                 <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />Multi-branch support</li>
                 <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />SLA + on-premise option</li>
@@ -345,7 +345,7 @@ export default function BillingPage() {
         </CardContent>
       </Card>
 
-      {/* â•â•â• Payment Method â•â•â• */}
+      {/* --- Payment Method --- */}
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" />Payment Method</CardTitle></CardHeader>
         <CardContent>
@@ -362,7 +362,7 @@ export default function BillingPage() {
         </CardContent>
       </Card>
 
-      {/* â•â•â• Billing History â•â•â• */}
+      {/* --- Billing History --- */}
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Clock className="h-5 w-5 text-primary" />Billing History</CardTitle></CardHeader>
         <CardContent>
@@ -376,7 +376,7 @@ export default function BillingPage() {
         </CardContent>
       </Card>
 
-      {/* â•â•â• Need Help â•â•â• */}
+      {/* --- Need Help --- */}
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><HeadphonesIcon className="h-5 w-5 text-primary" />Need Help?</CardTitle></CardHeader>
         <CardContent className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -389,7 +389,7 @@ export default function BillingPage() {
         </CardContent>
       </Card>
 
-      {/* â•â•â• Cancel Subscription â•â•â• */}
+      {/* --- Cancel Subscription --- */}
       {plan !== 'FREE' && (
         <Card className="border-red-200 bg-gradient-to-r from-red-50/30 to-transparent overflow-hidden">
           <CardHeader className="pb-3">

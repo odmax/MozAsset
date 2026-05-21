@@ -190,7 +190,7 @@ export default function SecurityPage() {
       <footer className="border-t py-8">
         <div className="container mx-auto px-4">
           <p className="text-sm text-muted-foreground text-center">
-            Â© 2026 MozAssets by Mozetech. All rights reserved.
+            © 2026 MozAssets by Mozetech. All rights reserved.
           </p>
         </div>
       </footer>
