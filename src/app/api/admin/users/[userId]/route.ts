@@ -117,74 +117,93 @@ export async function DELETE(
   try {
     const targetUser = await prisma.user.findUnique({
       where: { id: params.userId },
-      select: { id: true, email: true, organizationId: true },
+      select: {
+        id: true, email: true, organizationId: true,
+        accounts: { select: { id: true } },
+        sessions: { select: { id: true } },
+        ownedOrganization: { select: { id: true } },
+        managedDepartments: { select: { id: true } },
+      },
     });
 
     if (!targetUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Thoroughly delete user and all related data in a transaction
     await prisma.$transaction(async (tx) => {
-      const orgId = targetUser.organizationId;
+      // Delete NextAuth accounts and sessions
+      if (targetUser.accounts.length > 0) {
+        await tx.account.deleteMany({ where: { userId: params.userId } });
+      }
+      if (targetUser.sessions.length > 0) {
+        await tx.session.deleteMany({ where: { userId: params.userId } });
+      }
 
-      // Delete user's notifications
+      // Delete notifications
       await tx.notification.deleteMany({ where: { userId: params.userId } });
 
-      // Delete user's support tickets
+      // Delete support tickets
       await tx.supportTicket.deleteMany({ where: { userId: params.userId } });
 
-      // Delete user's files
+      // Delete files uploaded by this user
       await tx.file.deleteMany({ where: { uploadedById: params.userId } });
 
-      // Delete user's payment/invoice records
+      // Delete payment and invoice records
       await tx.payment.deleteMany({ where: { userId: params.userId } });
       await tx.invoice.deleteMany({ where: { userId: params.userId } });
 
-      // Unassign assets assigned to this user
+      // Delete audit logs for this user
+      await tx.auditLog.deleteMany({ where: { userId: params.userId } });
+
+      // Clear department manager assignments
+      if (targetUser.managedDepartments.length > 0) {
+        await tx.department.updateMany({
+          where: { managerId: params.userId },
+          data: { managerId: null },
+        });
+      }
+
+      // Unassign assets currently assigned to this user
       const assets = await tx.asset.findMany({
         where: { assignedToId: params.userId },
         select: { id: true },
       });
       for (const asset of assets) {
-        await tx.assetAssignment.deleteMany({ where: { assetId: asset.id } });
         await tx.asset.update({
           where: { id: asset.id },
           data: { assignedToId: null, status: 'AVAILABLE' },
         });
       }
 
+      // Delete all asset assignment history for this user
+      await tx.assetAssignment.deleteMany({ where: { userId: params.userId } });
+
       // Delete maintenance records performed by this user
       await tx.maintenance.deleteMany({ where: { performedBy: params.userId } });
 
-      // If user owns an organization, delete the org and all related data
-      if (orgId) {
-        const org = await tx.organization.findUnique({
-          where: { id: orgId },
-          select: { id: true },
+      // If user owns an organization (via ownerId), delete it and all related data
+      if (targetUser.ownedOrganization) {
+        const orgId = targetUser.ownedOrganization.id;
+        await tx.department.deleteMany({ where: { organizationId: orgId } });
+        await tx.location.deleteMany({ where: { organizationId: orgId } });
+        await tx.category.deleteMany({ where: { organizationId: orgId } });
+        await tx.vendor.deleteMany({ where: { organizationId: orgId } });
+        await tx.file.deleteMany({ where: { organizationId: orgId } });
+        await tx.asset.updateMany({
+          where: { organizationId: orgId },
+          data: { organizationId: null },
         });
-        if (org) {
-          await tx.department.deleteMany({ where: { organizationId: orgId } });
-          await tx.location.deleteMany({ where: { organizationId: orgId } });
-          await tx.category.deleteMany({ where: { organizationId: orgId } });
-          await tx.vendor.deleteMany({ where: { organizationId: orgId } });
-          await tx.file.deleteMany({ where: { organizationId: orgId } });
-          await tx.asset.updateMany({
-            where: { organizationId: orgId },
-            data: { organizationId: null },
-          });
-          await tx.organization.delete({ where: { id: orgId } });
-        }
+        await tx.organization.delete({ where: { id: orgId } });
       }
 
       // Delete the user
       await tx.user.delete({ where: { id: params.userId } });
     });
 
-    // Create audit log
+    // Create audit log for the deletion action
     await prisma.auditLog.create({
       data: {
-        action: 'UPDATE',
+        action: 'DELETE',
         entityType: 'User',
         entityId: params.userId,
         userId: sessionUser?.id || adminUser?.id || 'unknown',
