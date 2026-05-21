@@ -219,6 +219,14 @@ export default function AdminUsersPage() {
             <p className="text-xs text-muted-foreground mt-1">Total FREE accounts</p>
           </div>
           <div className="bg-card border rounded-xl p-4">
+            <p className="text-2xl font-bold text-purple-600">{users.filter(u => u.plan === 'PRO').length}</p>
+            <p className="text-xs text-muted-foreground mt-1">Pro accounts</p>
+          </div>
+          <div className="bg-card border rounded-xl p-4">
+            <p className="text-2xl font-bold text-amber-600">{users.filter(u => u.plan === 'ENTERPRISE').length}</p>
+            <p className="text-xs text-muted-foreground mt-1">Enterprise accounts</p>
+          </div>
+          <div className="bg-card border rounded-xl p-4">
             <p className="text-2xl font-bold text-amber-600">{lifecycleStats.inactive60Days}</p>
             <p className="text-xs text-muted-foreground mt-1">Inactive 60+ days</p>
           </div>
