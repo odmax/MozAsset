@@ -26,7 +26,7 @@ function CheckoutSuccessContent() {
           const res = await fetch('/api/billing');
           const data = await res.json();
           if (data.plan && data.plan !== 'FREE') {
-            // Plan upgraded ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â refresh session cookie
+            // Plan upgraded -- refresh session cookie
             if (userId) {
               await fetch('/api/auth/refresh-session', {
                 method: 'POST',
