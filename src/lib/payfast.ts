@@ -251,6 +251,7 @@ export async function updatePlanFromConfirmedPayment(
         billingSubscriptionId,
         billingPeriodStart,
         billingPeriodEnd,
+        lastPaymentAt: new Date(),
         assetLimit: limits.assetLimit,
         departmentLimit: limits.departmentLimit,
         locationLimit: limits.locationLimit,
@@ -261,7 +262,7 @@ export async function updatePlanFromConfirmedPayment(
     // Keep Organization plan in sync with user's plan
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { organizationId: true },
+      select: { id: true, organizationId: true, email: true, name: true },
     });
     if (user?.organizationId) {
       await prisma.organization.update({
@@ -269,6 +270,23 @@ export async function updatePlanFromConfirmedPayment(
         data: { plan, subscriptionStatus: 'ACTIVE' as SubscriptionStatus },
       });
     }
+
+    // Create a Payment record so it shows up in billing analytics
+    const planPrice = plan === 'PRO' ? 149 : plan === 'ENTERPRISE' ? 599 : 0;
+    await prisma.payment.create({
+      data: {
+        userId,
+        amount: planPrice,
+        currency: 'ZAR',
+        status: 'COMPLETED',
+        provider: 'PAYFAST',
+        providerPaymentId: paymentId,
+        plan,
+        periodStart: billingPeriodStart,
+        periodEnd: billingPeriodEnd,
+        paidAt: new Date(),
+      },
+    });
 
     const { createNotification } = await import('@/lib/notifications');
     createNotification({
