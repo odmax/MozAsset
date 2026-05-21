@@ -105,21 +105,34 @@ export function generateSignature(data: Record<string, string>): string {
   // Sort alphabetically
   const sortedKeys = Object.keys(validData).sort();
   
-  // Build signature string with PHP-compatible encoding
-  const pairs: string[] = [];
+  // Build TWO signature strings for testing:
+  // 1. Raw values (no URL encoding) — some Payfast server versions use this
+  // 2. URL-encoded values — matches PHP urlencode(trim()) library
+  const rawPairs: string[] = [];
+  const encodedPairs: string[] = [];
   for (const key of sortedKeys) {
     const value = validData[key];
-    pairs.push(`${key}=${phpUrlencode(value)}`);
+    rawPairs.push(`${key}=${value.trim()}`);
+    encodedPairs.push(`${key}=${phpUrlencode(value)}`);
   }
   
-  let signatureString = pairs.join('&');
+  const rawSigString = rawPairs.join('&');
+  const encodedSigString = encodedPairs.join('&');
+  
+  // Use raw values (non-URL-encoded) — most compatible with Payfast live
+  let signatureString = rawSigString;
+  let sigMethod = 'raw';
   
   // Append passphrase if configured (Payfast dashboard setting)
   if (config.passphrase && config.passphrase.length > 0) {
-    signatureString += `&passphrase=${phpUrlencode(config.passphrase)}`;
+    signatureString += `&passphrase=${config.passphrase.trim()}`;
   }
   
   const sig = crypto.createHash('md5').update(signatureString).digest('hex');
+  
+  // Also compute URL-encoded version for comparison (matches PHP urlencode library)
+  const encodedSigFull = encodedSigString + (config.passphrase ? `&passphrase=${phpUrlencode(config.passphrase)}` : '');
+  const encodedSig = crypto.createHash('md5').update(encodedSigFull).digest('hex');
   
   // Debug logging — log field values (safe, no secrets in field values)
   const debugFields: Record<string, string> = {};
@@ -128,13 +141,14 @@ export function generateSignature(data: Record<string, string>): string {
       key === 'passphrase' ? '[REDACTED]' : validData[key];
   }
 
-  // Build a sanitized signature string for debug (passphrase VALUE masked)
-  const sanitizedPairs = pairs.map(p => {
-    if (p.startsWith('passphrase=')) return 'passphrase=[REDACTED]';
-    if (p.startsWith('merchant_key=')) return 'merchant_key=[REDACTED]';
-    return p;
-  });
-  const sanitizedSigString = sanitizedPairs.join('&');
+  // Build sanitized versions for debug
+  const sanitize = (pair: string) => {
+    if (pair.startsWith('passphrase=')) return 'passphrase=[REDACTED]';
+    if (pair.startsWith('merchant_key=')) return 'merchant_key=[REDACTED]';
+    return pair;
+  };
+  const sanitizedRaw = rawPairs.map(sanitize).join('&');
+  const sanitizedEncoded = encodedPairs.map(sanitize).join('&');
 
   console.log('[Payfast] Signature debug:', {
     mode: config.mode,
@@ -146,8 +160,11 @@ export function generateSignature(data: Record<string, string>): string {
     fields: sortedKeys,
     fieldCount: sortedKeys.length,
     fieldValues: debugFields,
-    sanitizedSignatureString: sanitizedSigString,
+    method: sigMethod,
+    sanitizedRawSigString: sanitizedRaw,
+    sanitizedEncodedSigString: sanitizedEncoded,
     md5: sig,
+    md5_encoded: encodedSig,
   });
   
   return sig;
