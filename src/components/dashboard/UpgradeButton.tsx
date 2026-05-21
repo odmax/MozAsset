@@ -54,22 +54,21 @@ export function UpgradeBanner({ userPlan }: UpgradeBannerProps) {
 
   return (
     <>
-      <div className="border border-purple-200 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4">
+      <div className="border border-green-200 dark:border-green-900 bg-gradient-to-r from-green-50 via-emerald-50 to-green-50 dark:from-green-950/40 dark:via-emerald-950/40 dark:to-green-950/40 rounded-lg p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-sm shadow-green-200 dark:shadow-green-950">
               <Crown className="h-6 w-6 text-white" />
             </div>
             <div>
-              <p className="font-semibold text-purple-900">Upgrade to Pro</p>
-              <p className="text-sm text-purple-700">
+              <p className="font-semibold text-green-800 dark:text-green-400">Upgrade to Pro</p>
+              <p className="text-sm text-green-600 dark:text-green-500">
                 Get unlimited assets, advanced reports, and export features
               </p>
             </div>
           </div>
           <Button 
             onClick={() => setModalOpen(true)}
-            className="bg-purple-600 hover:bg-purple-700"
           >
             <Sparkles className="h-4 w-4 mr-2" />
             Upgrade

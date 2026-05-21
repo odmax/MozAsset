@@ -26,7 +26,7 @@ export default function CheckoutCancelPage() {
             </p>
             <div className="pt-4 space-y-2">
               <Link href="/upgrade">
-                <Button className="w-full bg-purple-600 hover:bg-purple-700">
+                <Button className="w-full">
                   Try Again
                 </Button>
               </Link>

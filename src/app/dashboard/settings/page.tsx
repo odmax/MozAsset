@@ -384,7 +384,7 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="flex items-center gap-4">
                 {user?.plan === 'PRO' || user?.plan === 'ENTERPRISE' ? (
-                  <Crown className="h-10 w-10 text-purple-500" />
+                  <Crown className="h-10 w-10 text-green-600 dark:text-green-400" />
                 ) : (
                   <Package className="h-10 w-10 text-muted-foreground" />
                 )}
@@ -412,7 +412,7 @@ export default function SettingsPage() {
                 </div>
               </div>
               {user?.plan === 'FREE' && (
-                <Button onClick={() => setShowUpgradeModal(true)} className="w-full bg-purple-600 hover:bg-purple-700">
+                <Button onClick={() => setShowUpgradeModal(true)} className="w-full">
                   Upgrade to Pro
                 </Button>
               )}

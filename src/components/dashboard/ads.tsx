@@ -34,22 +34,21 @@ export function UpgradeBanner({ userPlan = 'FREE', onDismiss }: AdBannerProps) {
         visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
       }`}
     >
-      <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
+      <Card className="bg-gradient-to-r from-green-50 via-emerald-50 to-green-50 dark:from-green-950/40 dark:via-emerald-950/40 dark:to-green-950/40 border-green-200 dark:border-green-900">
         <CardContent className="p-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Crown className="h-5 w-5 text-purple-600" />
+              <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+                <Crown className="h-5 w-5 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <p className="font-medium text-purple-900">Upgrade to Pro</p>
-                <p className="text-sm text-purple-700">Remove ads and unlock advanced features</p>
+                <p className="font-medium text-green-800 dark:text-green-400">Upgrade to Pro</p>
+                <p className="text-sm text-green-600 dark:text-green-500">Remove ads and unlock advanced features</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Button
                 size="sm"
-                className="bg-purple-600 hover:bg-purple-700"
                 onClick={() => router.push('/billing?upgrade=true')}
               >
                 <Sparkles className="h-4 w-4 mr-1" />
@@ -86,18 +85,18 @@ export function SidebarAd({ userPlan = 'FREE' }: SidebarAdProps) {
         visible ? 'opacity-100' : 'opacity-0'
       }`}
     >
-      <Card className="bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200 mt-4">
+      <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/40 dark:to-emerald-950/40 border-green-200 dark:border-green-900 mt-4">
         <CardContent className="p-4 text-center">
-          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-3">
+          <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm shadow-green-200 dark:shadow-green-950">
             <Crown className="h-6 w-6 text-white" />
           </div>
-          <p className="font-medium text-sm mb-2">Upgrade to Pro</p>
-          <p className="text-xs text-muted-foreground mb-3">
+          <p className="font-semibold text-sm mb-2 text-green-800 dark:text-green-400">Upgrade to Pro</p>
+          <p className="text-xs text-green-600 dark:text-green-500 mb-3">
             Remove ads and unlock all features
           </p>
           <Button
             size="sm"
-            className="w-full bg-purple-600 hover:bg-purple-700"
+            className="w-full"
             onClick={() => router.push('/billing?upgrade=true')}
           >
             <Sparkles className="h-3 w-3 mr-1" />
@@ -119,15 +118,14 @@ export function ReportsAd({ userPlan = 'FREE' }: ReportsAdProps) {
   if (userPlan !== 'FREE') return null;
 
   return (
-    <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200 mt-6">
+    <Card className="bg-gradient-to-r from-green-50 via-emerald-50 to-green-50 dark:from-green-950/40 dark:via-emerald-950/40 dark:to-green-950/40 border-green-200 dark:border-green-900 mt-6">
       <CardContent className="p-6 text-center">
-        <Crown className="h-10 w-10 text-purple-600 mx-auto mb-3" />
-        <h3 className="font-semibold text-purple-900 mb-2">Unlock Full Reports</h3>
-        <p className="text-sm text-purple-700 mb-4">
+        <Crown className="h-10 w-10 text-green-600 dark:text-green-400 mx-auto mb-3" />
+        <h3 className="font-semibold text-green-800 dark:text-green-400 mb-2">Unlock Full Reports</h3>
+        <p className="text-sm text-green-600 dark:text-green-500 mb-4">
           Get advanced analytics, custom reports, and export features with Pro
         </p>
         <Button
-          className="bg-purple-600 hover:bg-purple-700"
           onClick={() => router.push('/billing?upgrade=true')}
         >
           <Sparkles className="h-4 w-4 mr-2" />

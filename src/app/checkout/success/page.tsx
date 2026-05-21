@@ -51,7 +51,7 @@ function CheckoutSuccessContent() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
         <Card className="w-full max-w-md">
           <CardContent className="py-12 text-center">
-            <Loader2 className="h-12 w-12 animate-spin mx-auto text-purple-600" />
+            <Loader2 className="h-12 w-12 animate-spin mx-auto text-green-600" />
             <p className="mt-4 text-muted-foreground">Processing your payment...</p>
             <p className="text-sm text-muted-foreground mt-2">Waiting for payment confirmation...</p>
           </CardContent>
@@ -80,7 +80,7 @@ function CheckoutSuccessContent() {
               </p>
               <div className="pt-4">
                 <Link href="/dashboard">
-                  <Button className="w-full bg-purple-600 hover:bg-purple-700">
+                  <Button className="w-full">
                     Go to Dashboard
                   </Button>
                 </Link>
@@ -115,7 +115,7 @@ function CheckoutSuccessContent() {
             </p>
             <div className="pt-4">
               <Link href="/dashboard">
-                <Button className="w-full bg-purple-600 hover:bg-purple-700">
+                <Button className="w-full">
                   Go to Dashboard
                 </Button>
               </Link>
@@ -136,7 +136,7 @@ export default function CheckoutSuccessPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
         <Card className="w-full max-w-md">
           <CardContent className="py-12 text-center">
-            <Loader2 className="h-12 w-12 animate-spin mx-auto text-purple-600" />
+            <Loader2 className="h-12 w-12 animate-spin mx-auto text-green-600" />
             <p className="mt-4 text-muted-foreground">Loading...</p>
           </CardContent>
         </Card>
