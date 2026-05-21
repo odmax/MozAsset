@@ -3,17 +3,21 @@ import { getSimpleAdminSessionFromHeader } from '@/lib/admin-session';
 import { getSimpleUserSessionFromHeader } from '@/lib/customer-session';
 import { generateCsrfToken, getCsrfCookieOptions } from '@/lib/csrf';
 
+const PAYFAST_LIVE = 'https://www.payfast.co.za';
+const PAYFAST_SANDBOX = 'https://sandbox.payfast.co.za';
+const PAYFAST_PAYMENT = 'https://payment.payfast.io';
+
 const CSP_DIRECTIVES = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.payfast.co.za https://js.sentry-cdn.com",
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${PAYFAST_LIVE} ${PAYFAST_SANDBOX} https://js.sentry-cdn.com`,
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: blob: https:",
   "font-src 'self' https://fonts.gstatic.com",
-  "connect-src 'self' https://*.payfast.co.za https://sentry.io",
-  "frame-src 'self' https://*.payfast.co.za",
+  `connect-src 'self' ${PAYFAST_LIVE} ${PAYFAST_SANDBOX} https://sentry.io`,
+  `frame-src 'self' ${PAYFAST_LIVE} ${PAYFAST_SANDBOX} ${PAYFAST_PAYMENT}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
-  "form-action 'self' https://*.payfast.co.za",
+  `form-action 'self' ${PAYFAST_LIVE} ${PAYFAST_SANDBOX} ${PAYFAST_PAYMENT}`,
 ].join('; ');
 
 const SECURITY_HEADERS: Record<string, string> = {
