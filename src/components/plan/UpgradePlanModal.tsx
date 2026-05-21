@@ -62,14 +62,10 @@ export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanMo
   const { toast } = useToast();
   const [loading, setLoading] = useState<Plan | null>(null);
   const [error, setError] = useState('');
-  const [payfastUrl, setPayfastUrl] = useState('');
-  const [payfastData, setPayfastData] = useState<Record<string, string> | null>(null);
 
   const handleUpgrade = async (plan: Plan) => {
     setLoading(plan);
     setError('');
-    setPayfastUrl('');
-    setPayfastData(null);
 
     try {
       const res = await fetch('/api/billing', {
@@ -89,8 +85,9 @@ export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanMo
       }
 
       if (data.checkoutUrl && data.checkoutData) {
-        setPayfastUrl(data.checkoutUrl);
-        setPayfastData(data.checkoutData);
+        const encoded = btoa(JSON.stringify(data.checkoutData));
+        const url = encodeURIComponent(data.checkoutUrl);
+        window.location.href = `/checkout/payfast?data=${encoded}&url=${url}`;
       } else {
         setError('Invalid checkout response');
         setLoading(null);
@@ -124,8 +121,6 @@ export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanMo
 
   const availablePlans = getAvailablePlans();
 
-  const showPayfastForm = payfastUrl && payfastData;
-
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -143,29 +138,7 @@ export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanMo
           </div>
         )}
 
-        {showPayfastForm ? (
-          <div className="text-center space-y-4 py-4">
-            <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-              <Check className="h-8 w-8 text-green-600" />
-            </div>
-            <p className="text-lg font-medium">Ready to Process Payment</p>
-            <p className="text-sm text-muted-foreground">
-              Click the button below to proceed to Payfast&apos;s secure payment page.
-            </p>
-            <form method="POST" action={payfastUrl}>
-              {Object.entries(payfastData).map(([key, value]) => (
-                <input key={key} type="hidden" name={key} value={value} />
-              ))}
-              <Button type="submit" size="lg" className="gap-2 text-base px-8">
-                <ExternalLink className="h-5 w-5" />
-                Proceed to Payfast
-              </Button>
-            </form>
-            <p className="text-xs text-muted-foreground">
-              You will be redirected to Payfast to complete your payment securely.
-            </p>
-          </div>
-        ) : availablePlans.length > 0 ? (
+        {availablePlans.length > 0 ? (
           <div className="grid md:grid-cols-2 gap-4 mt-6">
             {availablePlans.map((p) => {
               const Icon = p.icon;
