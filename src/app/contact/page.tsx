@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Package, CheckCircle, Mail, Phone, Building2 } from 'lucide-react';
+import { Package, CheckCircle, Mail, Building2 } from 'lucide-react';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -117,19 +117,10 @@ export default function ContactPage() {
                   <div>
                     <h3 className="font-semibold mb-1">Email Us</h3>
                     <p className="text-muted-foreground text-sm">
-                      sales@mozetech.com
+                      sales@mozetech.co.za
                     </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
-                    <Phone className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold mb-1">Call Us</h3>
                     <p className="text-muted-foreground text-sm">
-                      +1 (555) 123-4567
+                      info@mozetech.co.za
                     </p>
                   </div>
                 </div>
