@@ -91,7 +91,7 @@ export default function BillingPage() {
     }
   }, [searchParams]);
 
-  const handleBack = () => { if (window.history.length > 1) router.back(); else router.push('/dashboard'); };
+  const handleBack = () => { router.push('/dashboard'); };
 
   if (loading) return (
     <div className="space-y-6">
