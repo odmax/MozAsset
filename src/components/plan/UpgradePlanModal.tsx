@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import type { Plan } from '@prisma/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -61,39 +61,9 @@ const PLAN_OPTIONS = [
 export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanModalProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState<Plan | null>(null);
-  const [redirecting, setRedirecting] = useState(false);
   const [error, setError] = useState('');
   const [payfastUrl, setPayfastUrl] = useState('');
   const [payfastData, setPayfastData] = useState<Record<string, string> | null>(null);
-  const autoFormRef = useRef<HTMLFormElement>(null);
-  const fallbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (fallbackTimer.current) clearTimeout(fallbackTimer.current);
-    };
-  }, []);
-
-  // Auto-submit the Payfast form when it becomes available in the DOM
-  useEffect(() => {
-    if (redirecting && autoFormRef.current) {
-      console.log('[Payfast] Auto-submit: form ref available, submitting...');
-      requestAnimationFrame(() => {
-        try {
-          autoFormRef.current?.submit();
-          console.log('[Payfast] Auto-submit: form.submit() called successfully');
-        } catch (err) {
-          console.error('[Payfast] Auto-submit: form.submit() threw:', err);
-        }
-      });
-
-      // Log if we're still here after 3s (submit likely didn't navigate)
-      const stuckCheck = setTimeout(() => {
-        console.log('[Payfast] WARNING: component still mounted 3s after submit - navigation blocked');
-      }, 3000);
-      return () => clearTimeout(stuckCheck);
-    }
-  }, [redirecting]);
 
   const handleUpgrade = async (plan: Plan) => {
     setLoading(plan);
@@ -121,15 +91,6 @@ export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanMo
       if (data.checkoutUrl && data.checkoutData) {
         setPayfastUrl(data.checkoutUrl);
         setPayfastData(data.checkoutData);
-        setRedirecting(true);
-
-        // Fallback: after 15s show manual button
-        fallbackTimer.current = setTimeout(() => {
-          setRedirecting(false);
-          setLoading(null);
-          setError('Redirect did not complete. Click the button below to proceed to Payfast.');
-          toast({ variant: 'destructive', title: 'Redirect Issue', description: 'Use the manual button to proceed.' });
-        }, 15000);
       } else {
         setError('Invalid checkout response');
         setLoading(null);
@@ -157,11 +118,13 @@ export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanMo
 
   const getAvailablePlans = () => {
     if (currentPlan === 'FREE') return PLAN_OPTIONS;
-    if (currentPlan === 'PRO') return [PLAN_OPTIONS[1]]; // Only Enterprise
-    return []; // No upgrades for Enterprise
+    if (currentPlan === 'PRO') return [PLAN_OPTIONS[1]];
+    return [];
   };
 
   const availablePlans = getAvailablePlans();
+
+  const showPayfastForm = payfastUrl && payfastData;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -174,46 +137,40 @@ export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanMo
           <DialogDescription>{getDescription()}</DialogDescription>
         </DialogHeader>
 
-        {/* Hidden auto-submit form — declarative, rendered in React tree */}
-        {redirecting && payfastUrl && payfastData && (
-          <form ref={autoFormRef} method="POST" action={payfastUrl} style={{ display: 'none' }}>
-            {Object.entries(payfastData).map(([key, value]) => (
-              <input key={key} type="hidden" name={key} value={value} />
-            ))}
-          </form>
-        )}
-
         {error && (
           <div className="mb-4 p-3 text-sm text-red-500 bg-red-50 rounded-lg text-center">
             {error}
-            {payfastUrl && payfastData && (
-              <form method="POST" action={payfastUrl} className="mt-3">
-                {Object.entries(payfastData).map(([key, value]) => (
-                  <input key={key} type="hidden" name={key} value={value} />
-                ))}
-                <Button type="submit" size="sm" variant="outline" className="gap-2">
-                  <ExternalLink className="h-3 w-3" />
-                  Proceed to Payfast Manually
-                </Button>
-              </form>
-            )}
           </div>
         )}
 
-        {redirecting && (
-          <div className="mb-4 p-4 text-sm text-primary bg-primary/5 rounded-lg text-center space-y-2">
-            <Loader2 className="h-5 w-5 animate-spin mx-auto" />
-            <p className="font-medium">Redirecting to secure checkout...</p>
-            <p className="text-xs text-muted-foreground">You will be redirected to Payfast to complete payment</p>
+        {showPayfastForm ? (
+          <div className="text-center space-y-4 py-4">
+            <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+              <Check className="h-8 w-8 text-green-600" />
+            </div>
+            <p className="text-lg font-medium">Ready to Process Payment</p>
+            <p className="text-sm text-muted-foreground">
+              Click the button below to proceed to Payfast&apos;s secure payment page.
+            </p>
+            <form method="POST" action={payfastUrl}>
+              {Object.entries(payfastData).map(([key, value]) => (
+                <input key={key} type="hidden" name={key} value={value} />
+              ))}
+              <Button type="submit" size="lg" className="gap-2 text-base px-8">
+                <ExternalLink className="h-5 w-5" />
+                Proceed to Payfast
+              </Button>
+            </form>
+            <p className="text-xs text-muted-foreground">
+              You will be redirected to Payfast to complete your payment securely.
+            </p>
           </div>
-        )}
-
-        {!redirecting && availablePlans.length > 0 && (
+        ) : availablePlans.length > 0 ? (
           <div className="grid md:grid-cols-2 gap-4 mt-6">
             {availablePlans.map((p) => {
               const Icon = p.icon;
               const isLoading = loading === p.plan;
-              
+
               return (
                 <div
                   key={p.plan}
@@ -247,8 +204,8 @@ export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanMo
                     onClick={() => handleUpgrade(p.plan)}
                     disabled={isLoading || loading !== null}
                     className={`w-full ${
-                      p.plan === 'PRO' 
-                        ? 'bg-primary hover:bg-primary/90' 
+                      p.plan === 'PRO'
+                        ? 'bg-primary hover:bg-primary/90'
                         : 'bg-amber-600 hover:bg-amber-700'
                     }`}
                   >
@@ -265,9 +222,7 @@ export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanMo
               );
             })}
           </div>
-        )}
-
-        {!redirecting && availablePlans.length === 0 && (
+        ) : (
           <div className="text-center py-8">
             <Shield className="h-12 w-12 mx-auto text-amber-500 mb-4" />
             <p className="text-muted-foreground">
@@ -287,7 +242,5 @@ export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanMo
 }
 
 export function useUpgradeModal() {
-  // This hook can be used to manage the modal state
-  // Usage: const { openModal, closeModal, UpgradeModalComponent } = useUpgradeModal();
   return {};
 }
