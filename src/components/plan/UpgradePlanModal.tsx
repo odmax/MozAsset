@@ -63,22 +63,43 @@ export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanMo
   const [loading, setLoading] = useState<Plan | null>(null);
   const [redirecting, setRedirecting] = useState(false);
   const [error, setError] = useState('');
-  const [manualUrl, setManualUrl] = useState('');
-  const [manualData, setManualData] = useState<Record<string, string> | null>(null);
-  const formRef = useRef<HTMLFormElement>(null);
-  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const [payfastUrl, setPayfastUrl] = useState('');
+  const [payfastData, setPayfastData] = useState<Record<string, string> | null>(null);
+  const autoFormRef = useRef<HTMLFormElement>(null);
+  const fallbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {
-      timers.current.forEach(clearTimeout);
+      if (fallbackTimer.current) clearTimeout(fallbackTimer.current);
     };
   }, []);
+
+  // Auto-submit the Payfast form when it becomes available in the DOM
+  useEffect(() => {
+    if (redirecting && autoFormRef.current) {
+      console.log('[Payfast] Auto-submit: form ref available, submitting...');
+      requestAnimationFrame(() => {
+        try {
+          autoFormRef.current?.submit();
+          console.log('[Payfast] Auto-submit: form.submit() called successfully');
+        } catch (err) {
+          console.error('[Payfast] Auto-submit: form.submit() threw:', err);
+        }
+      });
+
+      // Log if we're still here after 3s (submit likely didn't navigate)
+      const stuckCheck = setTimeout(() => {
+        console.log('[Payfast] WARNING: component still mounted 3s after submit - navigation blocked');
+      }, 3000);
+      return () => clearTimeout(stuckCheck);
+    }
+  }, [redirecting]);
 
   const handleUpgrade = async (plan: Plan) => {
     setLoading(plan);
     setError('');
-    setManualUrl('');
-    setManualData(null);
+    setPayfastUrl('');
+    setPayfastData(null);
 
     try {
       const res = await fetch('/api/billing', {
@@ -98,35 +119,17 @@ export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanMo
       }
 
       if (data.checkoutUrl && data.checkoutData) {
+        setPayfastUrl(data.checkoutUrl);
+        setPayfastData(data.checkoutData);
         setRedirecting(true);
-        setManualUrl(data.checkoutUrl);
-        setManualData(data.checkoutData);
 
-        // Redirect fallback: after 15s, show manual button instead of spinner
-        timers.current.push(setTimeout(() => {
+        // Fallback: after 15s show manual button
+        fallbackTimer.current = setTimeout(() => {
           setRedirecting(false);
           setLoading(null);
-          setError('Redirect to Payfast did not complete. Use the button below to proceed manually.');
-          toast({ variant: 'destructive', title: 'Redirect Blocked', description: 'Please use the manual redirect button below.' });
-        }, 15000));
-
-        // Submit form after a brief delay so state persists for manual fallback
-        timers.current.push(setTimeout(() => {
-          const form = document.createElement('form');
-          form.method = 'POST';
-          form.action = data.checkoutUrl;
-
-          Object.entries(data.checkoutData).forEach(([key, value]) => {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = key;
-            input.value = value as string;
-            form.appendChild(input);
-          });
-
-          document.body.appendChild(form);
-          form.submit();
-        }, 100));
+          setError('Redirect did not complete. Click the button below to proceed to Payfast.');
+          toast({ variant: 'destructive', title: 'Redirect Issue', description: 'Use the manual button to proceed.' });
+        }, 15000);
       } else {
         setError('Invalid checkout response');
         setLoading(null);
@@ -171,12 +174,21 @@ export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanMo
           <DialogDescription>{getDescription()}</DialogDescription>
         </DialogHeader>
 
+        {/* Hidden auto-submit form — declarative, rendered in React tree */}
+        {redirecting && payfastUrl && payfastData && (
+          <form ref={autoFormRef} method="POST" action={payfastUrl} style={{ display: 'none' }}>
+            {Object.entries(payfastData).map(([key, value]) => (
+              <input key={key} type="hidden" name={key} value={value} />
+            ))}
+          </form>
+        )}
+
         {error && (
           <div className="mb-4 p-3 text-sm text-red-500 bg-red-50 rounded-lg text-center">
             {error}
-            {manualUrl && manualData && (
-              <form ref={formRef} method="POST" action={manualUrl} className="mt-3">
-                {Object.entries(manualData).map(([key, value]) => (
+            {payfastUrl && payfastData && (
+              <form method="POST" action={payfastUrl} className="mt-3">
+                {Object.entries(payfastData).map(([key, value]) => (
                   <input key={key} type="hidden" name={key} value={value} />
                 ))}
                 <Button type="submit" size="sm" variant="outline" className="gap-2">
