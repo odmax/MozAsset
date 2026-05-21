@@ -143,9 +143,9 @@ export default function ContactPage() {
             {/* Right Column - Form */}
             <Card>
               <CardHeader>
-                <CardTitle>Book a Demo</CardTitle>
+                <CardTitle>Contact Us</CardTitle>
                 <CardDescription>
-                  Tell us about your needs and we'll be in touch.
+                  Send us a message and we'll get back to you.
                 </CardDescription>
               </CardHeader>
               <CardContent>
