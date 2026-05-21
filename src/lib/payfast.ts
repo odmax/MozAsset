@@ -127,6 +127,15 @@ export function generateSignature(data: Record<string, string>): string {
     debugFields[key] = validData[key] === config.merchantKey ? '[REDACTED]' :
       key === 'passphrase' ? '[REDACTED]' : validData[key];
   }
+
+  // Build a sanitized signature string for debug (passphrase VALUE masked)
+  const sanitizedPairs = pairs.map(p => {
+    if (p.startsWith('passphrase=')) return 'passphrase=[REDACTED]';
+    if (p.startsWith('merchant_key=')) return 'merchant_key=[REDACTED]';
+    return p;
+  });
+  const sanitizedSigString = sanitizedPairs.join('&');
+
   console.log('[Payfast] Signature debug:', {
     mode: config.mode,
     endpoint: config.mode === 'sandbox'
@@ -137,9 +146,7 @@ export function generateSignature(data: Record<string, string>): string {
     fields: sortedKeys,
     fieldCount: sortedKeys.length,
     fieldValues: debugFields,
-    // Log first 60 chars of signature string for debug; never log full string with secrets
-    signatureStringPrefix: signatureString.substring(0, 60),
-    signatureStringSuffix: signatureString.slice(-20),
+    sanitizedSignatureString: sanitizedSigString,
     md5: sig,
   });
   
