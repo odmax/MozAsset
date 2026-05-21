@@ -8,6 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { 
   Search, 
   Loader2, 
@@ -18,7 +22,9 @@ import {
   Mail,
   Calendar,
   Eye,
-  Pencil
+  Pencil,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 
 interface User {
@@ -52,6 +58,9 @@ export default function AdminUsersPage() {
   const [filterStatus, setFilterStatus] = useState('');
   const [lifecycleStats, setLifecycleStats] = useState<LifecycleStats | null>(null);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -142,6 +151,30 @@ export default function AdminUsersPage() {
     } catch (e) {
       console.error('Failed to change plan:', e);
       setUsers(currentUsers);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/users/${deleteTarget.id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(`Failed to delete user: ${data.error}`);
+      } else {
+        setUsers(users.filter(u => u.id !== deleteTarget.id));
+        setFilteredUsers(filteredUsers.filter(u => u.id !== deleteTarget.id));
+      }
+    } catch (e) {
+      console.error('Failed to delete user:', e);
+      alert('Failed to delete user');
+    } finally {
+      setDeleting(false);
+      setDeleteDialogOpen(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -349,6 +382,17 @@ export default function AdminUsersPage() {
                             <UserCheck className="h-4 w-4" />
                           )}
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => {
+                            setDeleteTarget(user);
+                            setDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                         <select
                           value={user.plan}
                           onChange={(e) => {
@@ -379,6 +423,41 @@ export default function AdminUsersPage() {
           </div>
         </CardContent>
       </Card>
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+              Permanently Delete User
+            </DialogTitle>
+            <DialogDescription className="space-y-3 pt-3">
+              <p>
+                Are you sure you want to permanently delete <strong>{deleteTarget?.name || deleteTarget?.email}</strong>?
+              </p>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                <p className="font-medium mb-1">This action cannot be undone.</p>
+                <ul className="list-disc pl-4 space-y-1 text-red-600">
+                  <li>The user account will be permanently removed</li>
+                  <li>All associated data (tickets, notifications, files) will be deleted</li>
+                  {deleteTarget?.organization && (
+                    <li>The organization &quot;{deleteTarget.organization.name}&quot; and all its data will be deleted</li>
+                  )}
+                  <li>Assets assigned to this user will be unassigned</li>
+                </ul>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setDeleteDialogOpen(false); setDeleteTarget(null); }}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting ? 'Deleting...' : 'Permanently Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

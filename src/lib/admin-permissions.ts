@@ -24,6 +24,7 @@ export type Permission =
   | 'security:modify'
   | 'users:read'
   | 'users:modify'
+  | 'users:delete'
   | 'organizations:read'
   | 'organizations:modify'
   | 'analytics:read'
@@ -44,7 +45,7 @@ const OWNER_PERMISSIONS: Permission[] = [
   'tickets:view_internal_notes', 'tickets:add_internal_notes',
   'billing:read', 'billing:modify',
   'security:read', 'security:modify',
-  'users:read', 'users:modify',
+  'users:read', 'users:modify', 'users:delete',
   'organizations:read', 'organizations:modify',
   'analytics:read',
   'settings:read', 'settings:modify',
@@ -63,7 +64,7 @@ const SUPER_ADMIN_PERMISSIONS: Permission[] = [
   'tickets:view_internal_notes', 'tickets:add_internal_notes',
   'billing:read', 'billing:modify',
   'security:read',
-  'users:read', 'users:modify',
+  'users:read', 'users:modify', 'users:delete',
   'organizations:read', 'organizations:modify',
   'analytics:read',
   'settings:read', 'settings:modify',

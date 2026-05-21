@@ -90,6 +90,117 @@ export async function GET(
   }
 }
 
+export async function DELETE(
+  request: Request,
+  { params }: { params: { userId: string } }
+) {
+  const sessionUser = getSessionUser();
+  const adminUser = getAdminSession();
+
+  const isPlatformAdmin = sessionUser?.isPlatformAdmin === true;
+  const isInternalAdmin = adminUser?.isInternalAdmin === true || sessionUser?.isInternalAdmin === true;
+
+  if (!isPlatformAdmin && !isInternalAdmin) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  }
+
+  if (!isPlatformAdmin && isInternalAdmin && adminUser) {
+    const dbAdmin = await prisma.internalAdmin.findUnique({
+      where: { id: adminUser.id },
+      select: { id: true, role: true, permissions: true },
+    });
+    if (!dbAdmin || !hasPermission(dbAdmin, 'users:delete')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+  }
+
+  try {
+    const targetUser = await prisma.user.findUnique({
+      where: { id: params.userId },
+      select: { id: true, email: true, organizationId: true },
+    });
+
+    if (!targetUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Thoroughly delete user and all related data in a transaction
+    await prisma.$transaction(async (tx) => {
+      const orgId = targetUser.organizationId;
+
+      // Delete user's notifications
+      await tx.notification.deleteMany({ where: { userId: params.userId } });
+
+      // Delete user's support tickets
+      await tx.supportTicket.deleteMany({ where: { userId: params.userId } });
+
+      // Delete user's files
+      await tx.file.deleteMany({ where: { uploadedById: params.userId } });
+
+      // Delete user's payment/invoice records
+      await tx.payment.deleteMany({ where: { userId: params.userId } });
+      await tx.invoice.deleteMany({ where: { userId: params.userId } });
+
+      // Unassign assets assigned to this user
+      const assets = await tx.asset.findMany({
+        where: { assignedToId: params.userId },
+        select: { id: true },
+      });
+      for (const asset of assets) {
+        await tx.assetAssignment.deleteMany({ where: { assetId: asset.id } });
+        await tx.asset.update({
+          where: { id: asset.id },
+          data: { assignedToId: null, status: 'AVAILABLE' },
+        });
+      }
+
+      // Delete maintenance records performed by this user
+      await tx.maintenance.deleteMany({ where: { performedBy: params.userId } });
+
+      // If user owns an organization, delete the org and all related data
+      if (orgId) {
+        const org = await tx.organization.findUnique({
+          where: { id: orgId },
+          select: { id: true },
+        });
+        if (org) {
+          await tx.department.deleteMany({ where: { organizationId: orgId } });
+          await tx.location.deleteMany({ where: { organizationId: orgId } });
+          await tx.category.deleteMany({ where: { organizationId: orgId } });
+          await tx.vendor.deleteMany({ where: { organizationId: orgId } });
+          await tx.file.deleteMany({ where: { organizationId: orgId } });
+          await tx.asset.updateMany({
+            where: { organizationId: orgId },
+            data: { organizationId: null },
+          });
+          await tx.organization.delete({ where: { id: orgId } });
+        }
+      }
+
+      // Delete the user
+      await tx.user.delete({ where: { id: params.userId } });
+    });
+
+    // Create audit log
+    await prisma.auditLog.create({
+      data: {
+        action: 'UPDATE',
+        entityType: 'User',
+        entityId: params.userId,
+        userId: sessionUser?.id || adminUser?.id || 'unknown',
+        metadata: { deleted: true, email: targetUser.email },
+        ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
+        userAgent: request.headers.get('user-agent') || 'unknown',
+      } as any,
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Admin user DELETE error:', error);
+    return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });
+  }
+}
+
 export async function PATCH(
   request: Request,
   { params }: { params: { userId: string } }
