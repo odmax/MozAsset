@@ -30,13 +30,13 @@ async function main() {
     userEmailMap.get(key)!.push({ id: u.id, original: u.email });
   }
   let userConflicts = 0;
-  for (const [normalized, entries] of userEmailMap) {
+  Array.from(userEmailMap.entries()).forEach(([normalized, entries]) => {
     if (entries.length > 1) {
       userConflicts++;
       console.log(`  CONFLICT: "${normalized}" appears ${entries.length} times:`);
-      for (const e of entries) console.log(`    - ${e.original} (id: ${e.id})`);
+      entries.forEach(e => console.log(`    - ${e.original} (id: ${e.id})`));
     }
-  }
+  });
   if (userConflicts === 0) console.log('  No duplicates found. Safe to proceed.\n');
   else console.log(`\n  ⚠ ${userConflicts} conflict(s) found. Manual resolution required before migration.\n`);
 
@@ -50,13 +50,13 @@ async function main() {
     adminEmailMap.get(key)!.push({ id: a.id, original: a.email });
   }
   let adminConflicts = 0;
-  for (const [normalized, entries] of adminEmailMap) {
+  Array.from(adminEmailMap.entries()).forEach(([normalized, entries]) => {
     if (entries.length > 1) {
       adminConflicts++;
       console.log(`  CONFLICT: "${normalized}" appears ${entries.length} times:`);
-      for (const e of entries) console.log(`    - ${e.original} (id: ${e.id})`);
+      entries.forEach(e => console.log(`    - ${e.original} (id: ${e.id})`));
     }
-  }
+  });
   if (adminConflicts === 0) console.log('  No duplicates found. Safe to proceed.\n');
   else console.log(`\n  ⚠ ${adminConflicts} conflict(s) found. Manual resolution required before migration.\n`);
 
