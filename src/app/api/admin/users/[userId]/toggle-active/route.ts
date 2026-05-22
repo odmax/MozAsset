@@ -44,7 +44,7 @@ export async function POST(
       where: { id: adminUser.id },
       select: { id: true, role: true, permissions: true },
     });
-    if (!dbAdmin || !hasPermission(dbAdmin, 'users:modify')) {
+    if (!dbAdmin || !hasPermission(dbAdmin, 'users:edit')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
   }

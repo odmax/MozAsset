@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { hasPermission } from '@/lib/admin-permissions';
+import { hasPermission, requirePermission, CREATABLE_ROLES, canManageAgent } from '@/lib/admin-permissions';
 import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
@@ -60,9 +60,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
-  // Only OWNER can create new admins
-  if (admin.role !== 'OWNER') {
-    return NextResponse.json({ error: 'Only owner can create admins' }, { status: 403 });
+  const dbAdmin = await prisma.internalAdmin.findUnique({
+    where: { id: admin.id },
+    select: { id: true, role: true, permissions: true },
+  });
+  if (!dbAdmin || !hasPermission(dbAdmin, 'admins:manage')) {
+    return NextResponse.json({ error: 'Only admins with admin management permission can create admins' }, { status: 403 });
   }
 
   try {
@@ -72,8 +75,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email and password required' }, { status: 400 });
     }
 
-    if (role && !['SUPER_ADMIN', 'SUPPORT_MANAGER', 'SUPPORT_AGENT', 'FINANCE_ADMIN', 'VIEWER'].includes(role)) {
+    if (role && !CREATABLE_ROLES.includes(role as InternalRole)) {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
+    }
+
+    // Only OWNER can create PLATFORM_ADMIN
+    if (role === 'PLATFORM_ADMIN' && dbAdmin.role !== 'OWNER') {
+      return NextResponse.json({ error: 'Only owner can create Platform Admin accounts' }, { status: 403 });
+    }
+
+    // SUPPORT_MANAGER can only create SUPPORT_AGENT and VIEWER
+    if (dbAdmin.role === 'SUPPORT_MANAGER' && !['SUPPORT_AGENT', 'VIEWER'].includes(role)) {
+      return NextResponse.json({ error: 'Support Managers can only create Support Agents and Viewers' }, { status: 403 });
     }
 
     const existing = await prisma.internalAdmin.findUnique({ where: { email }, select: { id: true } });
@@ -88,7 +101,7 @@ export async function POST(request: Request) {
         name,
         email,
         password: hashedPassword,
-        role: role as InternalRole || 'SUPER_ADMIN',
+        role: role as InternalRole || 'SUPPORT_AGENT',
         isActive: true,
       },
       select: {

@@ -27,7 +27,7 @@ function formatBytes(bytes: number | bigint): string {
 export async function GET() {
   try {
     const admin = await getAdmin();
-    if (!admin || !hasPermission(admin, 'backups:read')) {
+    if (!admin || !hasPermission(admin, 'backups:manage')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -62,7 +62,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const admin = await getAdmin();
-    if (!admin || !hasPermission(admin, 'backups:create')) {
+    if (!admin || !hasPermission(admin, 'backups:manage')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

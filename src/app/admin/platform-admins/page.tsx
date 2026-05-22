@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ROLE_BADGE_COLORS, ROLE_LABELS } from '@/lib/admin-permissions';
 import { 
   UserCog, 
   Shield,
@@ -109,9 +110,9 @@ export default function PlatformAdminsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Badge variant={admin.role === 'OWNER' ? 'default' : 'secondary'}>
-                      {admin.role}
-                    </Badge>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${ROLE_BADGE_COLORS[admin.role] || 'bg-slate-100 text-slate-700'}`}>
+                      {ROLE_LABELS[admin.role] || admin.role}
+                    </span>
                     <Badge variant={admin.isActive ? 'default' : 'destructive'}>
                       {admin.isActive ? 'Active' : 'Inactive'}
                     </Badge>

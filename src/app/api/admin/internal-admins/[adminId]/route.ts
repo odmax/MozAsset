@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { hasPermission } from '@/lib/admin-permissions';
+import { hasPermission, CREATABLE_ROLES, canManageAgent, canModifyOwner } from '@/lib/admin-permissions';
 import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import { InternalRole } from '@prisma/client';
@@ -62,16 +62,51 @@ export async function PUT(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
-  // Only OWNER can update admins
-  if (admin.role !== 'OWNER') {
-    return NextResponse.json({ error: 'Only owner can update admins' }, { status: 403 });
+  const dbAdmin = await prisma.internalAdmin.findUnique({
+    where: { id: admin.id },
+    select: { id: true, role: true, permissions: true },
+  });
+  if (!dbAdmin || !hasPermission(dbAdmin, 'admins:manage')) {
+    return NextResponse.json({ error: 'Only admins with admin management permission can update admins' }, { status: 403 });
+  }
+
+  const targetAdmin = await prisma.internalAdmin.findUnique({
+    where: { id: params.adminId },
+    select: { id: true, role: true },
+  });
+  if (!targetAdmin) {
+    return NextResponse.json({ error: 'Admin not found' }, { status: 404 });
+  }
+
+  // OWNER cannot be modified by anyone except themselves (and only OWNER can modify OWNER)
+  if (targetAdmin.role === 'OWNER' && !canModifyOwner(dbAdmin)) {
+    return NextResponse.json({ error: 'Cannot modify Owner account' }, { status: 403 });
+  }
+
+  // Must be able to manage the target
+  if (!canManageAgent(dbAdmin, targetAdmin)) {
+    return NextResponse.json({ error: 'Cannot manage this admin' }, { status: 403 });
   }
 
   try {
     const { role, isActive } = await request.json();
     
-    if (role && !['SUPER_ADMIN', 'SUPPORT_MANAGER', 'SUPPORT_AGENT', 'FINANCE_ADMIN', 'VIEWER'].includes(role)) {
-      return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
+    if (role) {
+      if (!CREATABLE_ROLES.includes(role as InternalRole) && role !== 'OWNER') {
+        return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
+      }
+      // Only OWNER can assign OWNER role
+      if (role === 'OWNER' && !canModifyOwner(dbAdmin)) {
+        return NextResponse.json({ error: 'Only owner can assign Owner role' }, { status: 403 });
+      }
+      // Only OWNER/PLATFORM_ADMIN can assign PLATFORM_ADMIN role
+      if (role === 'PLATFORM_ADMIN' && dbAdmin.role !== 'OWNER' && dbAdmin.role !== 'PLATFORM_ADMIN' && dbAdmin.role !== 'SUPER_ADMIN') {
+        return NextResponse.json({ error: 'Cannot assign Platform Admin role' }, { status: 403 });
+      }
+      // SUPPORT_MANAGER can only assign SUPPORT_AGENT and VIEWER
+      if (dbAdmin.role === 'SUPPORT_MANAGER' && !['SUPPORT_AGENT', 'VIEWER'].includes(role)) {
+        return NextResponse.json({ error: 'Support Managers can only assign Support Agent and Viewer roles' }, { status: 403 });
+      }
     }
 
     const data: any = {};
@@ -83,7 +118,7 @@ export async function PUT(
       data,
       select: { id: true, name: true, email: true, role: true, isActive: true }
     });
-    
+
     return NextResponse.json(updated);
   } catch (error) {
     console.error('[internal-admins] Error:', error);
@@ -91,7 +126,7 @@ export async function PUT(
   }
 }
 
-// DELETE - Delete admin (OWNER only)
+// DELETE - Deactivate/delete admin
 export async function DELETE(
   request: Request,
   { params }: { params: { adminId: string } }
@@ -101,9 +136,12 @@ export async function DELETE(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
-  // Only OWNER can delete admins
-  if (admin.role !== 'OWNER') {
-    return NextResponse.json({ error: 'Only owner can delete admins' }, { status: 403 });
+  const dbAdmin = await prisma.internalAdmin.findUnique({
+    where: { id: admin.id },
+    select: { id: true, role: true, permissions: true },
+  });
+  if (!dbAdmin || !hasPermission(dbAdmin, 'admins:manage')) {
+    return NextResponse.json({ error: 'Only admins with admin management permission can delete admins' }, { status: 403 });
   }
 
   // Prevent deleting yourself
@@ -111,11 +149,29 @@ export async function DELETE(
     return NextResponse.json({ error: 'Cannot delete yourself' }, { status: 400 });
   }
 
+  const targetAdmin = await prisma.internalAdmin.findUnique({
+    where: { id: params.adminId },
+    select: { id: true, role: true },
+  });
+  if (!targetAdmin) {
+    return NextResponse.json({ error: 'Admin not found' }, { status: 404 });
+  }
+
+  // OWNER cannot be deleted
+  if (targetAdmin.role === 'OWNER' && !canModifyOwner(dbAdmin)) {
+    return NextResponse.json({ error: 'Cannot delete Owner account' }, { status: 403 });
+  }
+
+  // Must be able to manage the target
+  if (!canManageAgent(dbAdmin, targetAdmin)) {
+    return NextResponse.json({ error: 'Cannot manage this admin' }, { status: 403 });
+  }
+
   try {
     await prisma.internalAdmin.delete({
       where: { id: params.adminId }
     });
-    
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('[internal-admins] Error:', error);

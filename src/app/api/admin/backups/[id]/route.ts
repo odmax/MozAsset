@@ -17,7 +17,7 @@ async function getAdmin() {
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
     const admin = await getAdmin();
-    if (!admin || !hasPermission(admin, 'backups:read')) {
+    if (!admin || !hasPermission(admin, 'backups:manage')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -66,7 +66,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   try {
     const admin = await getAdmin();
-    if (!admin || !hasPermission(admin, 'backups:create')) {
+    if (!admin || !hasPermission(admin, 'backups:manage')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

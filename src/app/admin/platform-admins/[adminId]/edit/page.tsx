@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CREATABLE_ROLES, ROLE_LABELS } from '@/lib/admin-permissions';
 import { ArrowLeft, Shield } from 'lucide-react';
 import { BackButton } from '@/components/ui/back-button';
 
@@ -25,7 +26,7 @@ export default function EditAdminPage({ params }: { params: { adminId: string } 
     name: '',
     email: '',
     password: '',
-    role: 'SUPER_ADMIN',
+    role: 'PLATFORM_ADMIN',
     isActive: true,
   });
   const [loading, setLoading] = useState(true);
@@ -156,11 +157,9 @@ export default function EditAdminPage({ params }: { params: { adminId: string } 
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
-                    <SelectItem value="SUPPORT_MANAGER">Support Manager</SelectItem>
-                    <SelectItem value="SUPPORT_AGENT">Support Agent</SelectItem>
-                    <SelectItem value="FINANCE_ADMIN">Finance Admin</SelectItem>
-                    <SelectItem value="VIEWER">Viewer</SelectItem>
+                    {CREATABLE_ROLES.filter(r => r !== 'OWNER').map(role => (
+                      <SelectItem key={role} value={role}>{ROLE_LABELS[role] || role}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

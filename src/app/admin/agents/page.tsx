@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { ROLE_BADGE_COLORS, ROLE_LABELS, CREATABLE_ROLES } from '@/lib/admin-permissions';
 import {
   Users, UserPlus, Search, Wifi, WifiOff,
   Loader2, MoreHorizontal, RefreshCw,
@@ -46,14 +47,7 @@ const statusDot: Record<string, string> = {
   BREAK: 'bg-amber-500',
 };
 
-const roleBadge: Record<string, string> = {
-  OWNER: 'bg-purple-100 text-purple-700',
-  SUPER_ADMIN: 'bg-red-100 text-red-700',
-  SUPPORT_MANAGER: 'bg-blue-100 text-blue-700',
-  SUPPORT_AGENT: 'bg-emerald-100 text-emerald-700',
-  FINANCE_ADMIN: 'bg-amber-100 text-amber-700',
-  VIEWER: 'bg-slate-100 text-slate-700',
-};
+const roleBadge: Record<string, string> = ROLE_BADGE_COLORS;
 
 export default function AgentsPage() {
   const router = useRouter();
@@ -173,11 +167,9 @@ export default function AgentsPage() {
           className="h-10 rounded-lg border bg-background px-3 text-sm"
         >
           <option value="">All roles</option>
-          <option value="SUPER_ADMIN">Super Admin</option>
-          <option value="SUPPORT_MANAGER">Support Manager</option>
-          <option value="SUPPORT_AGENT">Support Agent</option>
-          <option value="FINANCE_ADMIN">Finance Admin</option>
-          <option value="VIEWER">Viewer</option>
+          {[...CREATABLE_ROLES].map(role => (
+            <option key={role} value={role}>{ROLE_LABELS[role] || role}</option>
+          ))}
         </select>
       </div>
 
@@ -236,7 +228,7 @@ export default function AgentsPage() {
                     </td>
                     <td className="px-5 py-4">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${roleBadge[agent.role] || 'bg-slate-100 text-slate-700'}`}>
-                        {agent.role.replace(/_/g, ' ')}
+                        {ROLE_LABELS[agent.role] || agent.role.replace(/_/g, ' ')}
                       </span>
                     </td>
                     <td className="px-5 py-4">

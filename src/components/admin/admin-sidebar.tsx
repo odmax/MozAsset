@@ -15,6 +15,8 @@ import {
   ChevronDown, ChevronRight, Menu,
   Clock, Circle,
 } from 'lucide-react';
+import { hasPermission, canAccessSecurity } from '@/lib/admin-permissions';
+import type { Permission } from '@/lib/admin-permissions';
 import LogoutButton from '@/app/admin/logout-button';
 
 interface NavItem {
@@ -22,13 +24,18 @@ interface NavItem {
   href: string;
   icon: any;
   badge?: 'new' | 'beta';
-  minRole?: string;
+  permission?: Permission;
 }
 
 interface NavSection {
   title: string;
   items: NavItem[];
-  minRole?: string;
+  permission?: Permission;
+}
+
+function hasPerm(role: string, permission?: Permission): boolean {
+  if (!permission) return true;
+  return hasPermission({ role: role as any, permissions: null }, permission);
 }
 
 const navSections: NavSection[] = [
@@ -42,52 +49,39 @@ const navSections: NavSection[] = [
     title: 'Support Operations',
     items: [
       { title: 'Operations Hub', href: '/admin/support', icon: Headphones },
-      { title: 'Support Agents', href: '/admin/agents', icon: UserPlus, minRole: 'SUPPORT_MANAGER' },
-      { title: 'Support Tickets', href: '/admin/support-tickets', icon: MessageSquare },
+      { title: 'Support Agents', href: '/admin/agents', icon: UserPlus, permission: 'agents:read' },
+      { title: 'Support Tickets', href: '/admin/support-tickets', icon: MessageSquare, permission: 'tickets:read' },
     ],
   },
   {
     title: 'Customers',
     items: [
-      { title: 'Users', href: '/admin/users', icon: Users },
-      { title: 'Organizations', href: '/admin/organizations', icon: Building2 },
+      { title: 'Users', href: '/admin/users', icon: Users, permission: 'users:read' },
+      { title: 'Organizations', href: '/admin/organizations', icon: Building2, permission: 'organizations:read' },
     ],
   },
   {
     title: 'Billing',
     items: [
-      { title: 'Subscriptions', href: '/admin/subscriptions', icon: CreditCard },
-      { title: 'Payments', href: '/admin/payments', icon: Receipt },
-      { title: 'Revenue', href: '/admin/revenue', icon: DollarSign },
+      { title: 'Subscriptions', href: '/admin/subscriptions', icon: CreditCard, permission: 'subscriptions:read' },
+      { title: 'Payments', href: '/admin/payments', icon: Receipt, permission: 'billing:read' },
+      { title: 'Revenue', href: '/admin/revenue', icon: DollarSign, permission: 'billing:read' },
     ],
-    minRole: 'FINANCE_ADMIN',
+    permission: 'billing:read',
   },
   {
     title: 'System',
     items: [
-      { title: 'Platform Admins', href: '/admin/platform-admins', icon: UserCog },
-      { title: 'Contact Submissions', href: '/admin/contact-submissions', icon: Mail },
-      { title: 'Email Logs', href: '/admin/emails', icon: Mail },
-      { title: 'Security', href: '/admin/security', icon: Shield },
-      { title: 'File Storage', href: '/admin/storage', icon: HardDrive },
-      { title: 'Queue', href: '/admin/queue', icon: Activity },
+      { title: 'Platform Admins', href: '/admin/platform-admins', icon: UserCog, permission: 'admins:manage' },
+      { title: 'Contact Submissions', href: '/admin/contact-submissions', icon: Mail, permission: 'users:read' },
+      { title: 'Email Logs', href: '/admin/emails', icon: Mail, permission: 'audit:read' },
+      { title: 'Security', href: '/admin/security', icon: Shield, permission: 'security:read' },
+      { title: 'File Storage', href: '/admin/storage', icon: HardDrive, permission: 'analytics:read' },
+      { title: 'Queue', href: '/admin/queue', icon: Activity, permission: 'settings:read' },
     ],
-    minRole: 'SUPER_ADMIN',
+    permission: 'settings:read',
   },
 ];
-
-const ADMIN_ONLY_ROLES = ['OWNER', 'SUPER_ADMIN'];
-const BILLING_ROLES = ['OWNER', 'SUPER_ADMIN', 'FINANCE_ADMIN'];
-const MANAGER_ROLES = ['OWNER', 'SUPER_ADMIN', 'SUPPORT_MANAGER'];
-
-function canAccess(minRole: string | undefined, userRole: string): boolean {
-  if (!minRole) return true;
-  if (userRole === 'OWNER') return true;
-  if (minRole === 'SUPPORT_MANAGER' && MANAGER_ROLES.includes(userRole)) return true;
-  if (minRole === 'FINANCE_ADMIN' && BILLING_ROLES.includes(userRole)) return true;
-  if (minRole === 'SUPER_ADMIN' && ADMIN_ONLY_ROLES.includes(userRole)) return true;
-  return false;
-}
 
 const statusDot: Record<string, string> = {
   ONLINE: 'bg-emerald-500',
@@ -183,8 +177,8 @@ export function AdminSidebar({ email, role }: { email: string; role: string }) {
 
       <nav className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent hover:scrollbar-thumb-slate-600" style={{ scrollbarWidth: 'thin', scrollbarColor: '#334155 transparent' }}>
         {navSections.map((section) => {
-          if (!canAccess(section.minRole, role)) return null;
-          const visibleItems = section.items.filter(item => canAccess(item.minRole, role));
+          if (!hasPerm(role, section.permission)) return null;
+          const visibleItems = section.items.filter(item => hasPerm(role, item.permission));
           if (visibleItems.length === 0) return null;
           const isCollapsed = collapsed[section.title];
           return (
