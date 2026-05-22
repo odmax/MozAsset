@@ -3,6 +3,7 @@ import { hasPermission, requirePermission, CREATABLE_ROLES, canManageAgent } fro
 import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { normalizeEmail } from '@/lib/email-normalize';
 import { InternalRole } from '@prisma/client';
 
 function getAdminSession() {
@@ -69,7 +70,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { name, email, password, role } = await request.json();
+    const { name, email: rawEmail, password, role } = await request.json();
+    const email = normalizeEmail(rawEmail || '');
 
     if (!email || !password) {
       return NextResponse.json({ error: 'Email and password required' }, { status: 400 });

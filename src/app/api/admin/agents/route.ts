@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getSimpleAdminSession } from '@/lib/admin-session';
 import { hasPermission } from '@/lib/admin-permissions';
+import { normalizeEmail } from '@/lib/email-normalize';
 import type { InternalRole } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
@@ -89,7 +90,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Forbidden: cannot create this role' }, { status: 403 });
     }
 
-    const existing = await prisma.internalAdmin.findUnique({ where: { email: email.toLowerCase() }, select: { id: true } });
+    const normalizedEmail = normalizeEmail(email);
+    const existing = await prisma.internalAdmin.findUnique({ where: { email: normalizedEmail }, select: { id: true } });
     if (existing) {
       return NextResponse.json({ success: false, error: 'Email already exists' }, { status: 409 });
     }
@@ -98,7 +100,7 @@ export async function POST(req: Request) {
 
     const agent = await prisma.internalAdmin.create({
       data: {
-        email: email.toLowerCase(),
+        email: normalizedEmail,
         name: name || null,
         password: hashedPassword,
         role,

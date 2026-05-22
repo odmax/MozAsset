@@ -3,12 +3,14 @@ import { randomBytes } from 'crypto';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { sendVerificationEmail, sendWelcomeEmail, hashToken } from '@/lib/email';
+import { normalizeEmail } from '@/lib/email-normalize';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    const { name, email, password, organization } = await request.json();
+    const { name, email: rawEmail, password, organization } = await request.json();
+    const email = normalizeEmail(rawEmail);
 
     if (!email || !password) {
       return NextResponse.json(

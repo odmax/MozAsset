@@ -7,6 +7,7 @@ import { Prisma, type Plan } from '@prisma/client';
 import { getPlanLimits, canAddAssets, canAddCategories, canAddDepartments, canAddLocations, canAddVendors, canAddUsers } from '@/lib/billing';
 import { getCurrentUserContext } from '@/lib/user-context';
 import { createNotification, createNotificationForOrg } from '@/lib/notifications';
+import { normalizeEmail } from '@/lib/email-normalize';
 
 // Helper to build organization filter for non-platform admins
 function buildOrgFilter(context: Awaited<ReturnType<typeof getCurrentUserContext>>, baseWhere: any = {}) {
@@ -429,6 +430,7 @@ export async function getUsers() {
 }
 
 export async function createUser(data: { name: string; email: string; password?: string; role: string; departmentId?: string; isActive?: boolean }) {
+  data.email = normalizeEmail(data.email);
   const context = await getCurrentUserContext();
   if (!context || context.role !== 'SUPER_ADMIN') {
     throw new Error('Unauthorized');
@@ -497,6 +499,7 @@ export async function createUser(data: { name: string; email: string; password?:
 }
 
 export async function updateUser(id: string, data: { name?: string; email?: string; password?: string; role?: string; departmentId?: string; isActive?: boolean }) {
+  if (data.email) data.email = normalizeEmail(data.email);
   const context = await getCurrentUserContext();
   if (!context || context.role !== 'SUPER_ADMIN') {
     throw new Error('Unauthorized');

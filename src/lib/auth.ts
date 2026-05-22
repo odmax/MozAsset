@@ -2,6 +2,7 @@ import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
+import { normalizeEmail } from '@/lib/email-normalize';
 import type { Role, Plan } from '@prisma/client';
 
 const AUTH_SECRET = process.env.AUTH_SECRET || 'fallback-secret-change-in-production';
@@ -60,8 +61,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             throw new Error('Email and password required');
           }
 
+          const email = normalizeEmail(credentials.email as string);
           const user = await prisma.user.findUnique({
-            where: { email: credentials.email as string },
+            where: { email },
           });
 
           if (!user || !user.password || !user.isActive) {

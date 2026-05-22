@@ -2,12 +2,14 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { randomBytes } from 'crypto';
 import { sendPasswordResetEmail, hashToken } from '@/lib/email';
+import { normalizeEmail } from '@/lib/email-normalize';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    const { email } = await request.json();
+    const { email: rawEmail } = await request.json();
+    const email = normalizeEmail(rawEmail);
 
     if (!email) {
       return NextResponse.json(

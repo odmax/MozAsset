@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getSimpleUserSession } from '@/lib/customer-session';
+import { normalizeEmail } from '@/lib/email-normalize';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,6 +68,7 @@ export async function PUT(request: Request) {
         updateData[key] = body[key] === '' ? null : body[key];
       }
     }
+    if (updateData.orgEmail) updateData.orgEmail = normalizeEmail(updateData.orgEmail);
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: 'No valid fields provided' }, { status: 400 });

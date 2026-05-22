@@ -3,12 +3,14 @@ import { hasPermission } from '@/lib/admin-permissions';
 import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { normalizeEmail } from '@/lib/email-normalize';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    const { email, password, name } = await request.json();
+    const { email: rawEmail, password, name } = await request.json();
+    const email = normalizeEmail(rawEmail);
 
     const adminCookie = cookies().get('adminSession');
     if (!adminCookie?.value) {

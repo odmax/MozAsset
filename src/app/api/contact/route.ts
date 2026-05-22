@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { sendTemplateEmail } from '@/lib/email';
 import { createAdminNotification } from '@/lib/admin-notifications';
+import { normalizeEmail } from '@/lib/email-normalize';
 
 export async function POST(request: Request) {
   try {
-    const { name, email, company, phone, message } = await request.json();
+    const { name, email: rawEmail, company, phone, message } = await request.json();
+    const email = normalizeEmail(rawEmail || '');
 
     if (!name || !email || !company || !message) {
       return NextResponse.json(

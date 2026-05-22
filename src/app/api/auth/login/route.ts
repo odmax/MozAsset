@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { loginLimiter, bruteForceLimiter } from '@/lib/rate-limiter';
 import { generateCsrfToken, getCsrfCookieOptions } from '@/lib/csrf';
+import { normalizeEmail } from '@/lib/email-normalize';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,7 +93,7 @@ export async function POST(request: Request) {
       return NextResponse.redirect(redirectUrl, 303);
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedEmail = normalizeEmail(email);
     const loginCheck = loginLimiter.check(`email:${normalizedEmail}`);
     if (!loginCheck.allowed) {
       const msg = 'Too many login attempts. Please try again later.';

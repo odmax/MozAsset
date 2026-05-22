@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { normalizeEmail } from '@/lib/email-normalize';
 import type { NotificationType, Prisma } from '@prisma/client';
 
 interface CreateNotificationParams {
@@ -81,7 +82,7 @@ export async function createNotificationForAdmins(
 
   const results = [];
   for (const admin of admins) {
-    const user = await prisma.user.findUnique({ where: { email: admin.email } });
+    const user = await prisma.user.findUnique({ where: { email: normalizeEmail(admin.email) } });
     if (user) {
       const notif = await createNotification({
         userId: user.id,
