@@ -128,6 +128,7 @@ export default function AdminUserEditPage({ params }: { params: { userId: string
         setError(data.error || 'Failed to update user');
       } else {
         setSuccess('User updated successfully');
+        router.refresh();
         setTimeout(() => router.push(`/admin/users/${params.userId}`), 1500);
       }
     } catch (err) {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { hasPermission } from '@/lib/admin-permissions';
 import { cookies } from 'next/headers';
+import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 import type { Plan } from '@prisma/client';
 import { createNotification } from '@/lib/notifications';
@@ -72,6 +73,12 @@ export async function POST(
       data: { 
         plan: plan as Plan,
       },
+      select: {
+        id: true, name: true, email: true, role: true, plan: true,
+        isActive: true, isDeactivated: true, deactivatedAt: true,
+        scheduledDeletionAt: true, lastActiveAt: true, emailVerified: true,
+        createdAt: true,
+      },
     });
 
     createNotification({
@@ -85,7 +92,7 @@ export async function POST(
       actorId: sessionUser?.id || adminUser?.id,
     }).catch((err) => console.error('Failed to create notification:', err));
 
-    return NextResponse.json({ success: true, plan: updated.plan });
+    return NextResponse.json({ success: true, user: updated });
   } catch (error) {
     console.error('[change-plan] Error:', error);
     return NextResponse.json({ error: 'Failed to update plan' }, { status: 500 });

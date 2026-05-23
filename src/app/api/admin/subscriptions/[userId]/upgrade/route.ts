@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { hasPermission } from '@/lib/admin-permissions';
+import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 import { cookies } from 'next/headers';
 
@@ -87,6 +88,8 @@ export async function POST(
       }),
     ]);
 
+    revalidatePath('/admin/subscriptions');
+    revalidatePath('/admin/users');
     return NextResponse.json({ success: true, previousPlan, newPlan: plan });
   } catch (error) {
     console.error('Change plan error:', error);

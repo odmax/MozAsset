@@ -1,13 +1,15 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from '@/hooks/use-toast';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
   DialogFooter,
@@ -36,10 +38,12 @@ const PLAN_COLORS: Record<string, string> = {
 };
 
 export default function AdminSubscriptionsPage() {
+  const router = useRouter();
   const [subscriptions, setSubscriptions] = useState<SubscriptionRow[]>([]);
   const [kpis, setKpis] = useState<SubscriptionKPIs | null>(null);
   const [charts, setCharts] = useState<SubscriptionChartData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [planFilter, setPlanFilter] = useState('all');
@@ -57,10 +61,24 @@ export default function AdminSubscriptionsPage() {
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgradePlan, setUpgradePlan] = useState('PRO');
   const [upgradeLoading, setUpgradeLoading] = useState(false);
-  const [successMsg, setSuccessMsg] = useState('');
+  const [loadingUserIds, setLoadingUserIds] = useState<Set<string>>(new Set());
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const withUserLoading = useCallback(async (userId: string, action: () => Promise<void>) => {
+    setLoadingUserIds(prev => new Set(prev).add(userId));
+    try {
+      await action();
+    } finally {
+      setLoadingUserIds(prev => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
+    }
+  }, []);
+
+  const fetchData = useCallback(async (background = false) => {
+    if (!background) setLoading(true);
+    else setRefreshing(true);
     try {
       const params = new URLSearchParams();
       if (search) params.append('search', search);
@@ -70,7 +88,7 @@ export default function AdminSubscriptionsPage() {
       params.append('limit', '20');
       params.append('sortBy', sortBy);
       params.append('sortOrder', sortOrder);
-      const res = await fetch(`/api/admin/subscriptions?${params}`);
+      const res = await fetch(`/api/admin/subscriptions?${params}&t=${Date.now()}`, { cache: 'no-store' });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setSubscriptions(data.subscriptions || []);
@@ -82,6 +100,7 @@ export default function AdminSubscriptionsPage() {
       console.error('Fetch error:', err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [search, statusFilter, planFilter, page, sortBy, sortOrder]);
 
@@ -90,40 +109,80 @@ export default function AdminSubscriptionsPage() {
   const handleCancel = async () => {
     if (!cancelTarget) return;
     setCancelLoading(true);
+    setLoadingUserIds(prev => new Set(prev).add(cancelTarget.userId));
+    const target = cancelTarget;
+    // Optimistic update
+    setSubscriptions(prev => prev.map(s =>
+      s.userId === target.userId
+        ? { ...s, plan: 'FREE', status: 'CANCELED', autoRenew: false }
+        : s
+    ));
     try {
-      const res = await fetch(`/api/admin/subscriptions/${cancelTarget.userId}/cancel`, { method: 'POST' });
+      const res = await fetch(`/api/admin/subscriptions/${target.userId}/cancel`, {
+        method: 'POST',
+        cache: 'no-store',
+      });
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      setSuccessMsg(`Subscription for ${cancelTarget.email} cancelled successfully`);
+      if (!res.ok) throw new Error(data.error || 'Failed to cancel');
+      toast({ title: 'Subscription cancelled', description: `${target.email} downgraded to Free` });
       setCancelOpen(false);
+      router.refresh();
       fetchData();
-      setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err: any) {
-      alert(err.message || 'Failed to cancel');
+      // Rollback
+      setSubscriptions(prev => prev.map(s =>
+        s.userId === target.userId ? target : s
+      ));
+      toast({ title: 'Failed to cancel', description: err.message, variant: 'destructive' });
     } finally {
       setCancelLoading(false);
+      setLoadingUserIds(prev => {
+        const next = new Set(prev);
+        next.delete(target.userId);
+        return next;
+      });
     }
   };
 
   const handleUpgrade = async () => {
     if (!upgradeTarget) return;
+    const target = upgradeTarget;
+    const newPlan = upgradePlan;
+    const newStatus = newPlan === 'FREE' ? 'CANCELED' : 'ACTIVE';
     setUpgradeLoading(true);
+    setLoadingUserIds(prev => new Set(prev).add(target.userId));
+    // Optimistic update
+    setSubscriptions(prev => prev.map(s =>
+      s.userId === target.userId
+        ? { ...s, plan: newPlan, status: newStatus, autoRenew: newStatus === 'ACTIVE' }
+        : s
+    ));
     try {
-      const res = await fetch(`/api/admin/subscriptions/${upgradeTarget.userId}/upgrade`, {
+      const res = await fetch(`/api/admin/subscriptions/${target.userId}/upgrade`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: upgradePlan }),
+        body: JSON.stringify({ plan: newPlan }),
+        cache: 'no-store',
       });
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      setSuccessMsg(`${upgradeTarget.email} changed to ${upgradePlan}`);
+      if (!res.ok) throw new Error(data.error || 'Failed to change plan');
+      toast({ title: 'Plan changed', description: `${target.email} changed to ${newPlan}` });
       setUpgradeOpen(false);
+      router.refresh();
       fetchData();
-      setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err: any) {
-      alert(err.message || 'Failed to change plan');
+      // Rollback
+      setSubscriptions(prev => prev.map(s =>
+        s.userId === target.userId ? target : s
+      ));
+      toast({ title: 'Failed to change plan', description: err.message, variant: 'destructive' });
     } finally {
       setUpgradeLoading(false);
+      setLoadingUserIds(prev => {
+        const next = new Set(prev);
+        next.delete(target.userId);
+        return next;
+      });
     }
   };
 
@@ -180,9 +239,9 @@ export default function AdminSubscriptionsPage() {
           <p className="text-muted-foreground">Manage all subscriptions and billing plans</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={fetchData} disabled={loading}>
-            <Loader2 className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+          <Button variant="outline" onClick={() => fetchData(true)} disabled={loading || refreshing}>
+            <Loader2 className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
           </Button>
           <Button variant="outline" asChild>
             <Link href="/api/admin/subscriptions/export">
@@ -192,12 +251,6 @@ export default function AdminSubscriptionsPage() {
           </Button>
         </div>
       </div>
-
-      {successMsg && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-700 flex items-center gap-2">
-          <CheckCircle className="h-4 w-4" /> {successMsg}
-        </div>
-      )}
 
       {/* KPI Cards */}
       {loading && !kpis ? (
@@ -418,7 +471,7 @@ export default function AdminSubscriptionsPage() {
                         <td className="p-3 text-sm text-muted-foreground">{sub.paymentMethod}</td>
                         <td className="p-3">
                           <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="sm" asChild title="View Customer">
+                            <Button variant="ghost" size="sm" asChild title="View Customer" disabled={loadingUserIds.has(sub.userId)}>
                               <Link href={`/admin/users/${sub.userId}`}><Eye className="h-4 w-4" /></Link>
                             </Button>
                             {sub.plan !== 'FREE' && sub.status !== 'CANCELED' && (
@@ -426,9 +479,14 @@ export default function AdminSubscriptionsPage() {
                                 variant="ghost" size="sm"
                                 className="text-red-500 hover:text-red-700"
                                 title="Cancel Subscription"
+                                disabled={loadingUserIds.has(sub.userId)}
                                 onClick={() => { setCancelTarget(sub); setCancelOpen(true); }}
                               >
-                                <XCircle className="h-4 w-4" />
+                                {loadingUserIds.has(sub.userId) ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <XCircle className="h-4 w-4" />
+                                )}
                               </Button>
                             )}
                             {sub.plan !== 'ENTERPRISE' && (
@@ -436,13 +494,18 @@ export default function AdminSubscriptionsPage() {
                                 variant="ghost" size="sm"
                                 className="text-blue-500 hover:text-blue-700"
                                 title="Upgrade/Downgrade"
+                                disabled={loadingUserIds.has(sub.userId)}
                                 onClick={() => {
                                   setUpgradeTarget(sub);
                                   setUpgradePlan(sub.plan === 'FREE' ? 'PRO' : sub.plan === 'PRO' ? 'ENTERPRISE' : 'FREE');
                                   setUpgradeOpen(true);
                                 }}
                               >
-                                <Zap className="h-4 w-4" />
+                                {loadingUserIds.has(sub.userId) ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Zap className="h-4 w-4" />
+                                )}
                               </Button>
                             )}
                           </div>

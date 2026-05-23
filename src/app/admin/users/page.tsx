@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,15 +11,12 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { toast } from '@/hooks/use-toast';
 import { 
   Search, 
   Loader2, 
-  MoreHorizontal,
   UserCheck,
   UserX,
-  Crown,
-  Mail,
-  Calendar,
   Eye,
   Pencil,
   Trash2,
@@ -51,6 +47,7 @@ interface LifecycleStats {
 }
 
 export default function AdminUsersPage() {
+  const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -61,6 +58,20 @@ export default function AdminUsersPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [loadingUserIds, setLoadingUserIds] = useState<Set<string>>(new Set());
+
+  const withUserLoading = useCallback(async (userId: string, action: () => Promise<void>) => {
+    setLoadingUserIds(prev => new Set(prev).add(userId));
+    try {
+      await action();
+    } finally {
+      setLoadingUserIds(prev => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
+    }
+  }, []);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -68,7 +79,7 @@ export default function AdminUsersPage() {
       const params = new URLSearchParams();
       if (search) params.set('search', search);
       if (filterStatus) params.set('status', filterStatus);
-      const res = await fetch(`/api/admin/users?${params}`);
+      const res = await fetch(`/api/admin/users?${params}&t=${Date.now()}`, { cache: 'no-store' });
       const data = await res.json();
       if (!data.success || data.error) {
         setError(data.error || 'Failed to load users');
@@ -85,7 +96,7 @@ export default function AdminUsersPage() {
 
   const fetchLifecycleStats = async () => {
     try {
-      const res = await fetch('/api/admin/users/lifecycle-stats');
+      const res = await fetch(`/api/admin/users/lifecycle-stats?t=${Date.now()}`, { cache: 'no-store' });
       const data = await res.json();
       if (data.success) setLifecycleStats(data.stats);
     } catch {}
@@ -99,59 +110,75 @@ export default function AdminUsersPage() {
   }, [search, filterStatus]);
 
   const handleToggleActive = async (userId: string, currentStatus: boolean) => {
-    const currentUsers = [...users];
-    setUsers(users.map(u => 
-      u.id === userId ? { ...u, isActive: !currentStatus } : u
-    ));
-    
-    try {
-      const res = await fetch(`/api/admin/users/${userId}/toggle-active`, {
-        method: 'POST',
-      });
+    await withUserLoading(userId, async () => {
+      const currentUsers = [...users];
+      const currentFiltered = [...filteredUsers];
+      const newStatus = !currentStatus;
+      const updateUser = (u: User) => u.id === userId ? { ...u, isActive: newStatus } : u;
+      setUsers(users.map(updateUser));
+      setFilteredUsers(filteredUsers.map(updateUser));
       
-      const data = await res.json();
-      
-      if (!res.ok) {
+      try {
+        const res = await fetch(`/api/admin/users/${userId}/toggle-active`, {
+          method: 'POST',
+          cache: 'no-store',
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          setUsers(currentUsers);
+          setFilteredUsers(currentFiltered);
+          toast({ title: 'Failed', description: data.error || 'Could not update status', variant: 'destructive' });
+          return;
+        }
+        
+        toast({ title: newStatus ? 'User activated' : 'User deactivated' });
+        fetchLifecycleStats();
+        router.refresh();
+      } catch (e) {
+        console.error('Failed to toggle user status:', e);
         setUsers(currentUsers);
-        alert(`Failed: ${data.error}`);
+        setFilteredUsers(currentFiltered);
+        toast({ title: 'Error', description: 'Failed to update user status', variant: 'destructive' });
       }
-    } catch (e) {
-      console.error('Failed to toggle user status:', e);
-      setUsers(currentUsers);
-    }
+    });
   };
 
   const handleChangePlan = async (userId: string, newPlan: string) => {
-    const currentUsers = [...users];
-    setUsers(users.map(u => 
-      u.id === userId ? { ...u, plan: newPlan } : u
-    ));
-    
-    try {
-      const res = await fetch(`/api/admin/users/${userId}/change-plan`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: newPlan }),
-      });
+    await withUserLoading(userId, async () => {
+      const currentUsers = [...users];
+      const currentFiltered = [...filteredUsers];
+      const updateUser = (u: User) => u.id === userId ? { ...u, plan: newPlan } : u;
+      setUsers(users.map(updateUser));
+      setFilteredUsers(filteredUsers.map(updateUser));
       
-      const data = await res.json();
-      
-      if (!res.ok) {
-        setUsers(currentUsers);
-        alert(`Failed: ${data.error}`);
-      } else {
-        const refetch = await fetch('/api/admin/users');
-        if (refetch.ok) {
-          const fresh = await refetch.json();
-          if (fresh.success) {
-            setUsers(fresh.users);
-          }
+      try {
+        const res = await fetch(`/api/admin/users/${userId}/change-plan`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan: newPlan }),
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          setUsers(currentUsers);
+          setFilteredUsers(currentFiltered);
+          toast({ title: 'Failed', description: data.error || 'Could not change plan', variant: 'destructive' });
+          return;
         }
+        
+        toast({ title: 'Plan updated', description: `User plan changed to ${newPlan}` });
+        fetchLifecycleStats();
+        router.refresh();
+      } catch (e) {
+        console.error('Failed to change plan:', e);
+        setUsers(currentUsers);
+        setFilteredUsers(currentFiltered);
+        toast({ title: 'Error', description: 'Failed to change plan', variant: 'destructive' });
       }
-    } catch (e) {
-      console.error('Failed to change plan:', e);
-      setUsers(currentUsers);
-    }
+    });
   };
 
   const handleDelete = async () => {
@@ -163,14 +190,17 @@ export default function AdminUsersPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(`Failed to delete user: ${data.error}`);
+        toast({ title: 'Failed to delete user', description: data.error || 'Could not delete user', variant: 'destructive' });
       } else {
         setUsers(users.filter(u => u.id !== deleteTarget.id));
         setFilteredUsers(filteredUsers.filter(u => u.id !== deleteTarget.id));
+        fetchLifecycleStats();
+        router.refresh();
+        toast({ title: 'User deleted', description: `${deleteTarget.name || deleteTarget.email} has been permanently deleted` });
       }
     } catch (e) {
       console.error('Failed to delete user:', e);
-      alert('Failed to delete user');
+      toast({ title: 'Error', description: 'Failed to delete user', variant: 'destructive' });
     } finally {
       setDeleting(false);
       setDeleteDialogOpen(false);
@@ -374,6 +404,7 @@ export default function AdminUsersPage() {
                           variant="ghost" 
                           size="sm"
                           asChild
+                          disabled={loadingUserIds.has(user.id)}
                         >
                           <Link href={`/admin/users/${user.id}/edit`}>
                             <Pencil className="h-4 w-4" />
@@ -383,8 +414,11 @@ export default function AdminUsersPage() {
                           variant="ghost" 
                           size="sm"
                           onClick={() => handleToggleActive(user.id, user.isActive)}
+                          disabled={loadingUserIds.has(user.id)}
                         >
-                          {user.isActive ? (
+                          {loadingUserIds.has(user.id) ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : user.isActive ? (
                             <UserX className="h-4 w-4" />
                           ) : (
                             <UserCheck className="h-4 w-4" />
@@ -398,17 +432,17 @@ export default function AdminUsersPage() {
                             setDeleteTarget(user);
                             setDeleteDialogOpen(true);
                           }}
+                          disabled={loadingUserIds.has(user.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                         <select
                           value={user.plan}
                           onChange={(e) => {
-                            console.log('Plan changed:', user.id, e.target.value);
                             handleChangePlan(user.id, e.target.value);
                           }}
                           className="text-xs border rounded px-2 py-1"
-                          disabled={loading}
+                          disabled={loadingUserIds.has(user.id)}
                         >
                           <option value="FREE">FREE</option>
                           <option value="PRO">PRO</option>

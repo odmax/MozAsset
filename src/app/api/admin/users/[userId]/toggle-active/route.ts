@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { hasPermission } from '@/lib/admin-permissions';
 import { cookies } from 'next/headers';
+import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -63,6 +64,7 @@ export async function POST(
       data: { isActive: !targetUser.isActive },
     });
 
+    revalidatePath('/admin/users');
     return NextResponse.json({ success: true, isActive: updated.isActive });
   } catch (error) {
     console.error('[toggle-active] Error:', error);

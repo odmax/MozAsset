@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { hasPermission } from '@/lib/admin-permissions';
 import { cookies } from 'next/headers';
+import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 import type { Plan, Role, SubscriptionStatus } from '@prisma/client';
 
@@ -213,6 +214,7 @@ export async function DELETE(
       } as any,
     });
 
+    revalidatePath('/admin/users');
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Admin user DELETE error:', error);
@@ -301,6 +303,7 @@ export async function PATCH(
       data: updateData,
     });
 
+    revalidatePath('/admin/users');
     return NextResponse.json({ success: true, user: updated });
   } catch (error) {
     console.error('Admin user PATCH error:', error);
