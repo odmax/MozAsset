@@ -26,7 +26,9 @@ import {
   Send,
   CheckCircle,
   Paperclip,
-  Eye
+  Eye,
+  X,
+  CheckCircle2
 } from 'lucide-react';
 
 interface Ticket {
@@ -38,6 +40,8 @@ interface Ticket {
   createdAt: string;
   userEmail: string;
   userName: string | null;
+  assignedAdminId: string | null;
+  assignedAdminName?: string | null;
 }
 
 interface Message {
@@ -86,11 +90,19 @@ export default function SupportTicketsPage() {
   const [sending, setSending] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
   const [userTyping, setUserTyping] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const replyInputRef = useRef<HTMLTextAreaElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastPollRef = useRef<string>('');
   const sendingRef = useRef(false);
+
+  useEffect(() => {
+    if (toast) {
+      const t = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [toast]);
 
   const mergeMessages = useCallback((existing: Message[], incoming: Message[]) => {
     const map = new Map<string, Message>();
@@ -227,15 +239,23 @@ export default function SupportTicketsPage() {
   const markResolved = async () => {
     if (!selectedTicket) return;
     try {
-      await fetch(`/api/admin/support-tickets/${selectedTicket.id}/resolve`, {
+      const res = await fetch(`/api/admin/support-tickets/${selectedTicket.id}/resolve`, {
         method: 'POST',
       });
-      fetchTickets();
-      if (selectedTicket) {
-        setSelectedTicket({ ...selectedTicket, status: 'RESOLVED' });
+      if (res.ok) {
+        setToast({ message: 'Ticket resolved', type: 'success' });
+        setSelectedTicket(null);
+        setMessages([]);
+        setShowAttachments(false);
+        setUserTyping(false);
+        fetchTickets();
+      } else {
+        const err = await res.json();
+        setToast({ message: err.error || 'Failed to resolve ticket', type: 'error' });
       }
     } catch (error) {
       console.error('Error resolving ticket:', error);
+      setToast({ message: 'Failed to resolve ticket', type: 'error' });
     }
   };
 
@@ -263,6 +283,15 @@ export default function SupportTicketsPage() {
         <h1 className="text-2xl font-bold text-slate-900">Support Tickets</h1>
         <p className="text-muted-foreground">View and manage user support tickets</p>
       </div>
+
+      {toast && (
+        <div className={`fixed top-4 right-4 z-[100] flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-sm font-medium animate-in slide-in-from-top-2 ${
+          toast.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
+        }`}>
+          {toast.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <X className="h-4 w-4" />}
+          {toast.message}
+        </div>
+      )}
 
       <div className="flex gap-4">
         <div className="relative flex-1 max-w-sm">
@@ -296,6 +325,7 @@ export default function SupportTicketsPage() {
               <TableHead>Category</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Priority</TableHead>
+              <TableHead>Assigned To</TableHead>
               <TableHead>Created</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -303,7 +333,7 @@ export default function SupportTicketsPage() {
           <TableBody>
             {tickets.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                   No tickets found
                 </TableCell>
               </TableRow>
@@ -329,6 +359,11 @@ export default function SupportTicketsPage() {
                     <Badge className={priorityColors[ticket.priority] || 'bg-gray-100'}>
                       {ticket.priority}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-muted-foreground">
+                      {ticket.assignedAdminName || (ticket.assignedAdminId ? 'Assigned' : '—')}
+                    </span>
                   </TableCell>
                   <TableCell>{formatDate(ticket.createdAt)}</TableCell>
                   <TableCell className="text-right">

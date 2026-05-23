@@ -134,6 +134,8 @@ export async function POST(
       }
     }
 
+    const isNewAssignment = !ticket.assignedAdminId || ticket.assignedAdminId !== admin.id;
+
     const ticketMessage = await prisma.supportMessage.create({
       data: {
         ticketId,
@@ -144,13 +146,35 @@ export async function POST(
       },
     });
 
+    const updateData: any = {
+      status: 'PENDING',
+      assignedAdminId: admin.id,
+      updatedAt: new Date(),
+    };
+
+    // Track workload on assignment
+    if (isNewAssignment) {
+      const agent = await prisma.internalAdmin.findUnique({
+        where: { id: admin.id },
+        select: { activeChatCount: true, maxConcurrentChats: true },
+      });
+      if (agent) {
+        const willBeBusy = agent.activeChatCount + 1 >= agent.maxConcurrentChats;
+        await prisma.internalAdmin.update({
+          where: { id: admin.id },
+          data: {
+            activeChatCount: { increment: 1 },
+            lastAssignedAt: new Date(),
+            status: willBeBusy ? 'BUSY' : undefined,
+            isBusy: willBeBusy,
+          },
+        });
+      }
+    }
+
     await prisma.supportTicket.update({
       where: { id: ticketId },
-      data: {
-        status: 'PENDING',
-        assignedAdminId: admin.id,
-        updatedAt: new Date(),
-      },
+      data: updateData,
     });
 
     // Send email and in-app notification to customer

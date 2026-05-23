@@ -64,6 +64,9 @@ export async function GET(request: Request) {
           user: {
             select: { id: true, email: true, name: true },
           },
+          assignedAdmin: {
+            select: { id: true, name: true, email: true },
+          },
         },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
@@ -80,6 +83,7 @@ export async function GET(request: Request) {
         status: t.status,
         priority: t.priority,
         assignedAdminId: t.assignedAdminId,
+        assignedAdminName: t.assignedAdmin?.name || t.assignedAdmin?.email || null,
         createdAt: t.createdAt.toISOString(),
         userEmail: t.user.email,
         userName: t.user.name,

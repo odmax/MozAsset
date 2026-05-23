@@ -166,6 +166,7 @@ enum AuditAction {
   PERMISSION_CHANGED
   INTERNAL_NOTE_ADDED
   TICKET_PRIORITY_CHANGED
+  TICKET_RESOLVED
   VERIFICATION_EMAIL_SENT
   EMAIL_VERIFIED
   PASSWORD_RESET_REQUEST
@@ -729,6 +730,7 @@ model InternalAdmin {
   isSuspended       Boolean      @default(false)
   createdByOwner    Boolean      @default(false)
   permissions       Json?
+  lastAssignedAt    DateTime?
 
   assignedTickets SupportTicket[]
   internalNotes   InternalNote[]

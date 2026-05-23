@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 import { getCurrentUserContext } from '@/lib/user-context';
+import { autoAssignTicket } from '@/lib/auto-assign-ticket';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +18,11 @@ export async function POST(request: Request) {
     if (!subject || !message) {
       return NextResponse.json({ error: 'Subject and message required' }, { status: 400 });
     }
+
+    const user = await prisma.user.findUnique({
+      where: { id: context.userId },
+      select: { plan: true },
+    });
 
     const ticket = await prisma.supportTicket.create({
       data: {
@@ -34,6 +41,12 @@ export async function POST(request: Request) {
         },
       },
     });
+
+    autoAssignTicket(ticket.id, user?.plan || 'FREE').catch((err) =>
+      console.error('Auto-assign error:', err)
+    );
+
+    revalidatePath('/admin/support-tickets');
 
     return NextResponse.json(ticket);
   } catch (error) {
