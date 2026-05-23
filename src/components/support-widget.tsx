@@ -35,7 +35,10 @@ interface Message {
   senderType: string;
   message: string;
   createdAt: string;
-  readAt: string | null;
+  status?: string;
+  deliveredAt?: string | null;
+  seenAt?: string | null;
+  readAt?: string | null;
 }
 
 type WidgetView = 'menu' | 'help' | 'conversation' | 'new' | 'submitted' | 'locked';
@@ -88,6 +91,14 @@ const HELP_TEXTS: Record<string, string> = {
   other: 'Describe your issue in detail and we will help you resolve it as quickly as possible.',
 };
 
+function DeliveryStatus({ status }: { status?: string }) {
+  if (!status || status === 'SENT') return <span className="text-[9px] text-muted-foreground ml-1">✓</span>;
+  if (status === 'DELIVERED') return <span className="text-[9px] text-primary ml-1">✓✓</span>;
+  if (status === 'SEEN') return <span className="text-[9px] text-blue-500 ml-1">✓✓</span>;
+  if (status === 'SENDING') return <Loader2 className="h-2.5 w-2.5 animate-spin inline ml-1" />;
+  return null;
+}
+
 interface SupportWidgetProps { userPlan: string; }
 
 export default function SupportWidget({ userPlan }: SupportWidgetProps) {
@@ -107,7 +118,12 @@ export default function SupportWidget({ userPlan }: SupportWidgetProps) {
   const [newSubject, setNewSubject] = useState('');
   const [newMessage, setNewMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [adminTyping, setAdminTyping] = useState(false);
+  const [sendingStatus, setSendingStatus] = useState<Record<string, string>>({});
   const msgEndRef = useRef<HTMLDivElement>(null);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastPollRef = useRef<string>(new Date().toISOString());
 
   // ── Data fetching ──────────────────────────────────────────────
   const fetchTickets = useCallback(async () => {
@@ -118,7 +134,14 @@ export default function SupportWidget({ userPlan }: SupportWidgetProps) {
 
   const fetchMessages = useCallback(async (id: string) => {
     setLoadingMessages(true);
-    try { const r = await fetch(`/api/support/tickets/${id}`); if (r.ok) { const d = await r.json(); setMessages(d.messages || []); } }
+    try {
+      const r = await fetch(`/api/support/tickets/${id}`);
+      if (r.ok) {
+        const d = await r.json();
+        setMessages(d.messages || []);
+        setAdminTyping(d.adminTyping || false);
+      }
+    }
     catch { /* ignore */ } finally { setLoadingMessages(false); }
   }, []);
 
@@ -131,6 +154,50 @@ export default function SupportWidget({ userPlan }: SupportWidgetProps) {
     try { await fetch(`/api/support/tickets/${id}/read`, { method: 'POST' }); } catch { /* ignore */ }
   }, []);
 
+  // ── Polling for real-time updates ──────────────────────────────
+  useEffect(() => {
+    if (!open || view !== 'conversation' || !currentTicketId) {
+      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+      return;
+    }
+    const start = lastPollRef.current;
+    pollRef.current = setInterval(async () => {
+      try {
+        const r = await fetch(`/api/support/tickets/${currentTicketId}/poll?since=${encodeURIComponent(start)}`);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.newMessages?.length > 0) {
+            setMessages(prev => [...prev, ...d.newMessages]);
+          }
+          setAdminTyping(d.adminTyping || false);
+          if (d.ticketStatus) {
+            setTickets(prev => prev.map(t => t.id === currentTicketId ? { ...t, status: d.ticketStatus } : t));
+          }
+          lastPollRef.current = new Date().toISOString();
+        }
+      } catch { /* ignore */ }
+    }, 3000);
+    return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
+  }, [open, view, currentTicketId]);
+
+  useEffect(() => { if (!open || view !== 'menu' || !isPro) return; fetchUnread(); const i = setInterval(fetchUnread, 10000); return () => clearInterval(i); }, [open, view, isPro, fetchUnread]);
+  useEffect(() => { msgEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, adminTyping]);
+
+  // ── Typing heartbeat ───────────────────────────────────────────
+  const sendTyping = useCallback(async (id: string) => {
+    try { await fetch(`/api/support/tickets/${id}/typing`, { method: 'POST' }); } catch { /* ignore */ }
+  }, []);
+
+  const handleReplyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setReplyText(val);
+    if (val.trim() && currentTicketId) {
+      sendTyping(currentTicketId);
+      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = setTimeout(() => { /* cooldown */ }, 3000);
+    }
+  };
+
   // ── Open / Close ───────────────────────────────────────────────
   const handleOpen = () => {
     setOpen(true);
@@ -141,8 +208,9 @@ export default function SupportWidget({ userPlan }: SupportWidgetProps) {
 
   const handleClose = () => {
     setOpen(false); setView('menu'); setMenuTab('help');
-    setCurrentTicketId(null); setMessages([]); setReplyText('');
+    setCurrentTicketId(null); setMessages([]); setReplyText(''); setAdminTyping(false);
     setNewSubject(''); setNewMessage(''); setSelectedHelp(null);
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
   };
 
   const resetView = () => { setView('menu'); setMenuTab('help'); setSelectedHelp(null); };
@@ -151,18 +219,45 @@ export default function SupportWidget({ userPlan }: SupportWidgetProps) {
   const openConversation = (ticketId: string) => {
     setCurrentTicketId(ticketId); setView('conversation');
     fetchMessages(ticketId); markRead(ticketId);
+    lastPollRef.current = new Date().toISOString();
   };
 
   const sendReply = async () => {
     if (!replyText.trim() || !currentTicketId) return;
+    const optimisticId = `opt-${Date.now()}`;
+    const optimisticMsg: Message = {
+      id: optimisticId,
+      senderType: 'USER',
+      message: replyText,
+      createdAt: new Date().toISOString(),
+      status: 'SENDING',
+    };
+    setMessages(p => [...p, optimisticMsg]);
+    setSendingStatus(prev => ({ ...prev, [optimisticId]: 'SENDING' }));
+    const text = replyText;
+    setReplyText('');
     setSending(true);
     try {
       const r = await fetch(`/api/support/tickets/${currentTicketId}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: replyText }),
+        body: JSON.stringify({ message: text }),
       });
-      if (r.ok) { const m = await r.json(); setMessages(p => [...p, m]); setReplyText(''); }
-    } catch { /* ignore */ } finally { setSending(false); }
+      if (r.ok) {
+        const m = await r.json();
+        setMessages(p => p.map(msg => msg.id === optimisticId ? { ...m, status: m.status || 'SENT' } : msg));
+      } else {
+        setMessages(p => p.filter(msg => msg.id !== optimisticId));
+      }
+    } catch {
+      setMessages(p => p.filter(msg => msg.id !== optimisticId));
+    } finally {
+      setSending(false);
+      setSendingStatus(prev => {
+        const next = { ...prev };
+        delete next[optimisticId];
+        return next;
+      });
+    }
   };
 
   // ── Create ticket ──────────────────────────────────────────────
@@ -177,11 +272,6 @@ export default function SupportWidget({ userPlan }: SupportWidgetProps) {
       if (r.ok) { setView('submitted'); fetchTickets(); }
     } catch { /* ignore */ } finally { setSubmitting(false); }
   };
-
-  // ── Polling ────────────────────────────────────────────────────
-  useEffect(() => { if (!open || view !== 'menu' || !isPro) return; fetchUnread(); const i = setInterval(fetchUnread, 10000); return () => clearInterval(i); }, [open, view, isPro, fetchUnread]);
-  useEffect(() => { if (!open || view !== 'conversation' || !currentTicketId) return; const i = setInterval(() => fetchMessages(currentTicketId), 5000); return () => clearInterval(i); }, [open, view, currentTicketId, fetchMessages]);
-  useEffect(() => { msgEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   // ── Group messages ─────────────────────────────────────────────
   const groupedMessages: { date: string; msgs: Message[] }[] = [];
@@ -461,6 +551,7 @@ export default function SupportWidget({ userPlan }: SupportWidgetProps) {
                       {group.msgs.map((msg, idx) => {
                         const isUser = msg.senderType === 'USER';
                         const showAvatar = idx === 0 || group.msgs[idx - 1].senderType !== msg.senderType;
+                        const isSending = msg.status === 'SENDING';
                         return (
                           <div key={msg.id} className={`flex items-end gap-2 mb-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
                             {!isUser && showAvatar && (
@@ -477,11 +568,12 @@ export default function SupportWidget({ userPlan }: SupportWidgetProps) {
                                 isUser
                                   ? 'bg-primary text-primary-foreground rounded-br-md'
                                   : 'bg-muted/80 rounded-bl-md'
-                              }`}>
+                              } ${isSending ? 'opacity-70' : ''}`}>
                                 <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{msg.message}</p>
-                                <p className={`text-[10px] mt-1.5 ${isUser ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
-                                  {formatTime(msg.createdAt)}
-                                </p>
+                                <div className={`flex items-center justify-end gap-0.5 text-[10px] mt-1.5 ${isUser ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
+                                  <span>{formatTime(msg.createdAt)}</span>
+                                  {isUser && <DeliveryStatus status={msg.status} />}
+                                </div>
                               </div>
                             </div>
                             {isUser && showAvatar && (
@@ -495,6 +587,17 @@ export default function SupportWidget({ userPlan }: SupportWidgetProps) {
                       })}
                     </div>
                   ))
+                )}
+                {/* Typing indicator */}
+                {adminTyping && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground py-1 animate-pulse">
+                    <div className="flex gap-0.5 items-center">
+                      <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                    <span className="text-muted-foreground/70">Support is typing...</span>
+                  </div>
                 )}
                 <div ref={msgEndRef} />
               </div>
@@ -520,7 +623,7 @@ export default function SupportWidget({ userPlan }: SupportWidgetProps) {
             {view === 'conversation' && (
               <form onSubmit={e => { e.preventDefault(); sendReply(); }} className="flex gap-2 items-end">
                 <div className="flex-1 relative">
-                  <Input value={replyText} onChange={e => setReplyText(e.target.value)}
+                  <Input value={replyText} onChange={handleReplyChange}
                     placeholder="Type your reply..." disabled={sending}
                     className="pr-10 text-sm rounded-xl bg-muted/30 border-muted focus-visible:bg-background" />
                 </div>

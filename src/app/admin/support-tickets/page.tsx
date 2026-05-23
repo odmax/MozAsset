@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -45,6 +45,10 @@ interface Message {
   senderType: string;
   message: string;
   createdAt: string;
+  status?: string;
+  deliveredAt?: string | null;
+  seenAt?: string | null;
+  readAt?: string | null;
 }
 
 const statusColors: Record<string, string> = {
@@ -61,6 +65,14 @@ const priorityColors: Record<string, string> = {
   URGENT: 'bg-red-100 text-red-800',
 };
 
+function DeliveryStatus({ status }: { status?: string }) {
+  if (!status || status === 'SENT') return <span className="text-[9px] text-muted-foreground ml-1">&#x2713;</span>;
+  if (status === 'DELIVERED') return <span className="text-[9px] text-primary ml-1">&#x2713;&#x2713;</span>;
+  if (status === 'SEEN') return <span className="text-[9px] text-blue-500 ml-1">&#x2713;&#x2713; Seen</span>;
+  if (status === 'SENDING') return <Loader2 className="h-2.5 w-2.5 animate-spin inline ml-1" />;
+  return null;
+}
+
 export default function SupportTicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,16 +84,42 @@ export default function SupportTicketsPage() {
   const [replyMessage, setReplyMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
+  const [userTyping, setUserTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const replyInputRef = useRef<HTMLTextAreaElement>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastPollRef = useRef<string>('');
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, userTyping]);
 
   useEffect(() => {
     fetchTickets();
   }, [search, statusFilter]);
+
+  // Polling for new messages
+  useEffect(() => {
+    if (!selectedTicket) {
+      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+      return;
+    }
+    const start = lastPollRef.current || new Date().toISOString();
+    pollRef.current = setInterval(async () => {
+      try {
+        const r = await fetch(`/api/admin/support-tickets/${selectedTicket.id}/poll?since=${encodeURIComponent(start)}`);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.newMessages?.length > 0) {
+            setMessages(prev => [...prev, ...d.newMessages]);
+          }
+          setUserTyping(d.userTyping || false);
+          lastPollRef.current = new Date().toISOString();
+        }
+      } catch { /* ignore */ }
+    }, 3000);
+    return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
+  }, [selectedTicket]);
 
   const fetchTickets = async () => {
     setLoading(true);
@@ -103,12 +141,14 @@ export default function SupportTicketsPage() {
   const openTicket = async (ticket: Ticket) => {
     setSelectedTicket(ticket);
     setLoadingMessages(true);
+    setUserTyping(false);
     try {
       const res = await fetch(`/api/admin/support-tickets/${ticket.id}`);
       const data = await res.json();
       setMessages(data.messages || []);
-      // Mark admin-viewed messages as read
+      setUserTyping(data.userTyping || false);
       await fetch(`/api/support/tickets/${ticket.id}/read`, { method: 'POST' }).catch(() => {});
+      lastPollRef.current = new Date().toISOString();
     } catch (error) {
       console.error('Error fetching messages:', error);
     } finally {
@@ -116,20 +156,50 @@ export default function SupportTicketsPage() {
     }
   };
 
+  const sendTyping = useCallback(async (id: string) => {
+    try { await fetch(`/api/admin/support-tickets/${id}/typing`, { method: 'POST' }); } catch { /* ignore */ }
+  }, []);
+
+  const handleReplyChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setReplyMessage(val);
+    if (val.trim() && selectedTicket) {
+      sendTyping(selectedTicket.id);
+    }
+  };
+
   const sendReply = async () => {
     if (!replyMessage.trim() || !selectedTicket) return;
     
+    const optimisticId = `opt-${Date.now()}`;
+    const optimisticMsg: Message = {
+      id: optimisticId,
+      senderType: 'ADMIN',
+      message: replyMessage,
+      createdAt: new Date().toISOString(),
+      status: 'SENDING',
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
+    const text = replyMessage;
+    setReplyMessage('');
     setSending(true);
     try {
-      await fetch(`/api/admin/support-tickets/${selectedTicket.id}`, {
+      const res = await fetch(`/api/admin/support-tickets/${selectedTicket.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: replyMessage }),
+        body: JSON.stringify({ message: text }),
       });
-      setReplyMessage('');
-      openTicket(selectedTicket);
+      if (res.ok) {
+        const m = await res.json();
+        setMessages(prev => prev.map(msg =>
+          msg.id === optimisticId ? { ...m, status: m.status || 'SENT' } : msg
+        ));
+      } else {
+        setMessages(prev => prev.filter(msg => msg.id !== optimisticId));
+      }
     } catch (error) {
       console.error('Error sending reply:', error);
+      setMessages(prev => prev.filter(msg => msg.id !== optimisticId));
     } finally {
       setSending(false);
       replyInputRef.current?.focus();
@@ -138,7 +208,6 @@ export default function SupportTicketsPage() {
 
   const markResolved = async () => {
     if (!selectedTicket) return;
-    
     try {
       await fetch(`/api/admin/support-tickets/${selectedTicket.id}/resolve`, {
         method: 'POST',
@@ -256,7 +325,7 @@ export default function SupportTicketsPage() {
         </Table>
       </div>
 
-      <Dialog open={!!selectedTicket} onOpenChange={(open) => { if (!open) { setSelectedTicket(null); setShowAttachments(false); } }}>
+      <Dialog open={!!selectedTicket} onOpenChange={(open) => { if (!open) { setSelectedTicket(null); setShowAttachments(false); setUserTyping(false); } }}>
         <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
           {/* Header */}
           <div className="flex items-start justify-between border-b px-6 py-4 shrink-0">
@@ -294,6 +363,7 @@ export default function SupportTicketsPage() {
                   const isAdmin = msg.senderType === 'ADMIN';
                   const prev = idx > 0 ? messages[idx - 1] : null;
                   const showAvatar = !prev || prev.senderType !== msg.senderType;
+                  const isSending = msg.status === 'SENDING';
                   return (
                     <div key={msg.id} className={`flex items-end gap-2.5 ${isAdmin ? 'justify-start' : 'justify-end'}`}>
                       {isAdmin && showAvatar && (
@@ -312,11 +382,12 @@ export default function SupportTicketsPage() {
                           isAdmin
                             ? 'bg-white border rounded-bl-md'
                             : 'bg-primary text-primary-foreground rounded-br-md'
-                        }`}>
+                        } ${isSending ? 'opacity-70' : ''}`}>
                           <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{msg.message}</p>
-                          <p className={`text-[10px] mt-1.5 ${isAdmin ? 'text-muted-foreground' : 'text-primary-foreground/60'}`}>
-                            {formatDate(msg.createdAt)}
-                          </p>
+                          <div className={`flex items-center justify-end gap-0.5 text-[10px] mt-1.5 ${isAdmin ? 'text-muted-foreground' : 'text-primary-foreground/60'}`}>
+                            <span>{formatDate(msg.createdAt)}</span>
+                            {!isAdmin && <DeliveryStatus status={msg.status} />}
+                          </div>
                         </div>
                       </div>
                       {!isAdmin && showAvatar && (
@@ -328,6 +399,17 @@ export default function SupportTicketsPage() {
                     </div>
                   );
                 })}
+                {/* Typing indicator */}
+                {userTyping && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground py-1 animate-pulse">
+                    <div className="flex gap-0.5 items-center">
+                      <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                    <span className="text-muted-foreground/70">User is typing...</span>
+                  </div>
+                )}
                 <div ref={messagesEndRef} />
               </div>
             )}
@@ -369,7 +451,7 @@ export default function SupportTicketsPage() {
               <Textarea
                 ref={replyInputRef}
                 value={replyMessage}
-                onChange={(e) => setReplyMessage(e.target.value)}
+                onChange={handleReplyChange}
                 placeholder="Type your reply... (Shift+Enter for new line)"
                 className="min-h-[40px] max-h-[120px] flex-1"
                 rows={1}

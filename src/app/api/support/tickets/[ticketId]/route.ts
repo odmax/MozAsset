@@ -33,6 +33,10 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    const adminTyping = ticket.adminTypingAt
+      ? (Date.now() - ticket.adminTypingAt.getTime()) < 4000
+      : false;
+
     return NextResponse.json({
       ticket: {
         id: ticket.id,
@@ -48,8 +52,12 @@ export async function GET(
         senderType: m.senderType,
         message: m.message,
         createdAt: m.createdAt.toISOString(),
+        status: m.status,
+        deliveredAt: m.deliveredAt?.toISOString() || null,
+        seenAt: m.seenAt?.toISOString() || null,
         readAt: m.readAt?.toISOString() || null,
       })),
+      adminTyping,
     });
   } catch (error) {
     console.error('Get ticket error:', error);
@@ -109,6 +117,7 @@ export async function POST(
       senderType: msg.senderType,
       message: msg.message,
       createdAt: msg.createdAt.toISOString(),
+      status: msg.status,
       readAt: null,
     });
   } catch (error) {

@@ -60,6 +60,13 @@ enum SenderType {
   ADMIN
 }
 
+enum MessageStatus {
+  SENDING
+  SENT
+  DELIVERED
+  SEEN
+}
+
 enum Plan {
   FREE
   PRO
@@ -765,6 +772,12 @@ model SupportTicket {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
+  // Realtime chat fields
+  userTypingAt   DateTime?
+  adminTypingAt  DateTime?
+  userLastSeenAt DateTime?
+  adminLastSeenAt DateTime?
+
   messages       SupportMessage[]
   files          File[]
   internalNotes  InternalNote[]
@@ -780,14 +793,17 @@ model SupportTicket {
 }
 
 model SupportMessage {
-  id           String     @id @default(cuid())
+  id           String        @id @default(cuid())
   ticketId     String
-  ticket      SupportTicket @relation(fields: [ticketId], references: [id])
-  senderType  SenderType @default(USER)
+  ticket      SupportTicket  @relation(fields: [ticketId], references: [id])
+  senderType  SenderType     @default(USER)
   senderUserId String?
   senderAdminId String?
-  message     String     @db.Text
-  createdAt   DateTime   @default(now())
+  message     String         @db.Text
+  status      MessageStatus  @default(SENT)
+  deliveredAt DateTime?
+  seenAt      DateTime?
+  createdAt   DateTime       @default(now())
   readAt      DateTime?
 
   @@index([ticketId])

@@ -30,13 +30,20 @@ export async function POST(
 
     const whereSenderType = context.isInternalAdmin ? 'USER' : 'ADMIN';
 
+    const now = new Date();
+
     await prisma.supportMessage.updateMany({
       where: {
         ticketId,
         senderType: whereSenderType,
         readAt: null,
       },
-      data: { readAt: new Date() },
+      data: { readAt: now, seenAt: now, status: 'SEEN' },
+    });
+
+    await prisma.supportTicket.update({
+      where: { id: ticketId },
+      data: context.isInternalAdmin ? { adminLastSeenAt: now } : { userLastSeenAt: now },
     });
 
     return NextResponse.json({ success: true });

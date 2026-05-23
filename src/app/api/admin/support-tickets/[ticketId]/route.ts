@@ -52,6 +52,10 @@ export async function GET(
       return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
     }
 
+    const userTyping = ticket.userTypingAt
+      ? (Date.now() - ticket.userTypingAt.getTime()) < 4000
+      : false;
+
     return NextResponse.json({
       ticket: {
         id: ticket.id,
@@ -65,7 +69,12 @@ export async function GET(
         senderType: m.senderType,
         message: m.message,
         createdAt: m.createdAt.toISOString(),
+        status: m.status,
+        deliveredAt: m.deliveredAt?.toISOString() || null,
+        seenAt: m.seenAt?.toISOString() || null,
+        readAt: m.readAt?.toISOString() || null,
       })),
+      userTyping,
     });
   } catch (error) {
     console.error('Get ticket error:', error);
@@ -153,7 +162,11 @@ export async function POST(
     }).catch((err) => console.error('Failed to create notification:', err));
 
     return NextResponse.json({
-      ...ticketMessage,
+      id: ticketMessage.id,
+      senderType: ticketMessage.senderType,
+      message: ticketMessage.message,
+      createdAt: ticketMessage.createdAt.toISOString(),
+      status: ticketMessage.status,
       ticketSubject: ticket.subject,
       ticketStatus: 'PENDING',
     });
