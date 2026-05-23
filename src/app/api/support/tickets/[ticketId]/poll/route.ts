@@ -33,6 +33,10 @@ export async function GET(
       ? (Date.now() - ticket.adminTypingAt.getTime()) < 4000
       : false;
 
+    const latestMsgAt = newMessages.length > 0
+      ? newMessages[newMessages.length - 1].createdAt.toISOString()
+      : null;
+
     return NextResponse.json({
       newMessages: newMessages.map((m) => ({
         id: m.id,
@@ -43,7 +47,9 @@ export async function GET(
         deliveredAt: m.deliveredAt?.toISOString() || null,
         seenAt: m.seenAt?.toISOString() || null,
         readAt: m.readAt?.toISOString() || null,
+        clientMessageId: m.clientMessageId,
       })),
+      latestMessageAt: latestMsgAt,
       adminTyping: isTyping,
       ticketStatus: ticket.status,
     });

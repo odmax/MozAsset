@@ -805,10 +805,12 @@ model SupportMessage {
   seenAt      DateTime?
   createdAt   DateTime       @default(now())
   readAt      DateTime?
+  clientMessageId String?    @unique
 
   @@index([ticketId])
   @@index([senderUserId])
   @@index([senderAdminId])
+  @@index([clientMessageId])
 }
 
 model InternalNote {

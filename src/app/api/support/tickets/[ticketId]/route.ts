@@ -56,6 +56,7 @@ export async function GET(
         deliveredAt: m.deliveredAt?.toISOString() || null,
         seenAt: m.seenAt?.toISOString() || null,
         readAt: m.readAt?.toISOString() || null,
+        clientMessageId: m.clientMessageId,
       })),
       adminTyping,
     });
@@ -76,10 +77,26 @@ export async function POST(
     }
 
     const { ticketId } = await params;
-    const { message } = await request.json();
+    const { message, clientMessageId } = await request.json();
 
     if (!message?.trim()) {
       return NextResponse.json({ error: 'Message required' }, { status: 400 });
+    }
+
+    if (clientMessageId) {
+      const existing = await prisma.supportMessage.findUnique({
+        where: { clientMessageId },
+      });
+      if (existing) {
+        return NextResponse.json({
+          id: existing.id,
+          senderType: existing.senderType,
+          message: existing.message,
+          createdAt: existing.createdAt.toISOString(),
+          status: existing.status,
+          clientMessageId: existing.clientMessageId,
+        });
+      }
     }
 
     const ticket = await prisma.supportTicket.findUnique({
@@ -104,6 +121,7 @@ export async function POST(
         senderType: 'USER',
         senderUserId: context.userId,
         message,
+        clientMessageId: clientMessageId || undefined,
       },
     });
 
@@ -118,7 +136,7 @@ export async function POST(
       message: msg.message,
       createdAt: msg.createdAt.toISOString(),
       status: msg.status,
-      readAt: null,
+      clientMessageId: msg.clientMessageId,
     });
   } catch (error) {
     console.error('Reply error:', error);

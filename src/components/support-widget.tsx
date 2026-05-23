@@ -39,6 +39,7 @@ interface Message {
   deliveredAt?: string | null;
   seenAt?: string | null;
   readAt?: string | null;
+  clientMessageId?: string | null;
 }
 
 type WidgetView = 'menu' | 'help' | 'conversation' | 'new' | 'submitted' | 'locked';
@@ -124,6 +125,7 @@ export default function SupportWidget({ userPlan }: SupportWidgetProps) {
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastPollRef = useRef<string>(new Date().toISOString());
+  const sendingRef = useRef(false);
 
   // ── Data fetching ──────────────────────────────────────────────
   const fetchTickets = useCallback(async () => {
@@ -132,18 +134,31 @@ export default function SupportWidget({ userPlan }: SupportWidgetProps) {
     catch { /* ignore */ } finally { setLoadingTickets(false); }
   }, []);
 
+  const mergeMessages = useCallback((existing: Message[], incoming: Message[]) => {
+    const map = new Map<string, Message>();
+    for (const m of existing) map.set(m.id, m);
+    for (const m of incoming) {
+      map.set(m.id, m);
+      if (m.clientMessageId) {
+        const optimisticId = `opt-${m.clientMessageId}`;
+        if (map.has(optimisticId)) map.delete(optimisticId);
+      }
+    }
+    return Array.from(map.values());
+  }, []);
+
   const fetchMessages = useCallback(async (id: string) => {
     setLoadingMessages(true);
     try {
       const r = await fetch(`/api/support/tickets/${id}`);
       if (r.ok) {
         const d = await r.json();
-        setMessages(d.messages || []);
+        setMessages(prev => mergeMessages(prev, d.messages || []));
         setAdminTyping(d.adminTyping || false);
       }
     }
     catch { /* ignore */ } finally { setLoadingMessages(false); }
-  }, []);
+  }, [mergeMessages]);
 
   const fetchUnread = useCallback(async () => {
     try { const r = await fetch('/api/support/unread'); if (r.ok) setUnreadCount((await r.json()).unreadCount || 0); }
@@ -160,25 +175,25 @@ export default function SupportWidget({ userPlan }: SupportWidgetProps) {
       if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
       return;
     }
-    const start = lastPollRef.current;
     pollRef.current = setInterval(async () => {
+      const since = lastPollRef.current;
       try {
-        const r = await fetch(`/api/support/tickets/${currentTicketId}/poll?since=${encodeURIComponent(start)}`);
+        const r = await fetch(`/api/support/tickets/${currentTicketId}/poll?since=${encodeURIComponent(since)}`);
         if (r.ok) {
           const d = await r.json();
           if (d.newMessages?.length > 0) {
-            setMessages(prev => [...prev, ...d.newMessages]);
+            setMessages(prev => mergeMessages(prev, d.newMessages));
+            if (d.latestMessageAt) lastPollRef.current = d.latestMessageAt;
           }
           setAdminTyping(d.adminTyping || false);
           if (d.ticketStatus) {
             setTickets(prev => prev.map(t => t.id === currentTicketId ? { ...t, status: d.ticketStatus } : t));
           }
-          lastPollRef.current = new Date().toISOString();
         }
       } catch { /* ignore */ }
     }, 3000);
     return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
-  }, [open, view, currentTicketId]);
+  }, [open, view, currentTicketId, mergeMessages]);
 
   useEffect(() => { if (!open || view !== 'menu' || !isPro) return; fetchUnread(); const i = setInterval(fetchUnread, 10000); return () => clearInterval(i); }, [open, view, isPro, fetchUnread]);
   useEffect(() => { msgEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, adminTyping]);
@@ -216,35 +231,37 @@ export default function SupportWidget({ userPlan }: SupportWidgetProps) {
   const resetView = () => { setView('menu'); setMenuTab('help'); setSelectedHelp(null); };
 
   // ── Conversation ───────────────────────────────────────────────
-  const openConversation = (ticketId: string) => {
+  const openConversation = async (ticketId: string) => {
     setCurrentTicketId(ticketId); setView('conversation');
-    fetchMessages(ticketId); markRead(ticketId);
+    await fetchMessages(ticketId); markRead(ticketId);
     lastPollRef.current = new Date().toISOString();
   };
 
   const sendReply = async () => {
-    if (!replyText.trim() || !currentTicketId) return;
-    const optimisticId = `opt-${Date.now()}`;
+    if (!replyText.trim() || !currentTicketId || sendingRef.current) return;
+    sendingRef.current = true;
+    const clientMessageId = crypto.randomUUID();
+    const optimisticId = `opt-${clientMessageId}`;
     const optimisticMsg: Message = {
       id: optimisticId,
+      clientMessageId,
       senderType: 'USER',
       message: replyText,
       createdAt: new Date().toISOString(),
       status: 'SENDING',
     };
     setMessages(p => [...p, optimisticMsg]);
-    setSendingStatus(prev => ({ ...prev, [optimisticId]: 'SENDING' }));
     const text = replyText;
     setReplyText('');
     setSending(true);
     try {
       const r = await fetch(`/api/support/tickets/${currentTicketId}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, clientMessageId }),
       });
       if (r.ok) {
         const m = await r.json();
-        setMessages(p => p.map(msg => msg.id === optimisticId ? { ...m, status: m.status || 'SENT' } : msg));
+        setMessages(p => mergeMessages(p, [{ ...m, status: m.status || 'SENT' }]));
       } else {
         setMessages(p => p.filter(msg => msg.id !== optimisticId));
       }
@@ -252,11 +269,7 @@ export default function SupportWidget({ userPlan }: SupportWidgetProps) {
       setMessages(p => p.filter(msg => msg.id !== optimisticId));
     } finally {
       setSending(false);
-      setSendingStatus(prev => {
-        const next = { ...prev };
-        delete next[optimisticId];
-        return next;
-      });
+      sendingRef.current = false;
     }
   };
 

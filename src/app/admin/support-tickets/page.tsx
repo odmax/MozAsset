@@ -49,6 +49,7 @@ interface Message {
   deliveredAt?: string | null;
   seenAt?: string | null;
   readAt?: string | null;
+  clientMessageId?: string | null;
 }
 
 const statusColors: Record<string, string> = {
@@ -89,6 +90,20 @@ export default function SupportTicketsPage() {
   const replyInputRef = useRef<HTMLTextAreaElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastPollRef = useRef<string>('');
+  const sendingRef = useRef(false);
+
+  const mergeMessages = useCallback((existing: Message[], incoming: Message[]) => {
+    const map = new Map<string, Message>();
+    for (const m of existing) map.set(m.id, m);
+    for (const m of incoming) {
+      map.set(m.id, m);
+      if (m.clientMessageId) {
+        const optimisticId = `opt-${m.clientMessageId}`;
+        if (map.has(optimisticId)) map.delete(optimisticId);
+      }
+    }
+    return Array.from(map.values());
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -104,22 +119,22 @@ export default function SupportTicketsPage() {
       if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
       return;
     }
-    const start = lastPollRef.current || new Date().toISOString();
     pollRef.current = setInterval(async () => {
+      const since = lastPollRef.current || new Date().toISOString();
       try {
-        const r = await fetch(`/api/admin/support-tickets/${selectedTicket.id}/poll?since=${encodeURIComponent(start)}`);
+        const r = await fetch(`/api/admin/support-tickets/${selectedTicket.id}/poll?since=${encodeURIComponent(since)}`);
         if (r.ok) {
           const d = await r.json();
           if (d.newMessages?.length > 0) {
-            setMessages(prev => [...prev, ...d.newMessages]);
+            setMessages(prev => mergeMessages(prev, d.newMessages));
+            if (d.latestMessageAt) lastPollRef.current = d.latestMessageAt;
           }
           setUserTyping(d.userTyping || false);
-          lastPollRef.current = new Date().toISOString();
         }
       } catch { /* ignore */ }
     }, 3000);
     return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
-  }, [selectedTicket]);
+  }, [selectedTicket, mergeMessages]);
 
   const fetchTickets = async () => {
     setLoading(true);
@@ -142,13 +157,15 @@ export default function SupportTicketsPage() {
     setSelectedTicket(ticket);
     setLoadingMessages(true);
     setUserTyping(false);
+    setMessages([]);
     try {
       const res = await fetch(`/api/admin/support-tickets/${ticket.id}`);
       const data = await res.json();
       setMessages(data.messages || []);
       setUserTyping(data.userTyping || false);
       await fetch(`/api/support/tickets/${ticket.id}/read`, { method: 'POST' }).catch(() => {});
-      lastPollRef.current = new Date().toISOString();
+      const msgs = data.messages || [];
+      lastPollRef.current = msgs.length > 0 ? msgs[msgs.length - 1].createdAt : new Date().toISOString();
     } catch (error) {
       console.error('Error fetching messages:', error);
     } finally {
@@ -169,11 +186,13 @@ export default function SupportTicketsPage() {
   };
 
   const sendReply = async () => {
-    if (!replyMessage.trim() || !selectedTicket) return;
-    
-    const optimisticId = `opt-${Date.now()}`;
+    if (!replyMessage.trim() || !selectedTicket || sendingRef.current) return;
+    sendingRef.current = true;
+    const clientMessageId = crypto.randomUUID();
+    const optimisticId = `opt-${clientMessageId}`;
     const optimisticMsg: Message = {
       id: optimisticId,
+      clientMessageId,
       senderType: 'ADMIN',
       message: replyMessage,
       createdAt: new Date().toISOString(),
@@ -187,13 +206,11 @@ export default function SupportTicketsPage() {
       const res = await fetch(`/api/admin/support-tickets/${selectedTicket.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, clientMessageId }),
       });
       if (res.ok) {
         const m = await res.json();
-        setMessages(prev => prev.map(msg =>
-          msg.id === optimisticId ? { ...m, status: m.status || 'SENT' } : msg
-        ));
+        setMessages(prev => mergeMessages(prev, [{ ...m, status: m.status || 'SENT' }]));
       } else {
         setMessages(prev => prev.filter(msg => msg.id !== optimisticId));
       }
@@ -202,6 +219,7 @@ export default function SupportTicketsPage() {
       setMessages(prev => prev.filter(msg => msg.id !== optimisticId));
     } finally {
       setSending(false);
+      sendingRef.current = false;
       replyInputRef.current?.focus();
     }
   };

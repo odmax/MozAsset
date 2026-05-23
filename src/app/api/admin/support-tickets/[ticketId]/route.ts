@@ -73,6 +73,7 @@ export async function GET(
         deliveredAt: m.deliveredAt?.toISOString() || null,
         seenAt: m.seenAt?.toISOString() || null,
         readAt: m.readAt?.toISOString() || null,
+        clientMessageId: m.clientMessageId,
       })),
       userTyping,
     });
@@ -88,7 +89,7 @@ export async function POST(
 ) {
   try {
     const { ticketId } = await params;
-    const { message } = await request.json();
+    const { message, clientMessageId } = await request.json();
     const admin = getAdminSession();
     if (!admin || !admin.isInternalAdmin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -115,12 +116,31 @@ export async function POST(
       return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
     }
 
+    if (clientMessageId) {
+      const existing = await prisma.supportMessage.findUnique({
+        where: { clientMessageId },
+      });
+      if (existing) {
+        return NextResponse.json({
+          id: existing.id,
+          senderType: existing.senderType,
+          message: existing.message,
+          createdAt: existing.createdAt.toISOString(),
+          status: existing.status,
+          clientMessageId: existing.clientMessageId,
+          ticketSubject: ticket.subject,
+          ticketStatus: 'PENDING',
+        });
+      }
+    }
+
     const ticketMessage = await prisma.supportMessage.create({
       data: {
         ticketId,
         senderType: 'ADMIN',
         senderAdminId: admin.id,
         message,
+        clientMessageId: clientMessageId || undefined,
       },
     });
 
@@ -167,6 +187,7 @@ export async function POST(
       message: ticketMessage.message,
       createdAt: ticketMessage.createdAt.toISOString(),
       status: ticketMessage.status,
+      clientMessageId: ticketMessage.clientMessageId,
       ticketSubject: ticket.subject,
       ticketStatus: 'PENDING',
     });
