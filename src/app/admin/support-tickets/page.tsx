@@ -1,8 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { redirect } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useEffect, useState, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,9 +15,7 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import FileAttachmentSection from '@/components/files/file-attachment-section';
@@ -29,8 +25,7 @@ import {
   MessageSquare,
   Send,
   CheckCircle,
-  Clock,
-  AlertCircle,
+  Paperclip,
   Eye
 } from 'lucide-react';
 
@@ -76,6 +71,13 @@ export default function SupportTicketsPage() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [replyMessage, setReplyMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const [showAttachments, setShowAttachments] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const replyInputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   useEffect(() => {
     fetchTickets();
@@ -130,6 +132,7 @@ export default function SupportTicketsPage() {
       console.error('Error sending reply:', error);
     } finally {
       setSending(false);
+      replyInputRef.current?.focus();
     }
   };
 
@@ -253,13 +256,17 @@ export default function SupportTicketsPage() {
         </Table>
       </div>
 
-      <Dialog open={!!selectedTicket} onOpenChange={(open) => !open && setSelectedTicket(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{selectedTicket?.subject}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex gap-2">
+      <Dialog open={!!selectedTicket} onOpenChange={(open) => { if (!open) { setSelectedTicket(null); setShowAttachments(false); } }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+          {/* Header */}
+          <div className="flex items-start justify-between border-b px-6 py-4 shrink-0">
+            <div className="min-w-0 flex-1">
+              <DialogTitle className="text-lg truncate pr-8">{selectedTicket?.subject}</DialogTitle>
+              <p className="text-sm text-muted-foreground mt-0.5 truncate">
+                {selectedTicket?.userName || 'Customer'} &middot; {selectedTicket?.userEmail}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0 ml-4">
               <Badge className={statusColors[selectedTicket?.status || '']}>
                 {selectedTicket?.status}
               </Badge>
@@ -267,35 +274,43 @@ export default function SupportTicketsPage() {
                 {selectedTicket?.priority}
               </Badge>
             </div>
-            
-            <div className="max-h-[400px] overflow-y-auto space-y-1 border rounded-xl p-4 bg-slate-50/50">
-              {loadingMessages ? (
-                <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
-              ) : messages.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8 text-sm">No messages yet</p>
-              ) : (
-                messages.map((msg, idx) => {
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
+            {loadingMessages ? (
+              <div className="flex items-center justify-center h-full py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full py-12 text-muted-foreground">
+                <MessageSquare className="h-10 w-10 mb-3 opacity-30" />
+                <p className="text-sm font-medium">No messages yet</p>
+                <p className="text-xs mt-1">Send a reply to start the conversation</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {messages.map((msg, idx) => {
                   const isAdmin = msg.senderType === 'ADMIN';
                   const prev = idx > 0 ? messages[idx - 1] : null;
                   const showAvatar = !prev || prev.senderType !== msg.senderType;
                   return (
-                    <div key={msg.id} className={`flex items-end gap-2 mb-2 ${isAdmin ? 'justify-start' : 'justify-end'}`}>
+                    <div key={msg.id} className={`flex items-end gap-2.5 ${isAdmin ? 'justify-start' : 'justify-end'}`}>
                       {isAdmin && showAvatar && (
-                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center text-white text-[10px] font-bold shrink-0 shadow-sm">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-sm mt-1">
                           S
                         </div>
                       )}
-                      {isAdmin && !showAvatar && <div className="w-7 shrink-0" />}
-                      <div className={`max-w-[75%] ${isAdmin ? '' : ''}`}>
-                        {isAdmin && showAvatar && (
-                          <p className="text-[10px] font-semibold text-blue-600/80 mb-1 ml-0.5">Support Team</p>
-                        )}
-                        {!isAdmin && showAvatar && (
-                          <p className="text-[10px] font-semibold text-slate-500 mb-1 text-right mr-0.5">Customer</p>
+                      {isAdmin && !showAvatar && <div className="w-8 shrink-0" />}
+                      <div className="max-w-[70%]">
+                        {showAvatar && (
+                          <p className={`text-[11px] font-semibold mb-1 ${isAdmin ? 'text-blue-600 ml-1' : 'text-slate-500 text-right mr-1'}`}>
+                            {isAdmin ? 'Support Team' : 'Customer'}
+                          </p>
                         )}
                         <div className={`rounded-2xl px-4 py-2.5 shadow-sm ${
                           isAdmin
-                            ? 'bg-white rounded-bl-md border'
+                            ? 'bg-white border rounded-bl-md'
                             : 'bg-primary text-primary-foreground rounded-br-md'
                         }`}>
                           <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{msg.message}</p>
@@ -305,19 +320,29 @@ export default function SupportTicketsPage() {
                         </div>
                       </div>
                       {!isAdmin && showAvatar && (
-                        <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-[10px] font-bold shrink-0 shadow-sm">
+                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-xs font-bold shrink-0 shadow-sm mt-1">
                           U
                         </div>
                       )}
-                      {!isAdmin && !showAvatar && <div className="w-7 shrink-0" />}
+                      {!isAdmin && !showAvatar && <div className="w-8 shrink-0" />}
                     </div>
                   );
-                })
-              )}
-            </div>
+                })}
+                <div ref={messagesEndRef} />
+              </div>
+            )}
+          </div>
 
-            {selectedTicket && (
-              <div className="border-t pt-4">
+          {/* Attachments (collapsible) */}
+          {selectedTicket && showAttachments && (
+            <div className="border-t shrink-0">
+              <div className="px-6 py-3 max-h-52 overflow-y-auto">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Attachments</span>
+                  <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setShowAttachments(false)}>
+                    Hide
+                  </Button>
+                </div>
                 <FileAttachmentSection
                   entityType="supportTicketId"
                   entityId={selectedTicket.id}
@@ -326,29 +351,56 @@ export default function SupportTicketsPage() {
                   canManage={true}
                 />
               </div>
-            )}
+            </div>
+          )}
 
-            <div className="flex gap-2">
+          {/* Reply area */}
+          <div className="border-t p-4 shrink-0">
+            <div className="flex gap-2 items-end">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setShowAttachments(!showAttachments)}
+                className="shrink-0"
+                title="Attachments"
+              >
+                <Paperclip className="h-4 w-4" />
+              </Button>
               <Textarea
+                ref={replyInputRef}
                 value={replyMessage}
                 onChange={(e) => setReplyMessage(e.target.value)}
-                placeholder="Type your reply..."
-                className="flex-1"
+                placeholder="Type your reply... (Shift+Enter for new line)"
+                className="min-h-[40px] max-h-[120px] flex-1"
+                rows={1}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendReply();
+                  }
+                }}
               />
-            </div>
-          </div>
-          <DialogFooter>
-            {selectedTicket?.status !== 'RESOLVED' && (
-              <Button variant="outline" onClick={markResolved}>
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Mark Resolved
+              <Button
+                onClick={sendReply}
+                disabled={sending || !replyMessage.trim()}
+                className="shrink-0"
+              >
+                {sending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
               </Button>
+            </div>
+            {selectedTicket?.status !== 'RESOLVED' && selectedTicket?.status !== 'CLOSED' && (
+              <div className="flex mt-2">
+                <Button variant="ghost" size="sm" className="text-xs text-muted-foreground h-auto px-2 py-1" onClick={markResolved}>
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Mark as resolved
+                </Button>
+              </div>
             )}
-            <Button onClick={sendReply} disabled={sending || !replyMessage.trim()}>
-              <Send className="h-4 w-4 mr-2" />
-              Send Reply
-            </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
