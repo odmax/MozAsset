@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, CheckCircle, AlertTriangle, Upload, Trash2, Building2, Globe } from 'lucide-react';
+import { Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
 
 interface OrgSettings {
   name: string;
@@ -84,11 +84,6 @@ export default function OrganizationSettings() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [uploadingFavicon, setUploadingFavicon] = useState(false);
-  const logoInputRef = useRef<HTMLInputElement>(null);
-  const faviconInputRef = useRef<HTMLInputElement>(null);
-
   useEffect(() => {
     fetch('/api/organization/settings')
       .then((r) => r.json())
@@ -128,50 +123,6 @@ export default function OrganizationSettings() {
       setError('Failed to save settings');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleBrandUpload = async (file: File, type: 'logo' | 'favicon') => {
-    const setLoading = type === 'logo' ? setUploadingLogo : setUploadingFavicon;
-    setLoading(true);
-    setError('');
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('type', type);
-
-      const res = await fetch('/api/organization/branding', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || `Failed to upload ${type}`);
-      } else {
-        updateField(type, data.url);
-        setSuccess(`${type === 'logo' ? 'Logo' : 'Favicon'} uploaded successfully`);
-        setTimeout(() => setSuccess(''), 3000);
-      }
-    } catch {
-      setError(`Failed to upload ${type}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleBrandRemove = async (type: 'logo' | 'favicon') => {
-    setError('');
-    try {
-      const res = await fetch(`/api/organization/branding?type=${type}`, { method: 'DELETE' });
-      if (res.ok) {
-        updateField(type, null);
-      } else {
-        const data = await res.json();
-        setError(data.error || `Failed to remove ${type}`);
-      }
-    } catch {
-      setError(`Failed to remove ${type}`);
     }
   };
 
@@ -218,8 +169,7 @@ export default function OrganizationSettings() {
         <TabsList>
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="contact">Contact Information</TabsTrigger>
-          <TabsTrigger value="branding">Branding</TabsTrigger>
-          <TabsTrigger value="preferences">Preferences</TabsTrigger>
+
         </TabsList>
 
         {/* General */}
@@ -333,140 +283,7 @@ export default function OrganizationSettings() {
           </Card>
         </TabsContent>
 
-        {/* Branding */}
-        <TabsContent value="branding" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Branding</CardTitle>
-              <CardDescription>Customize your organization's visual identity</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Logo */}
-              <div className="space-y-3">
-                <Label>Organization Logo</Label>
-                <div className="flex items-center gap-6">
-                  <div className="w-24 h-24 border-2 border-dashed rounded-lg flex items-center justify-center overflow-hidden bg-muted/30">
-                    {settings?.logo ? (
-                      <img src={settings.logo} alt="Logo" className="w-full h-full object-contain" />
-                    ) : (
-                      <Building2 className="h-8 w-8 text-muted-foreground" />
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <input ref={logoInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleBrandUpload(f, 'logo'); }} className="hidden" />
-                    <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} disabled={uploadingLogo}>
-                      {uploadingLogo ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-                      {settings?.logo ? 'Replace Logo' : 'Upload Logo'}
-                    </Button>
-                    {settings?.logo && (
-                      <Button variant="ghost" size="sm" onClick={() => handleBrandRemove('logo')} className="text-red-500 hover:text-red-600">
-                        <Trash2 className="h-4 w-4 mr-2" /> Remove
-                      </Button>
-                    )}
-                    <p className="text-xs text-muted-foreground">JPEG, PNG, WebP, SVG. Max 5MB.</p>
-                  </div>
-                </div>
-              </div>
 
-              {/* Favicon */}
-              <div className="space-y-3 pt-4 border-t">
-                <Label>Favicon</Label>
-                <div className="flex items-center gap-6">
-                  <div className="w-10 h-10 border-2 border-dashed rounded flex items-center justify-center overflow-hidden bg-muted/30">
-                    {settings?.favicon ? (
-                      <img src={settings.favicon} alt="Favicon" className="w-full h-full object-contain" />
-                    ) : (
-                      <Globe className="h-5 w-5 text-muted-foreground" />
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <input ref={faviconInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleBrandUpload(f, 'favicon'); }} className="hidden" />
-                    <Button variant="outline" size="sm" onClick={() => faviconInputRef.current?.click()} disabled={uploadingFavicon}>
-                      {uploadingFavicon ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-                      {settings?.favicon ? 'Replace Favicon' : 'Upload Favicon'}
-                    </Button>
-                    {settings?.favicon && (
-                      <Button variant="ghost" size="sm" onClick={() => handleBrandRemove('favicon')} className="text-red-500 hover:text-red-600">
-                        <Trash2 className="h-4 w-4 mr-2" /> Remove
-                      </Button>
-                    )}
-                    <p className="text-xs text-muted-foreground">JPEG, PNG, WebP, SVG. Max 1MB.</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Colors */}
-              <div className="grid gap-4 md:grid-cols-2 pt-4 border-t">
-                <div className="space-y-2">
-                  <Label htmlFor="primaryColor">Primary Color</Label>
-                  <div className="flex gap-2">
-                    <Input id="primaryColor" value={settings?.primaryColor || '#3b82f6'} onChange={(e) => updateField('primaryColor', e.target.value)} placeholder="#3b82f6" />
-                    <div className="w-10 h-10 rounded border shrink-0" style={{ backgroundColor: settings?.primaryColor || '#3b82f6' }} />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="secondaryColor">Secondary Color</Label>
-                  <div className="flex gap-2">
-                    <Input id="secondaryColor" value={settings?.secondaryColor || '#6366f1'} onChange={(e) => updateField('secondaryColor', e.target.value)} placeholder="#6366f1" />
-                    <div className="w-10 h-10 rounded border shrink-0" style={{ backgroundColor: settings?.secondaryColor || '#6366f1' }} />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Preferences */}
-        <TabsContent value="preferences" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Preferences</CardTitle>
-              <CardDescription>Regional and display preferences</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="timezone">Timezone</Label>
-                  <Select value={settings?.timezone || 'Africa/Johannesburg'} onValueChange={(v) => updateField('timezone', v)}>
-                    <SelectTrigger id="timezone"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {TIMEZONES.map((tz) => <SelectItem key={tz} value={tz}>{tz.replace('_', ' ')}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="dateFormat">Date Format</Label>
-                  <Select value={settings?.dateFormat || 'DD/MM/YYYY'} onValueChange={(v) => updateField('dateFormat', v)}>
-                    <SelectTrigger id="dateFormat"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {DATE_FORMATS.map((df) => <SelectItem key={df} value={df}>{df}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="currency">Currency</Label>
-                  <Select value={settings?.currency || 'ZAR'} onValueChange={(v) => updateField('currency', v)}>
-                    <SelectTrigger id="currency"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {CURRENCIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="defaultLanguage">Default Language</Label>
-                  <Select value={settings?.defaultLanguage || 'en'} onValueChange={(v) => updateField('defaultLanguage', v)}>
-                    <SelectTrigger id="defaultLanguage"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {LANGUAGES.map((l) => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
       <div className="flex justify-end">
