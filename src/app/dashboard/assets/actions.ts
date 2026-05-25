@@ -171,7 +171,7 @@ export async function createAsset(data: AssetFormData) {
       departmentId: validated.departmentId || null,
       vendorId: validated.vendorId || null,
       purchaseDate: validated.purchaseDate,
-      purchaseCost: validated.purchaseCost ? validated.purchaseCost : null,
+      purchaseCost: typeof validated.purchaseCost === 'number' ? validated.purchaseCost : null,
       warrantyExpiry: validated.warrantyExpiry,
       notes: validated.notes,
       organizationId: context.organizationId,
@@ -184,37 +184,45 @@ export async function createAsset(data: AssetFormData) {
   return asset;
 }
 
-export async function updateAsset(id: string, data: Partial<AssetFormData>) {
+export async function updateAsset(id: string, data: AssetFormData) {
   const context = await getCurrentUserContext();
   if (!context?.userId || !canManageAssets(context.role)) {
     throw new Error('Unauthorized');
   }
 
-  const asset = await prisma.asset.findFirst({ where: { id, organizationId: context.organizationId } });
-  if (!asset) throw new Error('Asset not found');
+  const existing = await prisma.asset.findFirst({
+    where: { id, organizationId: context.organizationId },
+  });
+  if (!existing) throw new Error('Asset not found');
+
+  const validated = assetFormSchema.parse(data);
 
   const updated = await prisma.asset.update({
     where: { id },
     data: {
-      name: data.name,
-      serialNumber: data.serialNumber,
-      model: data.model,
-      brand: data.brand,
-      status: data.status,
-      condition: data.condition,
-      categoryId: data.categoryId,
-      locationId: data.locationId,
-      departmentId: data.departmentId,
-      vendorId: data.vendorId,
-      purchaseDate: data.purchaseDate,
-      purchaseCost: data.purchaseCost ?? undefined,
-      warrantyExpiry: data.warrantyExpiry,
-      notes: data.notes,
+      assetTag: validated.assetTag,
+      name: validated.name,
+      description: validated.description || null,
+      serialNumber: validated.serialNumber || null,
+      model: validated.model || null,
+      brand: validated.brand || null,
+      status: validated.status,
+      condition: validated.condition,
+      categoryId: validated.categoryId || null,
+      locationId: validated.locationId || null,
+      departmentId: validated.departmentId || null,
+      vendorId: validated.vendorId || null,
+      assignedToId: validated.assignedToId || null,
+      purchaseDate: validated.purchaseDate || null,
+      purchaseCost: typeof validated.purchaseCost === 'number' ? validated.purchaseCost : null,
+      warrantyExpiry: validated.warrantyExpiry || null,
+      notes: validated.notes || null,
     },
   });
 
   await logAudit('UPDATE' as AuditAction, 'Asset', id, context.userId, data as Prisma.InputJsonValue);
 
+  revalidatePath('/dashboard');
   revalidatePath('/dashboard/assets');
   revalidatePath(`/dashboard/assets/${id}`);
   return updated;
