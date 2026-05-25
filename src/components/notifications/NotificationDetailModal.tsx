@@ -4,10 +4,8 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  X,
   CheckCheck,
   Trash2,
-  ExternalLink,
   Package,
   ArrowRightLeft,
   Wrench,
@@ -21,7 +19,6 @@ import {
   Download,
   Building2,
   Bell,
-  Loader2,
   Clock,
 } from 'lucide-react';
 
@@ -130,14 +127,6 @@ function formatDate(dateStr: string): string {
   });
 }
 
-function isValidLink(link: string | null): boolean {
-  if (!link) return false;
-  const validPrefixes = [
-    '/dashboard/', '/billing', '/admin/',
-  ];
-  return validPrefixes.some((p) => link.startsWith(p));
-}
-
 export default function NotificationDetailModal({ notification, onClose, onMarkRead, onDelete }: Props) {
   if (!notification) return null;
 
@@ -145,7 +134,6 @@ export default function NotificationDetailModal({ notification, onClose, onMarkR
   const iconColor = iconColors[notification.type] || 'text-muted-foreground bg-muted';
   const priorityColor = priorityColors[notification.priority] || priorityColors.normal;
   const typeLabel = typeLabels[notification.type] || notification.type;
-  const hasLink = isValidLink(notification.link);
   const hasMetadata = notification.metadata && Object.keys(notification.metadata).length > 0;
 
   return (
@@ -162,9 +150,6 @@ export default function NotificationDetailModal({ notification, onClose, onMarkR
               <p className="text-xs text-muted-foreground mt-0.5">{typeLabel}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground shrink-0 -mr-1 -mt-1">
-            <X className="h-4 w-4" />
-          </button>
         </div>
 
         {/* Body */}
@@ -215,18 +200,6 @@ export default function NotificationDetailModal({ notification, onClose, onMarkR
             </div>
           )}
 
-          {/* Link */}
-          {hasLink && (
-            <a
-              href={notification.link!}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-              Open related page
-            </a>
-          )}
         </div>
 
         {/* Footer actions */}
