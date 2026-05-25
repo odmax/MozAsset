@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 import { hashToken } from '@/lib/email';
 
@@ -89,10 +90,13 @@ export async function POST(request: Request) {
       );
     }
 
+    const now = new Date();
+
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        emailVerifiedAt: new Date() as any,
+        emailVerified: now as any,
+        emailVerifiedAt: now as any,
         emailVerificationToken: null as any,
         verificationTokenExpiry: null as any,
       },
@@ -106,6 +110,31 @@ export async function POST(request: Request) {
         userId: user.id,
       },
     });
+
+    try {
+      const admins = await prisma.internalAdmin.findMany({
+        where: {
+          role: { in: ['PLATFORM_ADMIN', 'OWNER'] },
+          isActive: true,
+        },
+        select: { id: true },
+      });
+      for (const admin of admins) {
+        await prisma.notification.create({
+          data: {
+            adminId: admin.id,
+            type: 'USER_INVITED',
+            title: 'User Verified Email',
+            message: `${user.name || user.email} verified their email`,
+            link: `/admin/users/${user.id}`,
+          },
+        });
+      }
+    } catch (err) {
+      console.error('Failed to notify admins:', err);
+    }
+
+    revalidatePath('/admin/users');
 
     return NextResponse.json({ message: 'Email verified successfully' });
   } catch (error) {

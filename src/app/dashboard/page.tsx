@@ -22,6 +22,7 @@ import { AssetStatus } from '@prisma/client';
 import { StatusPieChart, DepartmentBarChart, CategoryBarChart } from '@/components/dashboard/charts';
 import { UpgradeButton } from '@/components/dashboard/UpgradeButton';
 import { getSimpleUserSession } from '@/lib/customer-session';
+import EmailVerificationBanner from '@/components/dashboard/email-verification-banner';
 
 async function getDashboardData(context: {
   userId: string;
@@ -141,6 +142,12 @@ export default async function DashboardPage() {
 
   const plan = session.plan || 'FREE';
   const showAds = plan === 'FREE';
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { emailVerified: true },
+  });
+  const needsVerification = !user?.emailVerified;
   
   try {
     const data = await getDashboardData({
@@ -173,6 +180,8 @@ export default async function DashboardPage() {
             </Button>
           </Link>
         </div>
+
+        {needsVerification && <EmailVerificationBanner initiallyVerified={false} />}
 
         {!showAds && (
           <Card className="border-green-200 bg-green-50">
