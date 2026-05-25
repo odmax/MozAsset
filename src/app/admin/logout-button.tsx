@@ -9,6 +9,10 @@ export default function LogoutButton() {
 
   const handleLogout = async () => {
     try {
+      localStorage.removeItem('mozassets-theme-admin');
+      localStorage.removeItem('mozassets-theme-public');
+      document.documentElement.classList.remove('dark');
+      document.documentElement.style.removeProperty('--theme-color');
       await fetch('/api/admin/logout', { method: 'POST' });
       router.push('/admin-login');
       router.refresh();

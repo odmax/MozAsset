@@ -135,6 +135,24 @@ function SidebarContent({
 
   const handleSignOut = async () => {
     try {
+      const userId = (() => {
+        try {
+          for (const c of document.cookie.split(';')) {
+            const t = c.trim();
+            if (t.startsWith('simpleUserAuth=')) {
+              const raw = decodeURIComponent(t.substring('simpleUserAuth='.length));
+              return JSON.parse(atob(raw))?.userId;
+            }
+          }
+        } catch {}
+        return null;
+      })();
+      if (userId) {
+        localStorage.removeItem(`mozassets-theme-user:${userId}`);
+      }
+      localStorage.removeItem('mozassets-theme-public');
+      document.documentElement.classList.remove('dark');
+      document.documentElement.style.removeProperty('--theme-color');
       await fetch('/api/auth/logout', { method: 'POST' });
       router.push('/login');
     } catch (error) {

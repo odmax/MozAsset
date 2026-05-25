@@ -8,9 +8,20 @@ interface ThemeProviderProps {
   defaultMode?: 'light' | 'dark' | 'system';
   userTheme?: string;
   userThemeColor?: string;
+  forcedTheme?: string;
+  storageKey?: string;
+  enableSystem?: boolean;
 }
 
-export function ThemeProvider({ children, defaultMode = 'light', userTheme, userThemeColor }: ThemeProviderProps) {
+export function ThemeProvider({
+  children,
+  defaultMode = 'light',
+  userTheme,
+  userThemeColor,
+  forcedTheme,
+  storageKey,
+  enableSystem = true,
+}: ThemeProviderProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -25,20 +36,24 @@ export function ThemeProvider({ children, defaultMode = 'light', userTheme, user
     }
   }, [userThemeColor]);
 
+  const props = {
+    attribute: 'class' as const,
+    defaultTheme: defaultMode,
+    enableSystem,
+    forcedTheme,
+    storageKey,
+  };
+
   if (!mounted) {
     return (
-      <NextThemesProvider attribute="class" defaultTheme={defaultMode} enableSystem>
+      <NextThemesProvider {...props}>
         {children}
       </NextThemesProvider>
     );
   }
 
   return (
-    <NextThemesProvider 
-      attribute="class" 
-      defaultTheme={userTheme || defaultMode} 
-      enableSystem
-    >
+    <NextThemesProvider {...props} defaultTheme={userTheme || defaultMode}>
       {children}
     </NextThemesProvider>
   );

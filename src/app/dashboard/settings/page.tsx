@@ -285,9 +285,16 @@ export default function SettingsPage() {
                       key={mode}
                       variant={appearanceMode === mode ? 'default' : 'outline'}
                       size="sm"
-                      onClick={() => {
+                      onClick={async () => {
                         setAppearanceMode(mode);
                         setTheme(mode.toLowerCase());
+                        try {
+                          await fetch('/api/user/profile', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ appearanceMode: mode }),
+                          });
+                        } catch {}
                       }}
                     >
                       {mode.charAt(0) + mode.slice(1).toLowerCase()}
