@@ -421,8 +421,8 @@ export default function PricingPage() {
                 Need a Custom Solution?
               </h2>
               <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
-                For large organizations with specific requirements, we offer custom Enterprise plans 
-                with dedicated support, SLA guarantees, and on-premise options.
+                Advanced asset operations for enterprise teams. Unlimited assets, multi-branch, 
+                API access, custom integrations, and dedicated account management.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Button size="lg" variant="secondary" className="h-12 px-8">

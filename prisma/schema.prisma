@@ -174,77 +174,81 @@ enum AuditAction {
 }
 
 model User {
-  id              String    @id @default(cuid())
-  name            String?
-  email           String    @unique
-  emailVerified   DateTime?
-  image           String?
-  password        String?
-  role            Role      @default(EMPLOYEE)
-  plan            Plan      @default(FREE)
-  assetLimit      Int       @default(50)
-  departmentLimit Int       @default(1)
-  locationLimit   Int       @default(1)
-  userLimit       Int       @default(3)
-  onBoardingComplete Boolean @default(false)
-  
-  subscriptionStatus   SubscriptionStatus @default(ACTIVE)
-  billingProvider      BillingProvider    @default(NONE)
-  billingCustomerId    String?
+  id                 String    @id @default(cuid())
+  name               String?
+  email              String    @unique
+  emailVerified      DateTime?
+  image              String?
+  password           String?
+  role               Role      @default(EMPLOYEE)
+  plan               Plan      @default(FREE)
+  assetLimit         Int       @default(50)
+  departmentLimit    Int       @default(1)
+  locationLimit      Int       @default(1)
+  userLimit          Int       @default(3)
+  onBoardingComplete Boolean   @default(false)
+
+  subscriptionStatus    SubscriptionStatus @default(ACTIVE)
+  billingProvider       BillingProvider    @default(NONE)
+  billingCustomerId     String?
   billingSubscriptionId String?
-  billingPeriodStart   DateTime?
-  billingPeriodEnd     DateTime?
-  canceledAt           DateTime?
-  lastPaymentAt       DateTime?
-  
+  billingPeriodStart    DateTime?
+  billingPeriodEnd      DateTime?
+  canceledAt            DateTime?
+  lastPaymentAt         DateTime?
+
   departmentId    String?
   department      Department? @relation(fields: [departmentId], references: [id])
-  isActive        Boolean   @default(true)
-  isPlatformAdmin Boolean   @default(false)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  
-  resetToken      String?
-  resetTokenExpiry DateTime?
-  emailVerificationToken String?
+  isActive        Boolean     @default(true)
+  isPlatformAdmin Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  resetToken              String?
+  resetTokenExpiry        DateTime?
+  emailVerificationToken  String?
   verificationTokenExpiry DateTime?
-  emailVerifiedAt DateTime?
-  
-  appearanceMode  AppearanceMode @default(SYSTEM)
+  emailVerifiedAt         DateTime?
+
+  appearanceMode AppearanceMode @default(SYSTEM)
   themeColor     String?        @default("#222222")
   companyLogoUrl String?
 
-  emailMarketing    Boolean @default(true)
-  emailSecurity     Boolean @default(true)
-  emailSupport      Boolean @default(true)
-  emailMaintenance  Boolean @default(true)
-  emailBilling      Boolean @default(true)
+  emailMarketing   Boolean @default(true)
+  emailSecurity    Boolean @default(true)
+  emailSupport     Boolean @default(true)
+  emailMaintenance Boolean @default(true)
+  emailBilling     Boolean @default(true)
 
   // Inactivity lifecycle (FREE accounts only)
-  lastActiveAt          DateTime?
-  isDeactivated         Boolean   @default(false)
-  deactivatedAt         DateTime?
-  scheduledDeletionAt   DateTime?
-  deactivationReason    String?
-  inactivityWarningSentAt   DateTime?
-  finalWarningSentAt        DateTime?
+  lastActiveAt            DateTime?
+  isDeactivated           Boolean   @default(false)
+  deactivatedAt           DateTime?
+  scheduledDeletionAt     DateTime?
+  deactivationReason      String?
+  inactivityWarningSentAt DateTime?
+  finalWarningSentAt      DateTime?
 
-  organizationId   String?
-  organization     Organization? @relation(fields: [organizationId], references: [id])
+  organizationId    String?
+  organization      Organization? @relation(fields: [organizationId], references: [id])
   ownedOrganization Organization? @relation("OrganizationOwner")
 
-  accounts        Account[]
-  sessions        Session[]
-  assets          Asset[]          @relation("AssignedAssets")
-  assignedAssets  AssetAssignment[]
-  auditLogs       AuditLog[]
-  maintenances    Maintenance[]
-  managedDepartments Department[] @relation("DepartmentManager")
-  invoices        Invoice[]
-  payments       Payment[]
-  supportTickets SupportTicket[]
-  files          File[]         @relation("FileUploader")
-  notifications  Notification[]
+  branchId String?
+  branch   Branch? @relation(fields: [branchId], references: [id])
+
+  accounts           Account[]
+  sessions           Session[]
+  assets             Asset[]           @relation("AssignedAssets")
+  assignedAssets     AssetAssignment[]
+  auditLogs          AuditLog[]
+  maintenances       Maintenance[]
+  managedDepartments Department[]      @relation("DepartmentManager")
+  invoices           Invoice[]
+  payments           Payment[]
+  supportTickets     SupportTicket[]
+  files              File[]            @relation("FileUploader")
+  notifications      Notification[]
+  ApiKey             ApiKey[]
 
   @@index([email])
   @@index([departmentId])
@@ -252,62 +256,138 @@ model User {
 }
 
 model Organization {
-  id              String    @id @default(cuid())
-  name            String    @unique
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  ownerId         String    @unique
-  owner           User       @relation("OrganizationOwner", fields: [ownerId], references: [id])
+  ownerId String @unique
+  owner   User   @relation("OrganizationOwner", fields: [ownerId], references: [id])
 
-  users           User[]
-  departments     Department[]
-  locations       Location[]
-  assets          Asset[]
-  categories      Category[]
-  vendors         Vendor[]
-  files           File[]
+  users       User[]
+  departments Department[]
+  locations   Location[]
+  assets      Asset[]
+  categories  Category[]
+  vendors     Vendor[]
+  files       File[]
 
   // General
-  description     String?
-  industry        String?
-  companySize     String?
+  description String?
+  industry    String?
+  companySize String?
 
   // Contact
-  orgEmail        String?
-  phone           String?
-  alternatePhone  String?
-  website         String?
-  addressLine1    String?
-  addressLine2    String?
-  city            String?
-  province        String?
-  postalCode      String?
-  country         String?
+  orgEmail       String?
+  phone          String?
+  alternatePhone String?
+  website        String?
+  addressLine1   String?
+  addressLine2   String?
+  city           String?
+  province       String?
+  postalCode     String?
+  country        String?
 
   // Branding
-  logo            String?
-  favicon         String?
-  primaryColor    String    @default("#3b82f6")
-  secondaryColor  String    @default("#6366f1")
+  logo           String?
+  favicon        String?
+  primaryColor   String  @default("#3b82f6")
+  secondaryColor String  @default("#6366f1")
 
   // Preferences
-  timezone        String    @default("Africa/Johannesburg")
-  dateFormat      String    @default("DD/MM/YYYY")
-  currency        String    @default("ZAR")
-  defaultLanguage String    @default("en")
+  timezone        String @default("Africa/Johannesburg")
+  dateFormat      String @default("DD/MM/YYYY")
+  currency        String @default("ZAR")
+  defaultLanguage String @default("en")
 
   // Billing
-  plan            Plan      @default(FREE)
-  subscriptionStatus SubscriptionStatus @default(ACTIVE)
-  billingProvider BillingProvider @default(NONE)
-  billingCustomerId String?
+  plan                  Plan               @default(FREE)
+  subscriptionStatus    SubscriptionStatus @default(ACTIVE)
+  billingProvider       BillingProvider    @default(NONE)
+  billingCustomerId     String?
   billingSubscriptionId String?
-  billingPeriodStart DateTime?
-  billingPeriodEnd   DateTime?
-  canceledAt       DateTime?
+  billingPeriodStart    DateTime?
+  billingPeriodEnd      DateTime?
+  canceledAt            DateTime?
+
+  branches            Branch[]
+  apiKeys             ApiKey[]
+  depreciationRecords DepreciationRecord[]
 
   @@index([ownerId])
+}
+
+model Branch {
+  id       String  @id @default(cuid())
+  name     String
+  code     String?
+  address  String?
+  city     String?
+  province String?
+  phone    String?
+  email    String?
+  isActive Boolean @default(true)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  assets      Asset[]
+  users       User[]
+  departments Department[]
+  locations   Location[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name, organizationId])
+  @@index([organizationId])
+  @@index([code])
+}
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  name        String
+  key         String    @unique
+  prefix      String
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  isActive    Boolean   @default(true)
+  permissions Json?
+  usageCount  Int       @default(0)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  createdById    String
+  createdBy      User         @relation(fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([key])
+  @@index([prefix])
+}
+
+model DepreciationRecord {
+  id              String        @id @default(cuid())
+  assetId         String
+  asset           Asset         @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  organizationId  String?
+  organization    Organization? @relation(fields: [organizationId], references: [id])
+  method          String        @default("STRAIGHT_LINE") // STRAIGHT_LINE, DECLINING_BALANCE, SUM_OF_YEARS
+  usefulLifeYears Int           @default(5)
+  salvageValue    Decimal?      @db.Decimal(12, 2)
+  purchaseCost    Decimal?      @db.Decimal(12, 2)
+  currentValue    Decimal?      @db.Decimal(12, 2)
+  depreciationAt  DateTime?
+  schedule        Json? // annual depreciation breakdown
+  notes           String?       @db.Text
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([assetId])
+  @@index([organizationId])
 }
 
 model Account {
@@ -356,7 +436,7 @@ model Category {
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
 
-  assets      Asset[]
+  assets Asset[]
 
   @@unique([name, organizationId])
   @@index([name])
@@ -373,34 +453,40 @@ model Department {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  branchId String?
+  branch   Branch? @relation(fields: [branchId], references: [id])
+
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
 
-  users       User[]
-  locations   Location[]
-  assets      Asset[]
+  users     User[]
+  locations Location[]
+  assets    Asset[]
 
   @@index([name])
   @@index([code])
   @@index([organizationId])
+  @@index([branchId])
 }
 
 model Location {
-  id           String     @id @default(cuid())
+  id           String      @id @default(cuid())
   name         String
   address      String?
   building     String?
   floor        String?
   room         String?
+  branchId     String?
+  branch       Branch?     @relation(fields: [branchId], references: [id])
   departmentId String?
   department   Department? @relation(fields: [departmentId], references: [id])
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
 
-  assets       Asset[]
+  assets Asset[]
 
   @@unique([name, departmentId])
   @@index([departmentId])
@@ -422,7 +508,7 @@ model Vendor {
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
 
-  assets      Asset[]
+  assets Asset[]
 
   @@unique([name, organizationId])
   @@index([name])
@@ -430,48 +516,52 @@ model Vendor {
 }
 
 model Asset {
-  id              String         @id @default(cuid())
-  assetTag        String         @unique
-  name            String
-  description     String?
-  serialNumber    String?
-  model           String?
-  brand           String?
-  status          AssetStatus    @default(AVAILABLE)
-  condition       AssetCondition @default(GOOD)
-  
-  categoryId      String?
-  category        Category?      @relation(fields: [categoryId], references: [id])
-  
-  locationId      String?
-  location        Location?      @relation(fields: [locationId], references: [id])
-  
-  departmentId    String?
-  department      Department?    @relation(fields: [departmentId], references: [id])
-  
-  organizationId  String?
-  organization    Organization?  @relation(fields: [organizationId], references: [id])
-  
-  assignedToId    String?
-  assignedTo      User?          @relation("AssignedAssets", fields: [assignedToId], references: [id])
-  
-  vendorId        String?
-  vendor          Vendor?        @relation(fields: [vendorId], references: [id])
-  
-  purchaseDate    DateTime?
-  purchaseCost    Decimal?      @db.Decimal(12, 2)
-  warrantyExpiry  DateTime?
-  notes           String?       @db.Text
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id           String         @id @default(cuid())
+  assetTag     String         @unique
+  name         String
+  description  String?
+  serialNumber String?
+  model        String?
+  brand        String?
+  status       AssetStatus    @default(AVAILABLE)
+  condition    AssetCondition @default(GOOD)
 
-  assignments     AssetAssignment[]
-  transfers       AssetTransfer[]
-  maintenances    Maintenance[]
-  checkIns        CheckInOut[]
-  auditLogs       AuditLog[]
-  files           File[]
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+
+  locationId String?
+  location   Location? @relation(fields: [locationId], references: [id])
+
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
+  branchId String?
+  branch   Branch? @relation(fields: [branchId], references: [id])
+
+  assignedToId String?
+  assignedTo   User?   @relation("AssignedAssets", fields: [assignedToId], references: [id])
+
+  vendorId String?
+  vendor   Vendor? @relation(fields: [vendorId], references: [id])
+
+  purchaseDate   DateTime?
+  purchaseCost   Decimal?  @db.Decimal(12, 2)
+  warrantyExpiry DateTime?
+  notes          String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignments        AssetAssignment[]
+  transfers          AssetTransfer[]
+  maintenances       Maintenance[]
+  checkIns           CheckInOut[]
+  auditLogs          AuditLog[]
+  files              File[]
+  DepreciationRecord DepreciationRecord[]
 
   @@index([assetTag])
   @@index([name])
@@ -479,27 +569,28 @@ model Asset {
   @@index([categoryId])
   @@index([departmentId])
   @@index([assignedToId])
+  @@index([branchId])
 }
 
 model AssetAssignment {
-  id          String    @id @default(cuid())
-  assetId     String
-  asset       Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User      @relation(fields: [userId], references: [id])
-  assignedBy  String
-  assignedAt  DateTime  @default(now())
-  returnedAt  DateTime?
-  notes       String?   @db.Text
+  id         String    @id @default(cuid())
+  assetId    String
+  asset      Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  assignedBy String
+  assignedAt DateTime  @default(now())
+  returnedAt DateTime?
+  notes      String?   @db.Text
 
   @@index([assetId])
   @@index([userId])
 }
 
 model AssetTransfer {
-  id              String   @id @default(cuid())
-  assetId         String
-  asset           Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  id               String   @id @default(cuid())
+  assetId          String
+  asset            Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
   fromDepartmentId String?
   toDepartmentId   String
   fromLocationId   String?
@@ -508,62 +599,62 @@ model AssetTransfer {
   toUserId         String?
   transferredBy    String
   transferredAt    DateTime @default(now())
-  notes           String?   @db.Text
+  notes            String?  @db.Text
 
   @@index([assetId])
 }
 
 model Maintenance {
-  id            String          @id @default(cuid())
-  assetId       String
-  asset         Asset           @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  type          String
-  description   String          @db.Text
-  performedBy   String
-  performedByUser User          @relation(fields: [performedBy], references: [id])
-  performedAt   DateTime        @default(now())
-  cost          Decimal?        @db.Decimal(10, 2)
-  vendorId      String?
-  nextDueDate   DateTime?
-  status        String          @default("COMPLETED")
-  notes         String?         @db.Text
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  id              String    @id @default(cuid())
+  assetId         String
+  asset           Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  type            String
+  description     String    @db.Text
+  performedBy     String
+  performedByUser User      @relation(fields: [performedBy], references: [id])
+  performedAt     DateTime  @default(now())
+  cost            Decimal?  @db.Decimal(10, 2)
+  vendorId        String?
+  nextDueDate     DateTime?
+  status          String    @default("COMPLETED")
+  notes           String?   @db.Text
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  files         File[]
+  files File[]
 
   @@index([assetId])
   @@index([performedBy])
 }
 
 model CheckInOut {
-  id          String    @id @default(cuid())
-  assetId     String
-  asset       Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  userId      String
-  type        String    // CHECK_IN or CHECK_OUT
-  checkedAt   DateTime  @default(now())
-  notes       String?   @db.Text
-  condition   AssetCondition?
-  createdAt   DateTime  @default(now())
+  id        String          @id @default(cuid())
+  assetId   String
+  asset     Asset           @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  userId    String
+  type      String // CHECK_IN or CHECK_OUT
+  checkedAt DateTime        @default(now())
+  notes     String?         @db.Text
+  condition AssetCondition?
+  createdAt DateTime        @default(now())
 
   @@index([assetId])
   @@index([userId])
 }
 
 model File {
-  id              String        @id @default(cuid())
+  id              String         @id @default(cuid())
   organizationId  String?
-  organization    Organization? @relation(fields: [organizationId], references: [id])
+  organization    Organization?  @relation(fields: [organizationId], references: [id])
   uploadedById    String
-  uploadedBy      User          @relation("FileUploader", fields: [uploadedById], references: [id])
+  uploadedBy      User           @relation("FileUploader", fields: [uploadedById], references: [id])
   assetId         String?
-  asset           Asset?        @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  asset           Asset?         @relation(fields: [assetId], references: [id], onDelete: Cascade)
   maintenanceId   String?
-  maintenance     Maintenance?  @relation(fields: [maintenanceId], references: [id], onDelete: SetNull)
+  maintenance     Maintenance?   @relation(fields: [maintenanceId], references: [id], onDelete: SetNull)
   supportTicketId String?
   supportTicket   SupportTicket? @relation(fields: [supportTicketId], references: [id], onDelete: SetNull)
-  type            FileType      @default(OTHER)
+  type            FileType       @default(OTHER)
   fileName        String
   originalName    String
   mimeType        String
@@ -571,7 +662,7 @@ model File {
   url             String
   thumbnailUrl    String?
   metadata        Json?
-  createdAt       DateTime      @default(now())
+  createdAt       DateTime       @default(now())
 
   @@index([organizationId])
   @@index([uploadedById])
@@ -583,19 +674,19 @@ model File {
 }
 
 model AuditLog {
-  id          String      @id @default(cuid())
-  action      AuditAction
-  entityType  String
-  entityId    String
-  assetId     String?
-  asset       Asset?      @relation(fields: [assetId], references: [id], onDelete: SetNull)
-  userId      String
-  user        User        @relation(fields: [userId], references: [id])
-  changes     Json?
-  metadata    Json?
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime    @default(now())
+  id         String      @id @default(cuid())
+  action     AuditAction
+  entityType String
+  entityId   String
+  assetId    String?
+  asset      Asset?      @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  userId     String
+  user       User        @relation(fields: [userId], references: [id])
+  changes    Json?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime    @default(now())
 
   @@index([action])
   @@index([entityType, entityId])
@@ -605,14 +696,14 @@ model AuditLog {
 }
 
 model EmailLog {
-  id         String   @id @default(cuid())
-  to         String
-  subject    String
-  type       String?
-  status     String   // sent, failed
-  error      String?  @db.Text
-  metadata   Json?
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  to        String
+  subject   String
+  type      String?
+  status    String // sent, failed
+  error     String?  @db.Text
+  metadata  Json?
+  createdAt DateTime @default(now())
 
   @@index([to])
   @@index([status])
@@ -634,9 +725,9 @@ model Notification {
   metadata       Json?
   createdAt      DateTime         @default(now())
 
-  adminId        String?
-  admin          InternalAdmin?   @relation(fields: [adminId], references: [id], onDelete: Cascade)
-  user           User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  adminId String?
+  admin   InternalAdmin? @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  user    User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
   @@index([adminId, isRead])
@@ -648,15 +739,15 @@ model Notification {
 }
 
 model ContactSubmission {
-  id          String   @id @default(cuid())
-  name        String
-  email       String
-  company    String?
-  phone      String?
-  message    String   @db.Text
-  status     String   @default("PENDING")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  company   String?
+  phone     String?
+  message   String   @db.Text
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([email])
   @@index([status])
@@ -664,20 +755,20 @@ model ContactSubmission {
 }
 
 model Invoice {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  amount      Decimal   @db.Decimal(10, 2)
-  currency    String   @default("USD")
-  status      String   @default("PENDING")
-  provider    BillingProvider @default(NONE)
+  id                String          @id @default(cuid())
+  userId            String
+  user              User            @relation(fields: [userId], references: [id])
+  amount            Decimal         @db.Decimal(10, 2)
+  currency          String          @default("USD")
+  status            String          @default("PENDING")
+  provider          BillingProvider @default(NONE)
   providerInvoiceId String?
-  description String?
-  periodStart DateTime?
-  periodEnd   DateTime?
-  paidAt      DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  description       String?
+  periodStart       DateTime?
+  periodEnd         DateTime?
+  paidAt            DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
   @@index([userId])
   @@index([status])
@@ -685,20 +776,20 @@ model Invoice {
 }
 
 model Payment {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  amount    Decimal   @db.Decimal(10, 2)
-  currency  String   @default("ZAR")
-  status    String   @default("PENDING")
-  provider  String   @default("NONE")
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id])
+  amount            Decimal   @db.Decimal(10, 2)
+  currency          String    @default("ZAR")
+  status            String    @default("PENDING")
+  provider          String    @default("NONE")
   providerPaymentId String?
-  plan      String?
-  periodStart DateTime?
-  periodEnd   DateTime?
-  paidAt    DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  plan              String?
+  periodStart       DateTime?
+  periodEnd         DateTime?
+  paidAt            DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   @@index([userId])
   @@index([status])
@@ -707,35 +798,35 @@ model Payment {
 }
 
 model InternalAdmin {
-  id        String        @id @default(cuid())
-  email     String        @unique
+  id        String       @id @default(cuid())
+  email     String       @unique
   name      String?
   password  String
-  role      InternalRole  @default(SUPPORT_AGENT)
-  isActive  Boolean       @default(true)
+  role      InternalRole @default(SUPPORT_AGENT)
+  isActive  Boolean      @default(true)
   lastLogin DateTime?
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
   // Agent management fields
-  avatar            String?
-  status            AgentStatus  @default(OFFLINE)
-  isOnline          Boolean      @default(false)
-  isBusy            Boolean      @default(false)
-  maxConcurrentChats Int         @default(5)
-  activeChatCount   Int          @default(0)
-  lastActiveAt      DateTime?
-  statusMessage     String?
+  avatar              String?
+  status              AgentStatus @default(OFFLINE)
+  isOnline            Boolean     @default(false)
+  isBusy              Boolean     @default(false)
+  maxConcurrentChats  Int         @default(5)
+  activeChatCount     Int         @default(0)
+  lastActiveAt        DateTime?
+  statusMessage       String?
   assignedDepartments String?
-  isSuspended       Boolean      @default(false)
-  createdByOwner    Boolean      @default(false)
-  permissions       Json?
-  lastAssignedAt    DateTime?
+  isSuspended         Boolean     @default(false)
+  createdByOwner      Boolean     @default(false)
+  permissions         Json?
+  lastAssignedAt      DateTime?
 
-  assignedTickets SupportTicket[]
-  internalNotes   InternalNote[]
+  assignedTickets  SupportTicket[]
+  internalNotes    InternalNote[]
   escalatedTickets SupportTicket[] @relation("EscalatedTickets")
-  notifications   Notification[]
+  notifications    Notification[]
 
   @@index([email])
   @@index([role])
@@ -747,42 +838,42 @@ model SupportTicket {
   userId          String
   user            User           @relation(fields: [userId], references: [id])
   organizationId  String?
-  subject        String
-  category       String
-  status         TicketStatus   @default(OPEN)
-  priority       TicketPriority @default(MEDIUM)
+  subject         String
+  category        String
+  status          TicketStatus   @default(OPEN)
+  priority        TicketPriority @default(MEDIUM)
   assignedAdminId String?
-  assignedAdmin  InternalAdmin? @relation(fields: [assignedAdminId], references: [id])
+  assignedAdmin   InternalAdmin? @relation(fields: [assignedAdminId], references: [id])
 
   // Transfer & escalation
-  escalatedToId  String?
-  escalatedTo    InternalAdmin? @relation("EscalatedTickets", fields: [escalatedToId], references: [id])
-  escalatedAt    DateTime?
-  escalatedBy    String?
-  escalationReason String?
+  escalatedToId     String?
+  escalatedTo       InternalAdmin? @relation("EscalatedTickets", fields: [escalatedToId], references: [id])
+  escalatedAt       DateTime?
+  escalatedBy       String?
+  escalationReason  String?
   transferredFromId String?
-  transferredAt   DateTime?
-  transferredBy   String?
-  transferNote   String?
+  transferredAt     DateTime?
+  transferredBy     String?
+  transferNote      String?
 
   // SLA tracking
-  slaDeadline    DateTime?
-  slaBreachedAt  DateTime?
+  slaDeadline     DateTime?
+  slaBreachedAt   DateTime?
   firstResponseAt DateTime?
-  resolvedAt     DateTime?
+  resolvedAt      DateTime?
 
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Realtime chat fields
-  userTypingAt   DateTime?
-  adminTypingAt  DateTime?
-  userLastSeenAt DateTime?
+  userTypingAt    DateTime?
+  adminTypingAt   DateTime?
+  userLastSeenAt  DateTime?
   adminLastSeenAt DateTime?
 
-  messages       SupportMessage[]
-  files          File[]
-  internalNotes  InternalNote[]
+  messages      SupportMessage[]
+  files         File[]
+  internalNotes InternalNote[]
 
   @@index([userId])
   @@index([organizationId])
@@ -795,19 +886,19 @@ model SupportTicket {
 }
 
 model SupportMessage {
-  id           String        @id @default(cuid())
-  ticketId     String
-  ticket      SupportTicket  @relation(fields: [ticketId], references: [id])
-  senderType  SenderType     @default(USER)
-  senderUserId String?
-  senderAdminId String?
-  message     String         @db.Text
-  status      MessageStatus  @default(SENT)
-  deliveredAt DateTime?
-  seenAt      DateTime?
-  createdAt   DateTime       @default(now())
-  readAt      DateTime?
-  clientMessageId String?    @unique
+  id              String        @id @default(cuid())
+  ticketId        String
+  ticket          SupportTicket @relation(fields: [ticketId], references: [id])
+  senderType      SenderType    @default(USER)
+  senderUserId    String?
+  senderAdminId   String?
+  message         String        @db.Text
+  status          MessageStatus @default(SENT)
+  deliveredAt     DateTime?
+  seenAt          DateTime?
+  createdAt       DateTime      @default(now())
+  readAt          DateTime?
+  clientMessageId String?       @unique
 
   @@index([ticketId])
   @@index([senderUserId])
@@ -830,14 +921,14 @@ model InternalNote {
 }
 
 model SlaRule {
-  id              String          @id @default(cuid())
-  priority        TicketPriority  @unique
-  responseTimeMin Int
+  id                String         @id @default(cuid())
+  priority          TicketPriority @unique
+  responseTimeMin   Int
   resolutionTimeMin Int
-  breachPenalty   String?
-  isActive        Boolean         @default(true)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  breachPenalty     String?
+  isActive          Boolean        @default(true)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
   @@index([priority])
 }
@@ -856,18 +947,18 @@ enum BackupStorageBackend {
 }
 
 model Backup {
-  id              String              @id @default(cuid())
-  status          BackupStatus        @default(PENDING)
-  storageBackend  BackupStorageBackend @default(LOCAL)
-  filePath        String?
-  fileSize        BigInt?
-  md5Hash         String?
-  errorMessage    String?
-  triggeredBy     String?
-  notes           String?
-  createdAt       DateTime            @default(now())
-  completedAt     DateTime?
-  updatedAt       DateTime            @updatedAt
+  id             String               @id @default(cuid())
+  status         BackupStatus         @default(PENDING)
+  storageBackend BackupStorageBackend @default(LOCAL)
+  filePath       String?
+  fileSize       BigInt?
+  md5Hash        String?
+  errorMessage   String?
+  triggeredBy    String?
+  notes          String?
+  createdAt      DateTime             @default(now())
+  completedAt    DateTime?
+  updatedAt      DateTime             @updatedAt
 
   @@index([status])
   @@index([createdAt])

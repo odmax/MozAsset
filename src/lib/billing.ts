@@ -27,7 +27,20 @@ export interface PlanDetails {
     multiBranch: boolean;
     prioritySupport: boolean;
     sla: boolean;
-    onPremise: boolean;
+    unlimitedAssets: boolean;
+    unlimitedDepartments: boolean;
+    unlimitedLocations: boolean;
+    advancedAnalytics: boolean;
+    customIntegrations: boolean;
+    auditCompliance: boolean;
+    advancedPermissions: boolean;
+    maintenanceManagement: boolean;
+    assetLifecycleTracking: boolean;
+    exportSuite: boolean;
+    dedicatedAccountManager: boolean;
+    customBranding: boolean;
+    approvalWorkflows: boolean;
+    depreciationTracking: boolean;
   };
 }
 
@@ -50,7 +63,20 @@ export const PLAN_CONFIG: Record<Plan, PlanDetails> = {
       multiBranch: false,
       prioritySupport: false,
       sla: false,
-      onPremise: false,
+      unlimitedAssets: false,
+      unlimitedDepartments: false,
+      unlimitedLocations: false,
+      advancedAnalytics: false,
+      customIntegrations: false,
+      auditCompliance: false,
+      advancedPermissions: false,
+      maintenanceManagement: false,
+      assetLifecycleTracking: false,
+      exportSuite: false,
+      dedicatedAccountManager: false,
+      customBranding: false,
+      approvalWorkflows: false,
+      depreciationTracking: false,
     },
   },
   PRO: {
@@ -71,7 +97,20 @@ export const PLAN_CONFIG: Record<Plan, PlanDetails> = {
       multiBranch: false,
       prioritySupport: true,
       sla: false,
-      onPremise: false,
+      unlimitedAssets: false,
+      unlimitedDepartments: false,
+      unlimitedLocations: false,
+      advancedAnalytics: false,
+      customIntegrations: false,
+      auditCompliance: false,
+      advancedPermissions: false,
+      maintenanceManagement: false,
+      assetLifecycleTracking: false,
+      exportSuite: false,
+      dedicatedAccountManager: false,
+      customBranding: false,
+      approvalWorkflows: false,
+      depreciationTracking: false,
     },
   },
   ENTERPRISE: {
@@ -92,7 +131,20 @@ export const PLAN_CONFIG: Record<Plan, PlanDetails> = {
       multiBranch: true,
       prioritySupport: true,
       sla: true,
-      onPremise: true,
+      unlimitedAssets: true,
+      unlimitedDepartments: true,
+      unlimitedLocations: true,
+      advancedAnalytics: true,
+      customIntegrations: true,
+      auditCompliance: true,
+      advancedPermissions: true,
+      maintenanceManagement: true,
+      assetLifecycleTracking: true,
+      exportSuite: true,
+      dedicatedAccountManager: true,
+      customBranding: true,
+      approvalWorkflows: true,
+      depreciationTracking: true,
     },
   },
 };
@@ -276,10 +328,35 @@ export function canAccessFeature(plan: Plan, feature: keyof PlanDetails['feature
   return PLAN_CONFIG[plan].features[feature];
 }
 
-export function canAccessFeatureOld(_feature: string, plan: Plan): boolean {
-  const featureKey = _feature.toLowerCase() as keyof PlanDetails['features'];
-  return canAccessFeature(plan, featureKey);
+export function isEnterprise(plan: Plan): boolean {
+  return plan === 'ENTERPRISE';
 }
+
+export function canAccessEnterpriseFeature(plan: Plan): boolean {
+  return plan === 'ENTERPRISE';
+}
+
+export const ENTERPRISE_FEATURES_LIST = [
+  { id: 'unlimitedAssets', label: 'Unlimited Assets', description: 'No asset cap for your organization' },
+  { id: 'unlimitedDepartments', label: 'Unlimited Departments', description: 'Create as many departments as needed' },
+  { id: 'unlimitedLocations', label: 'Unlimited Locations', description: 'Unlimited locations across branches' },
+  { id: 'multiBranch', label: 'Multi-Branch Management', description: 'Manage multiple branches from one account' },
+  { id: 'advancedAnalytics', label: 'Advanced Analytics', description: 'Asset trends, lifecycle, depreciation charts' },
+  { id: 'stockVerification', label: 'Stock Verification', description: 'Stock take sessions and discrepancy reports' },
+  { id: 'apiAccess', label: 'API Access', description: 'REST API with generated keys and usage logs' },
+  { id: 'customIntegrations', label: 'Custom Integrations', description: 'Webhooks, Zapier-ready, accounting integrations' },
+  { id: 'auditCompliance', label: 'Audit & Compliance', description: 'Immutable audit logs, compliance filters, exportable reports' },
+  { id: 'advancedPermissions', label: 'Advanced Permissions', description: 'Custom roles, granular permissions, permission matrix' },
+  { id: 'maintenanceManagement', label: 'Maintenance Management', description: 'Full maintenance lifecycle with scheduling' },
+  { id: 'assetLifecycleTracking', label: 'Asset Lifecycle Tracking', description: 'End-to-end lifecycle from procurement to disposal' },
+  { id: 'exportSuite', label: 'Full Export Suite', description: 'Export assets, audit logs, maintenance, warranties as CSV/PDF' },
+  { id: 'prioritySupport', label: 'Priority Support', description: 'Highest queue priority and faster SLA timers' },
+  { id: 'dedicatedAccountManager', label: 'Dedicated Account Manager', description: 'Named account manager for your organization' },
+  { id: 'sla', label: 'SLA Guarantee', description: 'Guaranteed response and resolution times' },
+  { id: 'customBranding', label: 'Custom Branding', description: 'Organization logo, custom theme, branded reports' },
+  { id: 'approvalWorkflows', label: 'Approval Workflows', description: 'Assignment, maintenance, and retirement approvals' },
+  { id: 'depreciationTracking', label: 'Depreciation Tracking', description: 'Multiple methods, schedules, and finance reports' },
+];
 
 export function isAdVisible(plan: Plan): boolean {
   return plan === 'FREE';

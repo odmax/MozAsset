@@ -27,12 +27,11 @@ const PLAN_OPTIONS = [
     ringColor: 'ring-purple-500',
     features: [
       'Up to 500 assets',
-      '5 departments',
-      '5 locations',
-      'CSV Export',
-      'Advanced Reports',
-      'Stock Verification',
-      'Priority Support',
+      '5 departments & locations',
+      'CSV & advanced reports',
+      'Stock verification tools',
+      'Priority support',
+      'Export suite',
     ],
   },
   {
@@ -47,13 +46,14 @@ const PLAN_OPTIONS = [
     borderColor: 'border-amber-200 hover:border-amber-400',
     ringColor: 'ring-amber-500',
     features: [
-      'Unlimited assets',
-      'API Access',
-      'Multi-branch',
-      'Custom Integrations',
-      'Dedicated Support',
-      'SLA Guarantee',
-      'On-premise Option',
+      'Unlimited assets, departments & locations',
+      'Multi-branch management',
+      'API access & custom integrations',
+      'Advanced analytics & reports',
+      'Depreciation & lifecycle tracking',
+      'Audit & compliance tools',
+      'Approval workflows',
+      'Dedicated account manager & SLA',
     ],
   },
 ];
@@ -193,7 +193,7 @@ export function UpgradePlanModal({ isOpen, onClose, currentPlan }: UpgradePlanMo
                   <div className={`absolute -top-3 left-1/2 -translate-x-1/2 ${p.bgColor} px-3 py-1 rounded-full flex items-center gap-1`}>
                     <Icon className={`h-3 w-3 ${p.color}`} />
                     <span className={`text-xs font-medium ${p.color}`}>
-                      {p.plan === 'PRO' ? 'Most Popular' : 'Best Value'}
+                      {p.plan === 'PRO' ? 'Most Popular' : 'All Features'}
                     </span>
                   </div>
 

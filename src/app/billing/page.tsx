@@ -323,11 +323,12 @@ export default function BillingPage() {
               <p className="text-3xl font-bold mb-1">R599<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
               <p className="text-xs text-muted-foreground mb-4">Unlimited everything</p>
               <ul className="space-y-2 mb-5 text-sm">
-                <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />Unlimited assets</li>
-                <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" /><span className="text-amber-600 text-xs font-bold">∞</span> All Pro features + more</li>
-                <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />API access</li>
-                <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />Multi-branch support</li>
-                <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />SLA + on-premise option</li>
+                <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />Unlimited assets, departments & locations</li>
+                <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />All Pro features + more</li>
+                <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />Multi-branch management</li>
+                <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />API access & custom integrations</li>
+                <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />Advanced analytics & depreciation tracking</li>
+                <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />Dedicated account manager & SLA</li>
               </ul>
               {(plan === 'FREE' || plan === 'PRO') && (
                 <Button size="sm" className="w-full shadow-sm" variant={plan === 'PRO' ? 'default' : 'outline'} onClick={() => setUpgradeModalOpen(true)}>

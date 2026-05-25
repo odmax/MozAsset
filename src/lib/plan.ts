@@ -26,11 +26,13 @@ export {
   cancelSubscription, 
   getSubscriptionStatus,
   canAccessFeature,
-  canAccessFeatureOld,
+  canAccessEnterpriseFeature,
+  isEnterprise,
+  ENTERPRISE_FEATURES_LIST,
   isAdVisible,
   type PlanDetails,
   type CheckoutResult,
   type PlanLimits
 } from './billing';
 
-export type Feature = 'EXPORTS' | 'ADVANCED_REPORTS' | 'STOCK_VERIFICATION' | 'BULK_IMPORT' | 'API_ACCESS';
+export type Feature = 'EXPORTS' | 'ADVANCED_REPORTS' | 'STOCK_VERIFICATION' | 'BULK_IMPORT' | 'API_ACCESS' | 'MULTI_BRANCH' | 'ADVANCED_ANALYTICS' | 'AUDIT_COMPLIANCE' | 'APPROVAL_WORKFLOWS' | 'DEPRECIATION_TRACKING' | 'API_ACCESS';
