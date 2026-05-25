@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -28,6 +27,7 @@ import {
   BellOff,
   ExternalLink,
 } from 'lucide-react';
+import NotificationDetailModal from '@/components/notifications/NotificationDetailModal';
 
 interface Notification {
   id: string;
@@ -141,6 +141,7 @@ export default function NotificationsPage() {
   const [page, setPage] = useState(1);
   const [markingAll, setMarkingAll] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
 
   const fetchNotifications = useCallback(async () => {
     setLoading(true);
@@ -194,6 +195,17 @@ export default function NotificationsPage() {
       setNotifications((prev) => prev.filter((n) => n.id !== id));
       setSelectedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
     } catch {}
+  };
+
+  const openDetail = (notif: Notification) => {
+    setSelectedNotification(notif);
+    if (!notif.isRead) {
+      handleMarkRead(notif.id);
+    }
+  };
+
+  const closeDetail = () => {
+    setSelectedNotification(null);
   };
 
   const toggleSelect = (id: string) => {
@@ -347,14 +359,12 @@ export default function NotificationsPage() {
                       <span className="text-[10px] text-muted-foreground">
                         {formatDate(notif.createdAt)}
                       </span>
-                      {notif.link && (
-                        <Link
-                          href={notif.link}
-                          className="text-[10px] text-primary hover:underline inline-flex items-center gap-0.5"
-                        >
-                          View details <ExternalLink className="h-3 w-3" />
-                        </Link>
-                      )}
+                      <button
+                        onClick={() => openDetail(notif)}
+                        className="text-[10px] text-primary hover:underline inline-flex items-center gap-0.5"
+                      >
+                        View details <ExternalLink className="h-3 w-3" />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -381,6 +391,13 @@ export default function NotificationsPage() {
           })}
         </div>
       )}
+
+      <NotificationDetailModal
+        notification={selectedNotification}
+        onClose={closeDetail}
+        onMarkRead={handleMarkRead}
+        onDelete={handleDelete}
+      />
 
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 pt-4">
