@@ -13,6 +13,7 @@ export async function POST() {
 
   response.cookies.set('simpleUserAuth', '', clearOptions);
   response.cookies.set('session', '', clearOptions);
+  response.cookies.set('csrf-token', '', { ...clearOptions, httpOnly: false });
 
   return response;
 }

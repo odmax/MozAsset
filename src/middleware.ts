@@ -69,6 +69,12 @@ export async function middleware(request: Request) {
     response.headers.set(key, value);
   }
 
+  const isProtected = url.pathname.startsWith('/dashboard') || url.pathname.startsWith('/admin') || url.pathname.startsWith('/onboarding');
+  if (isProtected) {
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+  }
+
   if (!url.pathname.startsWith('/api/')) {
     const cookieHeader = request.headers.get('cookie') || '';
     const sessionValue =

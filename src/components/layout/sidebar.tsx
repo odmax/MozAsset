@@ -138,10 +138,10 @@ function SidebarContent({
       document.documentElement.classList.remove('dark');
       document.documentElement.style.removeProperty('--theme-color');
       await fetch('/api/auth/logout', { method: 'POST' });
-      router.push('/login');
+      router.replace('/');
     } catch (error) {
       console.error('Logout error:', error);
-      router.push('/login');
+      router.replace('/');
     }
   };
 
