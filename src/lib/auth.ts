@@ -66,6 +66,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             where: {
               email: { equals: email, mode: 'insensitive' },
             },
+            select: {
+              id: true,
+              email: true,
+              password: true,
+              name: true,
+              role: true,
+              plan: true,
+              assetLimit: true,
+              onBoardingComplete: true,
+              isActive: true,
+            },
           });
 
           if (!user || !user.password || !user.isActive) {

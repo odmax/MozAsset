@@ -112,6 +112,19 @@ export async function POST(request: Request) {
       where: {
         email: { equals: normalizedEmail, mode: 'insensitive' },
       },
+      select: {
+        id: true,
+        email: true,
+        password: true,
+        name: true,
+        role: true,
+        plan: true,
+        assetLimit: true,
+        onBoardingComplete: true,
+        organizationId: true,
+        isActive: true,
+        isPlatformAdmin: true,
+      },
     });
     console.log('[LOGIN] userFound:', !!user);
 
