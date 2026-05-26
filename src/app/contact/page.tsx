@@ -131,7 +131,6 @@ export default function ContactPage() {
                   <h3 className="font-semibold mb-4">What we can help with:</h3>
                   <ul className="space-y-2 text-sm text-muted-foreground">
                     <li>- Custom pricing for large organizations</li>
-                    <li>- On-premise installations</li>
                     <li>- API and integration needs</li>
                     <li>- Dedicated account management</li>
                     <li>- SLA and compliance requirements</li>

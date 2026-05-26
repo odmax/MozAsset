@@ -67,7 +67,6 @@ const plans = [
       'Advanced controls',
       'Dedicated support',
       'SLA guarantee',
-      'On-premise option'
     ],
     cta: 'Upgrade to Enterprise',
     href: '/contact',

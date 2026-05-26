@@ -22,7 +22,6 @@ const features = [
   { name: 'Custom integrations', included: false },
   { name: 'Dedicated support', included: false },
   { name: 'SLA guarantee', included: false },
-  { name: 'On-premise option', included: false },
 ];
 
 const comparisonFeatures = [
@@ -230,10 +229,6 @@ export default function PricingPage() {
                     <X className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="text-muted-foreground">SLA guarantee</span>
                   </li>
-                  <li className="flex items-center gap-3">
-                    <X className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="text-muted-foreground">On-premise option</span>
-                  </li>
                 </ul>
                 <Link href="/signup?plan=pro" className="block">
                   <Button className="w-full">
@@ -322,10 +317,6 @@ export default function PricingPage() {
                   <li className="flex items-center gap-3">
                     <Check className="h-4 w-4 text-green-500 shrink-0" />
                     <span>SLA guarantee</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <Check className="h-4 w-4 text-green-500 shrink-0" />
-                    <span>On-premise option</span>
                   </li>
                 </ul>
                 <Link href="/contact" className="block">
