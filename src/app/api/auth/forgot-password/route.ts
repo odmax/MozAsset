@@ -18,8 +18,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email },
+    const user = await prisma.user.findFirst({
+      where: {
+        email: { equals: email, mode: 'insensitive' },
+      },
     });
 
     if (!user) {
@@ -54,6 +56,10 @@ export async function POST(request: Request) {
 
     if (!emailResult.success) {
       console.error('Failed to send reset email:', emailResult.error);
+      return NextResponse.json(
+        { error: 'Failed to send reset email. Please try again later.' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({

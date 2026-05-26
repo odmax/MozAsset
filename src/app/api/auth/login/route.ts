@@ -233,12 +233,14 @@ export async function POST(request: Request) {
     response.cookies.set('csrf-token', csrfToken, csrfCookieOptions);
     return response;
   } catch (error) {
-    console.error('Login error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Login error:', errorMessage, error instanceof Error ? error.stack : '');
+    const msg = 'Login failed. Please try again.';
     if (request.headers.get('content-type')?.includes('application/json')) {
-      return NextResponse.json({ error: 'Login failed. Please try again.' }, { status: 500 });
+      return NextResponse.json({ error: msg }, { status: 500 });
     }
     const redirectUrl = new URL('/login', request.url);
-    redirectUrl.searchParams.set('error', 'Login failed. Please try again.');
+    redirectUrl.searchParams.set('error', msg);
     return NextResponse.redirect(redirectUrl, 303);
   }
 }
