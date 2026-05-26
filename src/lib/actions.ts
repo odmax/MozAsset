@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { Prisma, type Plan } from '@prisma/client';
-import { getPlanLimits, canAddAssets, canAddCategories, canAddDepartments, canAddLocations, canAddVendors, canAddUsers } from '@/lib/billing';
+import { getPlanLimits, canAddAssets, canAddCategories, canAddDepartments, canAddLocations, canAddVendors, canAddUsers, isEnterprise } from '@/lib/billing';
 import { getCurrentUserContext } from '@/lib/user-context';
 import { createNotification, createNotificationForOrg } from '@/lib/notifications';
 import { normalizeEmail } from '@/lib/email-normalize';
@@ -637,4 +637,92 @@ export async function getAuditLogs(params?: { page?: number; limit?: number; act
     limit,
     totalPages: Math.ceil(total / limit),
   };
+}
+
+// ---------- Enterprise: Branch Management ----------
+
+export async function getBranches() {
+  const context = await getCurrentUserContext();
+  if (!context?.userId) throw new Error('Unauthorized');
+  if (!isEnterprise(context.plan)) throw new Error('Enterprise plan required');
+
+  if (!context.organizationId) throw new Error('No organization found');
+  return prisma.branch.findMany({
+    where: { organizationId: context.organizationId },
+    orderBy: { name: 'asc' },
+  });
+}
+
+export async function getBranch(id: string) {
+  const context = await getCurrentUserContext();
+  if (!context?.userId) throw new Error('Unauthorized');
+  if (!isEnterprise(context.plan)) throw new Error('Enterprise plan required');
+  if (!context.organizationId) throw new Error('No organization found');
+
+  return prisma.branch.findFirst({
+    where: { id, organizationId: context.organizationId },
+    include: {
+      _count: { select: { assets: true, users: true, departments: true, locations: true } },
+    },
+  });
+}
+
+export async function createBranch(data: { name: string; code?: string; address?: string; city?: string; province?: string; phone?: string; email?: string }) {
+  const context = await getCurrentUserContext();
+  if (!context?.userId) throw new Error('Unauthorized');
+  if (!isEnterprise(context.plan)) throw new Error('Enterprise plan required');
+
+  if (!context.organizationId) throw new Error('No organization found');
+
+  const branch = await prisma.branch.create({
+    data: {
+      name: data.name,
+      code: data.code,
+      address: data.address,
+      city: data.city,
+      province: data.province,
+      phone: data.phone,
+      email: data.email,
+      organizationId: context.organizationId,
+    },
+  });
+
+  revalidatePath('/dashboard/settings');
+  return branch;
+}
+
+export async function updateBranch(id: string, data: { name?: string; code?: string; address?: string; city?: string; province?: string; phone?: string; email?: string; isActive?: boolean }) {
+  const context = await getCurrentUserContext();
+  if (!context?.userId) throw new Error('Unauthorized');
+  if (!isEnterprise(context.plan)) throw new Error('Enterprise plan required');
+
+  if (!context.organizationId) throw new Error('No organization found');
+
+  const existing = await prisma.branch.findFirst({
+    where: { id, organizationId: context.organizationId },
+  });
+  if (!existing) throw new Error('Branch not found');
+
+  const branch = await prisma.branch.update({
+    where: { id },
+    data,
+  });
+
+  revalidatePath('/dashboard/settings');
+  return branch;
+}
+
+export async function deleteBranch(id: string) {
+  const context = await getCurrentUserContext();
+  if (!context?.userId) throw new Error('Unauthorized');
+  if (!isEnterprise(context.plan)) throw new Error('Enterprise plan required');
+  if (!context.organizationId) throw new Error('No organization found');
+
+  const existing = await prisma.branch.findFirst({
+    where: { id, organizationId: context.organizationId },
+  });
+  if (!existing) throw new Error('Branch not found');
+
+  await prisma.branch.delete({ where: { id } });
+  revalidatePath('/dashboard/settings');
 }
