@@ -94,9 +94,11 @@ export async function POST(request: Request) {
     }
 
     const normalizedEmail = normalizeEmail(email);
+    console.log('[LOGIN] normalizedEmail:', normalizedEmail);
     const loginCheck = loginLimiter.check(`email:${normalizedEmail}`);
     if (!loginCheck.allowed) {
       const msg = 'Too many login attempts. Please try again later.';
+      console.log('[LOGIN] rate_limited for:', normalizedEmail);
       await logFailedAttempt(normalizedEmail, ip, userAgent, 'rate_limited');
       if (contentType.includes('application/json')) {
         return NextResponse.json({ error: msg, retryAfter: loginCheck.retryAfter }, { status: 429 });
@@ -111,8 +113,10 @@ export async function POST(request: Request) {
         email: { equals: normalizedEmail, mode: 'insensitive' },
       },
     });
+    console.log('[LOGIN] userFound:', !!user);
 
     if (!user) {
+      console.log('[LOGIN] user_not_found for:', normalizedEmail);
       await logFailedAttempt(normalizedEmail, ip, userAgent, 'user_not_found');
       const msg = 'Invalid email or password';
       if (contentType.includes('application/json')) {
@@ -123,7 +127,10 @@ export async function POST(request: Request) {
       return NextResponse.redirect(redirectUrl, 303);
     }
 
+    console.log('[LOGIN] isActive:', user.isActive, 'hasPassword:', !!user.password, 'role:', user.role, 'plan:', user.plan);
+
     if (!user.isActive) {
+      console.log('[LOGIN] account_inactive for:', normalizedEmail);
       await logFailedAttempt(normalizedEmail, ip, userAgent, 'account_inactive', user.id);
       const msg = 'Account is inactive. Please contact support.';
       if (contentType.includes('application/json')) {
@@ -135,6 +142,7 @@ export async function POST(request: Request) {
     }
 
     if (!user.password) {
+      console.log('[LOGIN] no_password_set for:', normalizedEmail);
       await logFailedAttempt(normalizedEmail, ip, userAgent, 'no_password_set', user.id);
       const msg = 'Please set your password first. Use forgot password.';
       if (contentType.includes('application/json')) {
@@ -145,9 +153,17 @@ export async function POST(request: Request) {
       return NextResponse.redirect(redirectUrl, 303);
     }
 
-    const isValid = await bcrypt.compare(password, user.password);
+    let isValid = false;
+    try {
+      isValid = await bcrypt.compare(password, user.password);
+      console.log('[LOGIN] passwordValid:', isValid);
+    } catch (compareErr: any) {
+      console.error('[LOGIN] bcrypt.compare threw:', compareErr.message);
+      throw compareErr;
+    }
 
     if (!isValid) {
+      console.log('[LOGIN] invalid_password for:', normalizedEmail);
       await logFailedAttempt(normalizedEmail, ip, userAgent, 'invalid_password', user.id);
       const msg = 'Invalid email or password';
       if (contentType.includes('application/json')) {
@@ -158,6 +174,7 @@ export async function POST(request: Request) {
       return NextResponse.redirect(redirectUrl, 303);
     }
 
+    console.log('[LOGIN] password OK, setting cookies and redirecting to dashboard');
     // Successful login — reset rate limiter for this email
     loginLimiter.reset(`email:${normalizedEmail}`);
     bruteForceLimiter.reset(`ip:${ip}`);
@@ -169,13 +186,20 @@ export async function POST(request: Request) {
       const { sendLoginAlertEmail } = await import('@/lib/email');
       const now = new Date().toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg' });
       sendLoginAlertEmail(user.email, user.name, ip, now);
-    } catch {}
+    } catch (alertErr: any) {
+      console.error('[LOGIN] login alert email failed (non-blocking):', alertErr.message);
+    }
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastActiveAt: new Date() },
-      select: { id: true },
-    });
+    try {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { lastActiveAt: new Date() },
+        select: { id: true },
+      });
+      console.log('[LOGIN] lastActiveAt updated');
+    } catch (updateErr: any) {
+      console.error('[LOGIN] lastActiveAt update failed (non-blocking):', updateErr.message);
+    }
 
     const sessionData = {
       id: user.id,
@@ -202,7 +226,14 @@ export async function POST(request: Request) {
 
     const simpleUserToken = Buffer.from(JSON.stringify(simpleUserData)).toString('base64');
 
-    const csrfToken = await generateCsrfToken(simpleUserToken);
+    let csrfToken = '';
+    try {
+      csrfToken = await generateCsrfToken(simpleUserToken);
+      console.log('[LOGIN] csrfToken generated, length:', csrfToken.length);
+    } catch (csrfErr: any) {
+      console.error('[LOGIN] generateCsrfToken threw:', csrfErr.message);
+      throw csrfErr;
+    }
 
     const setCookieOptions = {
       httpOnly: true,
@@ -215,6 +246,7 @@ export async function POST(request: Request) {
     const csrfCookieOptions = getCsrfCookieOptions();
 
     if (contentType.includes('application/json')) {
+      console.log('[LOGIN] returning JSON success');
       const response = NextResponse.json({
         success: true,
         user: { id: user.id, email: user.email, name: user.name },
@@ -223,19 +255,23 @@ export async function POST(request: Request) {
       response.cookies.set('simpleUserAuth', simpleUserToken, setCookieOptions);
       response.cookies.set('session', sessionToken, setCookieOptions);
       response.cookies.set('csrf-token', csrfToken, csrfCookieOptions);
+      console.log('[LOGIN] cookies set on JSON response: simpleUserAuth, session, csrf-token');
       return response;
     }
 
+    console.log('[LOGIN] returning redirect to /dashboard');
     const dashboardUrl = new URL('/dashboard', request.url);
     const response = NextResponse.redirect(dashboardUrl);
     response.cookies.set('simpleUserAuth', simpleUserToken, setCookieOptions);
     response.cookies.set('session', sessionToken, setCookieOptions);
     response.cookies.set('csrf-token', csrfToken, csrfCookieOptions);
+    console.log('[LOGIN] cookies set on redirect: simpleUserAuth, session, csrf-token');
     return response;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Login error:', errorMessage, error instanceof Error ? error.stack : '');
-    const msg = 'Login failed. Please try again.';
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorName = error instanceof Error ? error.name : 'UnknownError';
+    console.error('[LOGIN] CAUGHT ERROR:', errorName, errorMessage, error instanceof Error ? error.stack : '');
+    const msg = 'Something went wrong on our end. Please try again. If the problem persists, contact support.';
     if (request.headers.get('content-type')?.includes('application/json')) {
       return NextResponse.json({ error: msg }, { status: 500 });
     }

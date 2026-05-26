@@ -10,14 +10,14 @@ export interface SimpleUserSession {
   isUser: true;
 }
 
-export function getSimpleUserSession(): SimpleUserSession | null {
-  const cookieStore = cookies();
-  const authCookie = cookieStore.get('simpleUserAuth');
+function parseSessionCookie(raw: string): { userId: string; email: string; role: string; plan: string; organizationId: string | null } | null {
+  const attempts: string[] = [];
+  try { attempts.push(decodeURIComponent(raw)); } catch {}
+  attempts.push(raw);
 
-  if (authCookie?.value) {
+  for (const candidate of attempts) {
     try {
-      const decoded = decodeURIComponent(authCookie.value);
-      const session = JSON.parse(Buffer.from(decoded, 'base64').toString('utf-8'));
+      const session = JSON.parse(Buffer.from(candidate, 'base64').toString('utf-8'));
       if (session?.userId && session.isUser === true) {
         return {
           userId: session.userId,
@@ -25,10 +25,23 @@ export function getSimpleUserSession(): SimpleUserSession | null {
           role: session.role || 'EMPLOYEE',
           plan: session.plan || 'FREE',
           organizationId: session.organizationId || null,
-          isUser: true,
         };
       }
     } catch {}
+  }
+
+  return null;
+}
+
+export function getSimpleUserSession(): SimpleUserSession | null {
+  const cookieStore = cookies();
+  const authCookie = cookieStore.get('simpleUserAuth');
+
+  if (authCookie?.value) {
+    const parsed = parseSessionCookie(authCookie.value);
+    if (parsed) {
+      return { ...parsed, isUser: true as const };
+    }
   }
 
   return null;
@@ -46,20 +59,10 @@ export function getSimpleUserSessionFromHeader(cookieHeader: string): SimpleUser
 
   const authCookie = parsed['simpleUserAuth'];
   if (authCookie) {
-    try {
-      const decoded = decodeURIComponent(authCookie);
-      const session = JSON.parse(Buffer.from(decoded, 'base64').toString('utf-8'));
-      if (session?.userId && session.isUser === true) {
-        return {
-          userId: session.userId,
-          email: session.email || '',
-          role: session.role || 'EMPLOYEE',
-          plan: session.plan || 'FREE',
-          organizationId: session.organizationId || null,
-          isUser: true,
-        };
-      }
-    } catch {}
+    const parsed = parseSessionCookie(authCookie);
+    if (parsed) {
+      return { ...parsed, isUser: true as const };
+    }
   }
 
   return null;
