@@ -711,6 +711,20 @@ model EmailLog {
   @@index([createdAt])
 }
 
+model GoogleConversionLog {
+  id            String   @id @default(cuid())
+  transactionId String   @unique
+  plan          String
+  value         Float
+  currency      String   @default("ZAR")
+  sentAt        DateTime @default(now())
+  status        String   @default("sent")
+  error         String?
+
+  @@index([transactionId])
+  @@index([sentAt])
+}
+
 model Notification {
   id             String           @id @default(cuid())
   userId         String?

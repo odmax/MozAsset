@@ -1,11 +1,12 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle, Clock } from 'lucide-react';
+import { trackPurchaseConversion } from '@/lib/google-ads';
 
 function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
@@ -13,12 +14,12 @@ function CheckoutSuccessContent() {
   const plan = searchParams.get('plan');
   const userId = searchParams.get('userId');
   const [status, setStatus] = useState<'processing' | 'pending' | 'confirmed'>('processing');
+  const conversionFired = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
 
     async function pollForUpgrade() {
-      // Poll billing API until plan is updated or timeout
       for (let i = 0; i < 30; i++) {
         if (cancelled) return;
         await new Promise(r => setTimeout(r, 2000));
@@ -26,7 +27,6 @@ function CheckoutSuccessContent() {
           const res = await fetch('/api/billing');
           const data = await res.json();
           if (data.plan && data.plan !== 'FREE') {
-            // Plan upgraded -- refresh session cookie
             if (userId) {
               await fetch('/api/auth/refresh-session', {
                 method: 'POST',
@@ -46,14 +46,27 @@ function CheckoutSuccessContent() {
     return () => { cancelled = true; };
   }, [plan, userId, router]);
 
+  useEffect(() => {
+    if (status === 'confirmed' && !conversionFired.current && plan) {
+      conversionFired.current = true;
+      const planPrice = plan === 'PRO' ? 149 : plan === 'ENTERPRISE' ? 599 : 0;
+      trackPurchaseConversion({
+        value: planPrice,
+        currency: 'ZAR',
+        transactionId: `${userId || 'unknown'}_${plan}_${Date.now()}`,
+        plan,
+      });
+    }
+  }, [status, plan, userId]);
+
   if (status === 'processing') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
         <Card className="w-full max-w-md">
           <CardContent className="py-12 text-center">
             <Loader2 className="h-12 w-12 animate-spin mx-auto text-green-600" />
-            <p className="mt-4 text-muted-foreground">Processing your payment...</p>
-            <p className="text-sm text-muted-foreground mt-2">Waiting for payment confirmation...</p>
+            <p className="mt-4 text-muted-foreground">Confirming your subscription…</p>
+            <p className="text-sm text-muted-foreground mt-2">Waiting for payment confirmation…</p>
           </CardContent>
         </Card>
       </div>

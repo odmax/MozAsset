@@ -304,6 +304,31 @@ export async function updatePlanFromConfirmedPayment(
       amount: plan === 'PRO' ? 'R149' : 'R599',
     }).catch((err) => console.error('Failed to send notification email:', err));
 
+    const { logPurchaseConversion } = await import('@/lib/google-ads');
+    logPurchaseConversion({
+      transactionId: paymentId,
+      plan,
+      value: planPrice,
+      currency: 'ZAR',
+    }).catch((err) => console.error('Failed to log Google Ads conversion:', err));
+
+    const { createNotificationForAdmins } = await import('@/lib/notifications');
+    createNotificationForAdmins({
+      type: 'BILLING_SUCCESSFUL',
+      title: 'New Subscription Purchase',
+      message: `Plan: ${plan} — R${planPrice}`,
+      link: '/admin/billing',
+      priority: 'high',
+    }).catch((err) => console.error('Failed to create admin notification:', err));
+
+    const { sendEmail } = await import('@/lib/email');
+    sendEmail({
+      to: process.env.ADMIN_NOTIFICATION_EMAIL || 'info@mozetech.co.za',
+      subject: `New subscription purchase: ${plan} — R${planPrice}`,
+      html: `<p>A new subscription has been purchased:</p><ul><li><strong>Plan:</strong> ${plan}</li><li><strong>Amount:</strong> R${planPrice}</li><li><strong>User ID:</strong> ${userId}</li><li><strong>Payment ID:</strong> ${paymentId}</li></ul>`,
+      type: 'admin_purchase',
+    }).catch((err) => console.error('Failed to send admin purchase email:', err));
+
     return { success: true };
   } catch (error) {
     console.error('Failed to update user plan:', error);
