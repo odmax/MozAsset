@@ -288,6 +288,17 @@ export async function updatePlanFromConfirmedPayment(
       },
     });
 
+    await prisma.upgradeRequest.findFirst({
+      where: { paymentReference: paymentId, status: 'PENDING_PAYMENT' },
+    }).then(async (request) => {
+      if (request) {
+        await prisma.upgradeRequest.update({
+          where: { id: request.id },
+          data: { status: 'PAID', paidAt: new Date() },
+        });
+      }
+    }).catch((err) => console.error('Failed to match UpgradeRequest:', err));
+
     const { createNotification } = await import('@/lib/notifications');
     createNotification({
       userId,

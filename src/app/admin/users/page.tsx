@@ -12,6 +12,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
+import { PlanUpgradeModal } from '@/components/plan/PlanUpgradeModal';
 import { 
   Search, 
   Loader2, 
@@ -59,6 +60,14 @@ export default function AdminUsersPage() {
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [loadingUserIds, setLoadingUserIds] = useState<Set<string>>(new Set());
+  const [upgradeModal, setUpgradeModal] = useState<{
+    isOpen: boolean;
+    userId: string;
+    userEmail: string;
+    currentPlan: string;
+    targetPlan: string;
+    canForceManually: boolean;
+  }>({ isOpen: false, userId: '', userEmail: '', currentPlan: '', targetPlan: '', canForceManually: false });
 
   const withUserLoading = useCallback(async (userId: string, action: () => Promise<void>) => {
     setLoadingUserIds(prev => new Set(prev).add(userId));
@@ -145,7 +154,7 @@ export default function AdminUsersPage() {
     });
   };
 
-  const handleChangePlan = async (userId: string, newPlan: string) => {
+  const handleChangePlan = async (userId: string, newPlan: string, forceManually?: boolean) => {
     await withUserLoading(userId, async () => {
       const currentUsers = [...users];
       const currentFiltered = [...filteredUsers];
@@ -157,7 +166,7 @@ export default function AdminUsersPage() {
         const res = await fetch(`/api/admin/users/${userId}/change-plan`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ plan: newPlan }),
+          body: JSON.stringify({ plan: newPlan, forceManually: !!forceManually }),
         });
         
         const data = await res.json();
@@ -165,6 +174,18 @@ export default function AdminUsersPage() {
         if (!res.ok) {
           setUsers(currentUsers);
           setFilteredUsers(currentFiltered);
+          if (data.requiresPayment) {
+            const targetUser = users.find((u: User) => u.id === userId);
+            setUpgradeModal({
+              isOpen: true,
+              userId,
+              userEmail: targetUser?.email || '',
+              currentPlan: data.currentPlan,
+              targetPlan: data.targetPlan,
+              canForceManually: !!data.canForceManually,
+            });
+            return;
+          }
           toast({ title: 'Failed', description: data.error || 'Could not change plan', variant: 'destructive' });
           return;
         }
@@ -465,6 +486,19 @@ export default function AdminUsersPage() {
           </div>
         </CardContent>
       </Card>
+      <PlanUpgradeModal
+        isOpen={upgradeModal.isOpen}
+        onClose={() => setUpgradeModal(prev => ({ ...prev, isOpen: false }))}
+        userId={upgradeModal.userId}
+        userEmail={upgradeModal.userEmail}
+        currentPlan={upgradeModal.currentPlan}
+        targetPlan={upgradeModal.targetPlan}
+        canForceManually={upgradeModal.canForceManually}
+        onPlanChanged={() => {
+          fetchLifecycleStats();
+          router.refresh();
+        }}
+      />
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>

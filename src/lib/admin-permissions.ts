@@ -10,6 +10,8 @@ export type Permission =
   | 'users:verify_email'
   | 'users:reset_password'
   | 'plans:change'
+  | 'plans:send_payment_link'
+  | 'plans:manual_confirm'
   | 'billing:read'
   | 'billing:assist'
   | 'subscriptions:read'
@@ -49,7 +51,7 @@ export type Permission =
 const OWNER_PERMISSIONS: Permission[] = [
   'users:read', 'users:edit', 'users:activate', 'users:delete', 'users:permanent_delete',
   'users:verify_email', 'users:reset_password',
-  'plans:change',
+  'plans:change', 'plans:send_payment_link', 'plans:manual_confirm',
   'billing:read', 'billing:assist',
   'subscriptions:read', 'subscriptions:modify',
   'tickets:read', 'tickets:reply', 'tickets:assign', 'tickets:transfer',
@@ -71,7 +73,7 @@ const OWNER_PERMISSIONS: Permission[] = [
 const PLATFORM_ADMIN_PERMISSIONS: Permission[] = [
   'users:read', 'users:edit', 'users:activate', 'users:delete',
   'users:verify_email', 'users:reset_password',
-  'plans:change',
+  'plans:change', 'plans:send_payment_link', 'plans:manual_confirm',
   'billing:read', 'billing:assist',
   'subscriptions:read', 'subscriptions:modify',
   'tickets:read', 'tickets:reply', 'tickets:assign', 'tickets:transfer',
@@ -90,7 +92,7 @@ const PLATFORM_ADMIN_PERMISSIONS: Permission[] = [
 // SUPPORT_MANAGER — manage support team + tickets, edit customers, billing assist
 const SUPPORT_MANAGER_PERMISSIONS: Permission[] = [
   'users:read', 'users:edit', 'users:activate', 'users:verify_email', 'users:reset_password',
-  'plans:change',
+  'plans:change', 'plans:send_payment_link',
   'billing:read', 'billing:assist',
   'subscriptions:read',
   'tickets:read', 'tickets:reply', 'tickets:assign', 'tickets:transfer',
@@ -105,7 +107,7 @@ const SUPPORT_MANAGER_PERMISSIONS: Permission[] = [
 // ACCOUNT_MANAGER — customer/account management, billing visibility, no delete/security
 const ACCOUNT_MANAGER_PERMISSIONS: Permission[] = [
   'users:read', 'users:edit', 'users:activate', 'users:verify_email', 'users:reset_password',
-  'plans:change',
+  'plans:change', 'plans:send_payment_link', 'plans:manual_confirm',
   'billing:read', 'billing:assist',
   'subscriptions:read', 'subscriptions:modify',
   'tickets:read', 'tickets:reply',
