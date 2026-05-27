@@ -56,13 +56,14 @@ export async function POST(request: Request) {
     const emailResult = await sendPasswordResetEmail(email, rawToken);
 
     if (!emailResult.success) {
-      console.error('Failed to send reset email:', emailResult.error);
+      console.error('[forgot-password] Email send failed. Provider:', process.env.EMAIL_PROVIDER || 'console', 'Error:', emailResult.error);
       return NextResponse.json(
         { error: 'Failed to send reset email. Please try again later.' },
         { status: 500 }
       );
     }
 
+    console.log('[forgot-password] Reset email sent to:', email);
     return NextResponse.json({
       message: 'Password reset link sent',
       resetToken: process.env.NODE_ENV === 'development' ? rawToken : undefined,

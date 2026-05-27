@@ -40,7 +40,7 @@ export function PlanUpgradeModal({
   const { toast } = useToast();
   const [loading, setLoading] = useState<'send' | 'force' | null>(null);
   const [sent, setSent] = useState(false);
-  const [checkoutUrl, setCheckoutUrl] = useState('');
+  const [payLink, setPayLink] = useState('');
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
 
@@ -61,7 +61,7 @@ export function PlanUpgradeModal({
         return;
       }
       setSent(true);
-      setCheckoutUrl(data.upgradeRequest?.checkoutUrl || '');
+      setPayLink(data.upgradeRequest?.payLink || data.upgradeRequest?.checkoutUrl || '');
       toast({ title: 'Payment link sent', description: `Payment link was sent to ${userEmail}` });
     } catch {
       setError('Network error. Please try again.');
@@ -71,10 +71,9 @@ export function PlanUpgradeModal({
   };
 
   const handleCopyLink = async () => {
-    const link = checkoutUrl;
-    if (!link) return;
+    if (!payLink) return;
     try {
-      await navigator.clipboard.writeText(link);
+      await navigator.clipboard.writeText(payLink);
       setCopied(true);
       toast({ title: 'Copied', description: 'Payment link copied to clipboard' });
       setTimeout(() => setCopied(false), 2000);
@@ -146,11 +145,11 @@ export function PlanUpgradeModal({
                 {copied ? 'Copied!' : 'Copy payment link'}
               </Button>
 
-              {checkoutUrl && (
+              {payLink && (
                 <Button
                   variant="outline"
                   className="w-full justify-start gap-2"
-                  onClick={() => window.open(checkoutUrl, '_blank')}
+                  onClick={() => window.open(payLink, '_blank')}
                 >
                   <ExternalLink className="h-4 w-4" />
                   Open payment page

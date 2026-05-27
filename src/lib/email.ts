@@ -102,6 +102,8 @@ class ResendEmailProvider implements EmailProvider {
         const error = await response.json();
         return { success: false, error: error.message || 'Resend API error' };
       }
+      const data = await response.json();
+      console.log('[EMAIL] Resend sent, id:', data?.id || 'unknown');
       return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message || 'Failed to send via Resend' };
@@ -172,6 +174,8 @@ async function sleep(ms: number) {
 
 export async function sendEmail(options: EmailOptions): Promise<{ success: boolean; error?: string }> {
   const provider = getEmailProvider();
+  const providerName = process.env.EMAIL_PROVIDER || 'console';
+  console.log(`[EMAIL] Sending via ${providerName} to ${options.to} — "${options.subject}"`);
   let lastError: string | undefined;
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -184,8 +188,10 @@ export async function sendEmail(options: EmailOptions): Promise<{ success: boole
       return { success: true };
     }
     lastError = result.error;
+    console.error(`[EMAIL] Attempt ${attempt + 1} failed:`, result.error);
   }
 
+  console.error(`[EMAIL] All ${MAX_RETRIES} attempts failed. Last error:`, lastError);
   await logEmail(options, 'failed', lastError);
   return { success: false, error: lastError };
 }
@@ -307,6 +313,38 @@ export async function sendVerificationEmail(
     html,
     text: `Verify your email: ${verifyUrl}`,
     type: 'email_verification',
+  }  );
+}
+
+export async function sendUpgradePaymentEmail(
+  email: string,
+  name: string | null,
+  currentPlan: string,
+  targetPlan: string,
+  amount: number,
+  payLink: string,
+  expiresAt: Date
+): Promise<{ success: boolean; error?: string }> {
+  const html = buildEmailHtml({
+    title: `Upgrade to ${targetPlan} Plan`,
+    greeting: name ? `Hi ${name},` : 'Hi there,',
+    body: `<p>An administrator has initiated a plan upgrade for your MozAssets account.</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:16px 0">
+  <tr><td style="padding:8px 12px;border:1px solid #e2e8f0;background:#f8fafc;font-size:14px;color:#475569"><strong>Current plan</strong></td><td style="padding:8px 12px;border:1px solid #e2e8f0;font-size:14px;">${escapeHtml(currentPlan)}</td></tr>
+  <tr><td style="padding:8px 12px;border:1px solid #e2e8f0;background:#f8fafc;font-size:14px;color:#475569"><strong>Target plan</strong></td><td style="padding:8px 12px;border:1px solid #e2e8f0;font-size:14px;font-weight:600;color:#6366f1">${escapeHtml(targetPlan)}</td></tr>
+  <tr><td style="padding:8px 12px;border:1px solid #e2e8f0;background:#f8fafc;font-size:14px;color:#475569"><strong>Amount</strong></td><td style="padding:8px 12px;border:1px solid #e2e8f0;font-size:14px;">R${amount}/month</td></tr>
+</table>`,
+    cta: { text: 'Pay Now', url: payLink },
+    footerNote: `This link expires on ${expiresAt.toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' })}. If you did not request this upgrade, please ignore this email.`,
+    plainLink: payLink,
+  });
+
+  return sendEmail({
+    to: email,
+    subject: 'Complete your MozAssets plan upgrade',
+    html,
+    text: `Upgrade to ${targetPlan} plan — R${amount}/month. Pay here: ${payLink}`,
+    type: 'upgrade_payment',
   });
 }
 

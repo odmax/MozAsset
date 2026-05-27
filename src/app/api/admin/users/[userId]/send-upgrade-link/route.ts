@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import { createCheckoutPayload, getPayfastBaseUrl } from '@/lib/payfast';
 import type { Plan } from '@prisma/client';
-import { sendEmail } from '@/lib/email';
+import { sendUpgradePaymentEmail, getBaseUrl } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -124,26 +124,33 @@ export async function POST(
       },
     });
 
-    const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_BASE_URL || '';
-    const payLink = `${appUrl}/checkout/payfast?data=${Buffer.from(JSON.stringify(checkoutPayload)).toString('base64')}&url=${encodeURIComponent(payfastUrl)}`;
+    const baseUrl = getBaseUrl();
+    const payLink = `${baseUrl}/checkout/payfast?data=${Buffer.from(JSON.stringify(checkoutPayload)).toString('base64')}&url=${encodeURIComponent(payfastUrl)}`;
 
-    sendEmail({
-      to: targetUser.email,
-      subject: 'Complete your MozAssets plan upgrade',
-      html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:20px">
-        <h2 style="color:#1e293b">Upgrade to ${targetPlan} Plan</h2>
-        <p>An administrator has initiated a plan upgrade for your account.</p>
-        <table style="width:100%;border-collapse:collapse;margin:16px 0">
-          <tr><td style="padding:8px;border:1px solid #e2e8f0;background:#f8fafc"><strong>Current plan:</strong></td><td style="padding:8px;border:1px solid #e2e8f0">${currentPlan}</td></tr>
-          <tr><td style="padding:8px;border:1px solid #e2e8f0;background:#f8fafc"><strong>Target plan:</strong></td><td style="padding:8px;border:1px solid #e2e8f0">${targetPlan}</td></tr>
-          <tr><td style="padding:8px;border:1px solid #e2e8f0;background:#f8fafc"><strong>Amount:</strong></td><td style="padding:8px;border:1px solid #e2e8f0">R${planPrice}/month</td></tr>
-        </table>
-        <p>Complete your payment to activate the upgrade:</p>
-        <a href="${payLink}" style="display:inline-block;background:#6366f1;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">Pay Now</a>
-        <p style="color:#94a3b8;font-size:13px">This link expires on ${expiresAt.toLocaleDateString('en-ZA', { timeZone: 'Africa/Johannesburg' })}</p>
-      </div>`,
-      type: 'upgrade_payment',
-    }).catch((err) => console.error('Failed to send upgrade email:', err));
+    const emailResult = await sendUpgradePaymentEmail(
+      targetUser.email,
+      targetUser.name,
+      currentPlan,
+      targetPlan,
+      planPrice,
+      payLink,
+      expiresAt
+    );
+
+    if (!emailResult.success) {
+      console.error('[send-upgrade-link] Email failed:', emailResult.error);
+      return NextResponse.json({
+        success: true,
+        warning: 'Payment link created but email failed to send. Use the link below.',
+        upgradeRequest: {
+          id: upgradeRequest.id,
+          checkoutUrl: payfastUrl,
+          checkoutData: checkoutPayload,
+          payLink,
+          expiresAt: upgradeRequest.expiresAt,
+        },
+      });
+    }
 
     await prisma.auditLog.create({
       data: {
@@ -167,6 +174,7 @@ export async function POST(
         id: upgradeRequest.id,
         checkoutUrl: payfastUrl,
         checkoutData: checkoutPayload,
+        payLink,
         expiresAt: upgradeRequest.expiresAt,
       },
     });
