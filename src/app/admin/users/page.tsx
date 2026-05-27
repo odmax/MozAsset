@@ -221,10 +221,11 @@ export default function AdminUsersPage() {
     if (!req) return null;
     const isExpired = new Date(req.expiresAt) < new Date();
     const isPaid = req.status === 'PAID' || req.status === 'MANUALLY_CONFIRMED';
-    const isCancelled = req.status === 'CANCELLED' || isExpired;
+    const isCancelled = req.status === 'CANCELLED';
     const isPending = req.status === 'PENDING_PAYMENT' && !isExpired;
 
     if (isPaid) return null;
+    if (isExpired && req.status === 'PENDING_PAYMENT') return null;
 
     if (isPending) {
       return (
@@ -256,7 +257,7 @@ export default function AdminUsersPage() {
       return (
         <span className="inline-flex items-center gap-1 ml-1">
           <Badge className="bg-red-100 text-red-700 text-xs">
-            {isExpired ? 'Expired' : 'Cancelled'}
+            Payment Cancelled
           </Badge>
           <button
             onClick={(e) => {
