@@ -170,22 +170,25 @@ export default function AdminUsersPage() {
         });
         
         const data = await res.json();
+
+        if (data.requiresPayment) {
+          setUsers(currentUsers);
+          setFilteredUsers(currentFiltered);
+          const targetUser = currentUsers.find((u: User) => u.id === userId);
+          setUpgradeModal({
+            isOpen: true,
+            userId,
+            userEmail: targetUser?.email || '',
+            currentPlan: data.currentPlan,
+            targetPlan: data.targetPlan,
+            canForceManually: !!data.canForceManually,
+          });
+          return;
+        }
         
         if (!res.ok) {
           setUsers(currentUsers);
           setFilteredUsers(currentFiltered);
-          if (data.requiresPayment) {
-            const targetUser = users.find((u: User) => u.id === userId);
-            setUpgradeModal({
-              isOpen: true,
-              userId,
-              userEmail: targetUser?.email || '',
-              currentPlan: data.currentPlan,
-              targetPlan: data.targetPlan,
-              canForceManually: !!data.canForceManually,
-            });
-            return;
-          }
           toast({ title: 'Failed', description: data.error || 'Could not change plan', variant: 'destructive' });
           return;
         }
