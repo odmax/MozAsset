@@ -62,7 +62,11 @@ export function PlanUpgradeModal({
       }
       setSent(true);
       setPayLink(data.upgradeRequest?.payLink || data.upgradeRequest?.checkoutUrl || '');
-      toast({ title: 'Payment link sent', description: `Payment link was sent to ${userEmail}` });
+      if (data.warning) {
+        toast({ title: 'Link created', description: data.warning, variant: 'destructive' });
+      } else {
+        toast({ title: 'Payment link sent', description: `Payment link was sent to ${userEmail}` });
+      }
     } catch {
       setError('Network error. Please try again.');
     } finally {

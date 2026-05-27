@@ -179,7 +179,11 @@ export async function POST(
       },
     });
   } catch (error) {
-    console.error('[send-upgrade-link] Error:', error);
-    return NextResponse.json({ error: 'Failed to send upgrade link' }, { status: 500 });
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('[send-upgrade-link] CAUGHT ERROR:', message, error instanceof Error ? error.stack : '');
+    return NextResponse.json(
+      { error: `Failed to send upgrade link: ${message}` },
+      { status: 500 }
+    );
   }
 }
