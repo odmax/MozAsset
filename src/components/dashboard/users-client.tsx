@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { 
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
@@ -368,8 +369,7 @@ export function UsersClient({ initialUsers, currentUserId, totalCount }: UsersCl
           </DialogHeader>
           <div className="py-4">
             <label className="text-sm font-medium">New Password</label>
-            <Input 
-              type="password" 
+            <PasswordInput
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Enter new password"

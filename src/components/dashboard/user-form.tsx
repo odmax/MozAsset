@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -69,7 +70,7 @@ export function UserForm({ user, departments, isEdit = false }: UserFormProps) {
           </div>
           <div className="space-y-2">
             <Label>{isEdit ? 'New Password (leave blank to keep current)' : 'Password *'}</Label>
-            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required={!isEdit} />
+            <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} required={!isEdit} />
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
