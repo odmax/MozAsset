@@ -382,7 +382,7 @@ function buildEmailHtml(props: EmailTemplateProps): string {
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="font-size:20px;font-weight:700;color:#1e293b;">
-                    <img src="${getBaseUrl()}/logo.png" alt="MozAssets" style="height:28px;width:auto;vertical-align:middle;margin-right:8px;" />
+                    <img src="${getBaseUrl()}/logo1.png" alt="MozAssets" style="height:28px;width:auto;vertical-align:middle;margin-right:8px;" />
                     <span style="font-size:12px;font-weight:400;color:#94a3b8;"> by Mozetech</span>
                   </td>
                 </tr>
