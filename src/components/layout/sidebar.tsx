@@ -157,7 +157,7 @@ function SidebarContent({
             />
           ) : (
             <>
-              <img src="/logo.png" alt="MozAssets" className="h-8 w-auto" />
+              <img src="/logo1.png" alt="MozAssets" className="h-8 w-auto" />
             </>
           )}
         </Link>
