@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { handleITN, updatePlanFromConfirmedPayment, getPayfastConfig } from '@/lib/payfast';
+import prisma from '@/lib/prisma';
+import { createNotification } from '@/lib/notifications';
 
 export async function POST(request: Request) {
   try {
@@ -28,7 +30,33 @@ export async function POST(request: Request) {
       email_address: formData.get('email_address')?.toString() || '',
     };
 
-    // Only process COMPLETE payments
+    const paymentRef = paymentData.m_payment_id;
+
+    if (paymentData.payment_status === 'CANCELLED' || paymentData.payment_status === 'FAILED') {
+      console.log('[Payfast ITN] Payment cancelled/failed:', paymentData.payment_status);
+
+      const upgradeReq = await prisma.upgradeRequest.findFirst({
+        where: { paymentReference: paymentRef, status: 'PENDING_PAYMENT' },
+      });
+
+      if (upgradeReq) {
+        await prisma.upgradeRequest.update({
+          where: { id: upgradeReq.id },
+          data: { status: 'CANCELLED' },
+        });
+
+        createNotification({
+          userId: upgradeReq.userId,
+          type: 'BILLING_FAILED',
+          title: 'Payment Cancelled',
+          message: `Your ${upgradeReq.targetPlan} plan payment was cancelled or failed. Contact support for assistance.`,
+          link: '/billing',
+        }).catch(() => {});
+      }
+
+      return NextResponse.json({ success: true, message: 'Cancelled/failed payment noted' });
+    }
+
     if (paymentData.payment_status !== 'COMPLETE') {
       console.log('[Payfast ITN] Skipping non-complete payment:', paymentData.payment_status);
       return NextResponse.json({ success: true, message: 'Payment not complete, ignored' });

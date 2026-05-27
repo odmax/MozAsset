@@ -58,6 +58,19 @@ export async function GET(req: Request) {
         emailVerified: true,
         createdAt: true,
         organization: { select: { name: true } },
+        upgradeRequests: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            id: true,
+            targetPlan: true,
+            status: true,
+            checkoutUrl: true,
+            amount: true,
+            createdAt: true,
+            expiresAt: true,
+          },
+        },
       },
     });
 

@@ -38,6 +38,17 @@ interface User {
   emailVerified: string | null;
   createdAt: string;
   organization: { name: string } | null;
+  upgradeRequests: UpgradeRequest[];
+}
+
+interface UpgradeRequest {
+  id: string;
+  targetPlan: string;
+  status: string;
+  checkoutUrl: string | null;
+  amount: number;
+  createdAt: string;
+  expiresAt: string;
 }
 
 interface LifecycleStats {
@@ -205,6 +216,71 @@ export default function AdminUsersPage() {
     });
   };
 
+  const getUpgradeBadge = (user: User) => {
+    const req = user.upgradeRequests?.[0];
+    if (!req) return null;
+    const isExpired = new Date(req.expiresAt) < new Date();
+    const isPaid = req.status === 'PAID' || req.status === 'MANUALLY_CONFIRMED';
+    const isCancelled = req.status === 'CANCELLED' || isExpired;
+    const isPending = req.status === 'PENDING_PAYMENT' && !isExpired;
+
+    if (isPaid) return null;
+
+    if (isPending) {
+      return (
+        <span className="inline-flex items-center gap-1 ml-1">
+          <Badge className="bg-blue-100 text-blue-700 text-xs">
+            Awaiting {req.targetPlan}
+          </Badge>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              setUpgradeModal({
+                isOpen: true,
+                userId: user.id,
+                userEmail: user.email,
+                currentPlan: user.plan,
+                targetPlan: req.targetPlan,
+                canForceManually: false,
+              });
+            }}
+            className="text-xs text-primary underline ml-1"
+          >
+            Resend
+          </button>
+        </span>
+      );
+    }
+
+    if (isCancelled) {
+      return (
+        <span className="inline-flex items-center gap-1 ml-1">
+          <Badge className="bg-red-100 text-red-700 text-xs">
+            {isExpired ? 'Expired' : 'Cancelled'}
+          </Badge>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              setUpgradeModal({
+                isOpen: true,
+                userId: user.id,
+                userEmail: user.email,
+                currentPlan: user.plan,
+                targetPlan: req.targetPlan || 'PRO',
+                canForceManually: false,
+              });
+            }}
+            className="text-xs text-primary underline ml-1"
+          >
+            Resend
+          </button>
+        </span>
+      );
+    }
+
+    return null;
+  };
+
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
@@ -369,6 +445,7 @@ export default function AdminUsersPage() {
                       }>
                         {user.plan}
                       </Badge>
+                      {getUpgradeBadge(user)}
                     </td>
                     <td className="p-3">
                       {user.isActive ? (
