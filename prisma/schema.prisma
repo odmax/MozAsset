@@ -418,24 +418,29 @@ model StockVerificationItem {
 }
 
 model DepreciationRecord {
-  id              String        @id @default(cuid())
-  assetId         String
-  asset           Asset         @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  organizationId  String?
-  organization    Organization? @relation(fields: [organizationId], references: [id])
-  method          String        @default("STRAIGHT_LINE") // STRAIGHT_LINE, DECLINING_BALANCE, SUM_OF_YEARS
-  usefulLifeYears Int           @default(5)
-  salvageValue    Decimal?      @db.Decimal(12, 2)
-  purchaseCost    Decimal?      @db.Decimal(12, 2)
-  currentValue    Decimal?      @db.Decimal(12, 2)
-  depreciationAt  DateTime?
-  schedule        Json? // annual depreciation breakdown
-  notes           String?       @db.Text
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id                    String        @id @default(cuid())
+  assetId               String
+  asset                 Asset         @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  organizationId        String?
+  organization          Organization? @relation(fields: [organizationId], references: [id])
+  method                DepreciationMethod @default(STRAIGHT_LINE)
+  amount                Decimal?      @db.Decimal(12, 2)
+  bookValueBefore       Decimal?      @db.Decimal(12, 2)
+  bookValueAfter        Decimal?      @db.Decimal(12, 2)
+  accumulatedDep        Decimal?      @db.Decimal(12, 2)
+  periodDate            DateTime?
+  notes                 String?       @db.Text
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
 
   @@index([assetId])
   @@index([organizationId])
+  @@index([periodDate])
+}
+
+enum DepreciationMethod {
+  STRAIGHT_LINE
+  DECLINING_BALANCE
 }
 
 model Account {
@@ -599,6 +604,14 @@ model Asset {
   purchaseCost   Decimal?  @db.Decimal(12, 2)
   warrantyExpiry DateTime?
   notes          String?   @db.Text
+
+  depreciationMethod       DepreciationMethod @default(STRAIGHT_LINE)
+  depreciationStartDate    DateTime?
+  depreciationEndDate      DateTime?
+  usefulLifeMonths         Int       @default(60)
+  salvageValue             Decimal?  @db.Decimal(12, 2)
+  currentBookValue         Decimal?  @db.Decimal(12, 2)
+  accumulatedDepreciation  Decimal?  @db.Decimal(12, 2) @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
