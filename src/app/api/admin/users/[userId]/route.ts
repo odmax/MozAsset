@@ -41,8 +41,16 @@ export async function GET(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
-  // Platform admins bypass permission checks (legacy full access)
-  if (!isPlatformAdmin && isInternalAdmin && adminUser) {
+  // Check permissions — platform admins and internal admins both verified
+  if (isPlatformAdmin && sessionUser?.id) {
+    const dbAdmin = await prisma.internalAdmin.findFirst({
+      where: { email: sessionUser.email },
+      select: { id: true, role: true, permissions: true },
+    });
+    if (!dbAdmin || !hasPermission(dbAdmin, 'users:read')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+  } else if (isInternalAdmin && adminUser) {
     const dbAdmin = await prisma.internalAdmin.findUnique({
       where: { id: adminUser.id },
       select: { id: true, role: true, permissions: true },
@@ -53,6 +61,7 @@ export async function GET(
   }
 
   try {
+    // FETCH user detail
     const targetUser = await prisma.user.findUnique({
       where: { id: params.userId },
       select: {
@@ -105,7 +114,15 @@ export async function DELETE(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
-  if (!isPlatformAdmin && isInternalAdmin && adminUser) {
+  if (isPlatformAdmin && sessionUser?.id) {
+    const dbAdmin = await prisma.internalAdmin.findFirst({
+      where: { email: sessionUser.email },
+      select: { id: true, role: true, permissions: true },
+    });
+    if (!dbAdmin || !hasPermission(dbAdmin, 'users:delete')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+  } else if (isInternalAdmin && adminUser) {
     const dbAdmin = await prisma.internalAdmin.findUnique({
       where: { id: adminUser.id },
       select: { id: true, role: true, permissions: true },
@@ -237,7 +254,15 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
-  if (!isPlatformAdmin && isInternalAdmin && adminUser) {
+  if (isPlatformAdmin && sessionUser?.id) {
+    const dbAdmin = await prisma.internalAdmin.findFirst({
+      where: { email: sessionUser.email },
+      select: { id: true, role: true, permissions: true },
+    });
+    if (!dbAdmin || !hasPermission(dbAdmin, 'users:edit')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+  } else if (isInternalAdmin && adminUser) {
     const dbAdmin = await prisma.internalAdmin.findUnique({
       where: { id: adminUser.id },
       select: { id: true, role: true, permissions: true },

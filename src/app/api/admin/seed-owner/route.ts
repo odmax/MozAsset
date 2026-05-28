@@ -8,12 +8,15 @@ const DEFAULT_PASSWORD = 'password123';
 
 export async function POST(request: Request) {
   try {
-    // Basic protection - check for secret header (optional)
+    if (process.env.NODE_ENV === 'production' && !process.env.REPAIR_SECRET) {
+      return NextResponse.json({ error: 'Not available' }, { status: 404 });
+    }
+
     const secret = request.headers.get('x-repair-secret');
-    const isDev = process.env.NODE_ENV === 'development';
-    
-    if (!isDev && secret !== process.env.REPAIR_SECRET) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!secret || secret !== (process.env.REPAIR_SECRET || 'dev-mode')) {
+      if (process.env.NODE_ENV !== 'development') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
     }
 
     const { email = ALLOWED_EMAIL, password = DEFAULT_PASSWORD } = await request.json().catch(() => ({}));
@@ -86,9 +89,10 @@ export async function POST(request: Request) {
 }
 
 export async function GET() {
+  if (process.env.NODE_ENV !== 'development') {
+    return NextResponse.json({ error: 'Not available' }, { status: 404 });
+  }
   return NextResponse.json({
-    message: 'Use POST to create/update owner admin',
-    defaultEmail: ALLOWED_EMAIL,
-    note: 'This is a repair endpoint. Disable in production.',
+    message: 'Use POST to create/update owner admin (development only)',
   });
 }
