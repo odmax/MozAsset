@@ -318,6 +318,22 @@ export default function PricingPage() {
                     <Check className="h-4 w-4 text-green-500 shrink-0" />
                     <span>SLA guarantee</span>
                   </li>
+                  <li className="flex items-center gap-3">
+                    <Check className="h-4 w-4 text-green-500 shrink-0" />
+                    <span>Depreciation tracking</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Check className="h-4 w-4 text-green-500 shrink-0" />
+                    <span>Approval workflows</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Check className="h-4 w-4 text-green-500 shrink-0" />
+                    <span>Custom branding</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <Check className="h-4 w-4 text-green-500 shrink-0" />
+                    <span>Dedicated account manager</span>
+                  </li>
                 </ul>
                 <Link href="/contact" className="block">
                   <Button variant="outline" className="w-full">

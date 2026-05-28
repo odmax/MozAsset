@@ -25,6 +25,12 @@ import {
   CreditCard,
   Settings,
   Bell,
+  ClipboardCheck,
+  TrendingDown,
+  BarChart3,
+  Key,
+  Shield,
+  FileCheck,
 } from 'lucide-react';
 import type { Role, LucideIcon } from '@/types';
 import { AdContainer } from '@/components/ad-container';
@@ -188,6 +194,41 @@ function SidebarContent({
               </li>
             );
           })}
+          {userPlan === 'ENTERPRISE' && (
+            <>
+              <li className="pt-4 pb-1"><span className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Enterprise</span></li>
+              {[
+                { title: 'Advanced Analytics', href: '/dashboard/advanced-analytics', icon: BarChart3 },
+                { title: 'Stock Verification', href: '/dashboard/stock-verification', icon: ClipboardCheck },
+                { title: 'Depreciation', href: '/dashboard/depreciation', icon: TrendingDown },
+                { title: 'API Keys', href: '/dashboard/settings/api-keys', icon: Key },
+                { title: 'Approvals', href: '/dashboard/approvals', icon: FileCheck },
+                { title: 'Branding', href: '/dashboard/settings/branding', icon: Shield },
+              ].map((item) => {
+                const Icon = item.icon;
+                const isExactMatch = pathname === item.href;
+                const isChildMatch = pathname.startsWith(`${item.href}/`);
+                const isActive = isExactMatch || isChildMatch;
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={onNavigate}
+                      className={cn(
+                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                        isActive
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {item.title}
+                    </Link>
+                  </li>
+                );
+              })}
+            </>
+          )}
         </ul>
       </nav>
       <div className="px-4 pb-4">

@@ -324,10 +324,12 @@ export default function BillingPage() {
               <p className="text-xs text-muted-foreground mb-4">Unlimited everything</p>
               <ul className="space-y-2 mb-5 text-sm">
                 <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />Unlimited assets, departments & locations</li>
-                <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />All Pro features + more</li>
                 <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />Multi-branch management</li>
                 <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />API access & custom integrations</li>
-                <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />Advanced analytics & depreciation tracking</li>
+                <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />Advanced analytics & reports</li>
+                <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />Stock verification & depreciation tracking</li>
+                <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />Approval workflows</li>
+                <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />Custom branding</li>
                 <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-amber-600" />Dedicated account manager & SLA</li>
               </ul>
               {(plan === 'FREE' || plan === 'PRO') && (
