@@ -252,6 +252,8 @@ model User {
   upgradeRequests    UpgradeRequest[]
   stockSessions      StockVerificationSession[]
   stockVerifications StockVerificationItem[]
+  approvalRequests   ApprovalRequest[] @relation("ApprovalRequester")
+  approvalsDecided   ApprovalRequest[] @relation("ApprovalDecider")
 
   @@index([email])
   @@index([departmentId])
@@ -304,6 +306,10 @@ model Organization {
   currency        String @default("ZAR")
   defaultLanguage String @default("en")
 
+  approvalEnabled          Boolean @default(false)
+  approvalRequiredActions  Json?   // e.g. ["ASSIGNMENT","TRANSFER","RETIREMENT","DELETION","MAINTENANCE"]
+  approvalDefaultApprovers Json?   // e.g. ["userId1","userId2"]
+
   // Billing
   plan                  Plan               @default(FREE)
   subscriptionStatus    SubscriptionStatus @default(ACTIVE)
@@ -318,6 +324,7 @@ model Organization {
   apiKeys             ApiKey[]
   depreciationRecords DepreciationRecord[]
   stockSessions       StockVerificationSession[]
+  approvalRequests    ApprovalRequest[]
 
   @@index([ownerId])
 }
@@ -393,6 +400,31 @@ model StockVerificationSession {
 
   @@index([organizationId])
   @@index([status])
+}
+
+model ApprovalRequest {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  requestedById  String
+  requestedBy    User     @relation("ApprovalRequester", fields: [requestedById], references: [id])
+  approverId     String?
+  approver       User?    @relation("ApprovalDecider", fields: [approverId], references: [id])
+  type           String   // ASSIGNMENT, TRANSFER, RETIREMENT, DELETION, MAINTENANCE
+  status         String   @default("PENDING") // PENDING, APPROVED, REJECTED, CANCELLED
+  targetType     String   // Asset, Maintenance, etc.
+  targetId       String
+  reason         String?
+  notes          String?
+  requestedAt    DateTime @default(now())
+  decidedAt      DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([requestedById])
+  @@index([approverId])
 }
 
 model StockVerificationItem {
