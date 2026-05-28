@@ -297,8 +297,10 @@ model Organization {
   // Branding
   logo           String?
   favicon        String?
+  reportLogoUrl  String?
   primaryColor   String  @default("#3b82f6")
   secondaryColor String  @default("#6366f1")
+  brandName      String?
 
   // Preferences
   timezone        String @default("Africa/Johannesburg")

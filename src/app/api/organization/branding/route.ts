@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getSimpleUserSession } from '@/lib/customer-session';
+import { canAccessEnterpriseFeature } from '@/lib/billing';
 import { uploadFile, validateFile } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
@@ -13,6 +14,9 @@ export async function POST(request: Request) {
     const session = getSimpleUserSession();
     if (!session || !session.organizationId || !ALLOWED_ROLES.includes(session.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+    if (!canAccessEnterpriseFeature(session.plan as any)) {
+      return NextResponse.json({ error: 'Enterprise plan required', code: 'UPGRADE_REQUIRED' }, { status: 402 });
     }
 
     const formData = await request.formData();
@@ -68,6 +72,9 @@ export async function DELETE(request: Request) {
     const session = getSimpleUserSession();
     if (!session || !session.organizationId || !ALLOWED_ROLES.includes(session.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+    if (!canAccessEnterpriseFeature(session.plan as any)) {
+      return NextResponse.json({ error: 'Enterprise plan required', code: 'UPGRADE_REQUIRED' }, { status: 402 });
     }
 
     const { searchParams } = new URL(request.url);

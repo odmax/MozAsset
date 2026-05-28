@@ -207,6 +207,12 @@ export default function SettingsPage() {
               API Keys
             </TabsTrigger>
           )}
+          {user?.plan === 'ENTERPRISE' && (
+            <TabsTrigger value="branding" className="gap-2" onClick={() => router.push('/dashboard/settings/branding')}>
+              <Palette className="h-4 w-4" />
+              Branding
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Profile Tab */}
