@@ -13,7 +13,7 @@ import {
   Crown, Check, CreditCard, Zap, Loader2, AlertTriangle,
   CheckCircle, Clock, ArrowLeft, Mail, Building2, 
   ShieldCheck, TrendingUp, Users, MapPin, Package, Layers,
-  ChevronRight, Sparkles, BarChart3, HeadphonesIcon
+  Sparkles, BarChart3, Headphones
 } from 'lucide-react';
 
 interface UsageStats {
@@ -381,7 +381,7 @@ export default function BillingPage() {
 
       {/* --- Need Help --- */}
       <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><HeadphonesIcon className="h-5 w-5 text-primary" />Need Help?</CardTitle></CardHeader>
+        <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Headphones className="h-5 w-5 text-primary" />Need Help?</CardTitle></CardHeader>
         <CardContent className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <p className="text-sm text-muted-foreground">Contact our support team for billing questions or assistance.</p>
           <Link href="/contact">
