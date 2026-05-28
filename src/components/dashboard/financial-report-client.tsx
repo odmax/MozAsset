@@ -58,7 +58,7 @@ export function FinancialReportClient({ userPlan }: Props) {
     );
   }
 
-  const canAccessAdvanced = userPlan === 'PRO' || userPlan === 'ENTERPRISE';
+  const canAccessAdvanced = userPlan === 'ENTERPRISE';
 
   if (!data || error) {
     return (
