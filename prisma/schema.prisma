@@ -356,6 +356,7 @@ model ApiKey {
   isActive    Boolean   @default(true)
   permissions Json?
   usageCount  Int       @default(0)
+  rateLimit   Int       @default(100)
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])

@@ -23,6 +23,7 @@ import {
   Building2,
   Palette,
   CreditCard,
+  Key,
 } from 'lucide-react';
 import { getPlanDetails } from '@/lib/billing';
 import Link from 'next/link';
@@ -200,6 +201,12 @@ export default function SettingsPage() {
             <CreditCard className="h-4 w-4" />
             Billing
           </TabsTrigger>
+          {user?.plan === 'ENTERPRISE' && (
+            <TabsTrigger value="api-keys" className="gap-2" onClick={() => router.push('/dashboard/settings/api-keys')}>
+              <Key className="h-4 w-4" />
+              API Keys
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Profile Tab */}
