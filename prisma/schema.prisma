@@ -250,6 +250,8 @@ model User {
   notifications      Notification[]
   ApiKey             ApiKey[]
   upgradeRequests    UpgradeRequest[]
+  stockSessions      StockVerificationSession[]
+  stockVerifications StockVerificationItem[]
 
   @@index([email])
   @@index([departmentId])
@@ -315,6 +317,7 @@ model Organization {
   branches            Branch[]
   apiKeys             ApiKey[]
   depreciationRecords DepreciationRecord[]
+  stockSessions       StockVerificationSession[]
 
   @@index([ownerId])
 }
@@ -369,6 +372,49 @@ model ApiKey {
   @@index([organizationId])
   @@index([key])
   @@index([prefix])
+}
+
+model StockVerificationSession {
+  id             String   @id @default(cuid())
+  name           String
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  branchId       String?
+  departmentId   String?
+  locationId     String?
+  status         String   @default("DRAFT")
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdById    String
+  createdBy      User     @relation(fields: [createdById], references: [id])
+  items          StockVerificationItem[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+model StockVerificationItem {
+  id               String    @id @default(cuid())
+  sessionId        String
+  session          StockVerificationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  assetId          String
+  asset            Asset     @relation(fields: [assetId], references: [id])
+  expectedLocation String?
+  verifiedLocation String?
+  expectedUser     String?
+  verifiedUser     String?
+  status           String    @default("PENDING")
+  notes            String?
+  verifiedAt       DateTime?
+  verifiedById     String?
+  verifiedBy       User?     @relation(fields: [verifiedById], references: [id])
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([sessionId])
+  @@index([assetId])
 }
 
 model DepreciationRecord {
@@ -564,6 +610,7 @@ model Asset {
   auditLogs          AuditLog[]
   files              File[]
   DepreciationRecord DepreciationRecord[]
+  StockVerificationItem StockVerificationItem[]
 
   @@index([assetTag])
   @@index([name])
