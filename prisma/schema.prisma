@@ -312,6 +312,12 @@ model Organization {
   approvalRequiredActions  Json?   // e.g. ["ASSIGNMENT","TRANSFER","RETIREMENT","DELETION","MAINTENANCE"]
   approvalDefaultApprovers Json?   // e.g. ["userId1","userId2"]
 
+  accountManagerId      String?
+  accountManager        InternalAdmin? @relation("OrgAccountManager", fields: [accountManagerId], references: [id])
+  slaEnabled            Boolean @default(false)
+  slaFirstResponseMin   Int     @default(60)
+  slaResolutionHours    Int     @default(24)
+
   // Billing
   plan                  Plan               @default(FREE)
   subscriptionStatus    SubscriptionStatus @default(ACTIVE)
@@ -961,6 +967,7 @@ model InternalAdmin {
   assignedTickets  SupportTicket[]
   internalNotes    InternalNote[]
   escalatedTickets SupportTicket[] @relation("EscalatedTickets")
+  managedOrgs      Organization[]   @relation("OrgAccountManager")
   notifications    Notification[]
 
   @@index([email])
@@ -992,6 +999,7 @@ model SupportTicket {
   transferNote      String?
 
   // SLA tracking
+  slaStatus       String?   // ON_TRACK, AT_RISK, BREACHED
   slaDeadline     DateTime?
   slaBreachedAt   DateTime?
   firstResponseAt DateTime?

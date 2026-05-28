@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { AssetStatus } from '@prisma/client';
 import { StatusPieChart, DepartmentBarChart, CategoryBarChart } from '@/components/dashboard/charts';
 import { UpgradeButton } from '@/components/dashboard/UpgradeButton';
+import { EnterpriseSlaCard } from '@/components/dashboard/enterprise-sla-card';
 import { getSimpleUserSession } from '@/lib/customer-session';
 import EmailVerificationBanner from '@/components/dashboard/email-verification-banner';
 
@@ -200,6 +201,8 @@ export default async function DashboardPage() {
         )}
 
         {showAds && <UpgradeButton userPlan={plan} />}
+
+        {plan === 'ENTERPRISE' && <EnterpriseSlaCard />}
 
         <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
           {stats.map((stat, i) => (
