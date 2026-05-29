@@ -47,6 +47,7 @@ interface SidebarProps {
   userRole: Role;
   userPlan?: string;
   companyLogoUrl?: string | null;
+  companyBrandName?: string;
 }
 
 const navItems: NavItem[] = [
@@ -130,12 +131,14 @@ function SidebarContent({
   onNavigate,
   userPlan,
   companyLogoUrl,
+  companyBrandName,
 }: {
   pathname: string;
   navItems: NavItem[];
   onNavigate?: () => void;
   userPlan?: string;
   companyLogoUrl?: string | null;
+  companyBrandName?: string;
 }) {
   const router = useRouter();
 
@@ -143,6 +146,12 @@ function SidebarContent({
     try {
       document.documentElement.classList.remove('dark');
       document.documentElement.style.removeProperty('--theme-color');
+      document.documentElement.style.removeProperty('--brand-primary');
+      document.documentElement.style.removeProperty('--brand-secondary');
+      const link = document.querySelector("link[rel*='icon']") as HTMLLinkElement | null;
+      if (link && link.href.includes('org-')) {
+        link.href = '/favicon.png';
+      }
       await fetch('/api/auth/logout', { method: 'POST' });
       router.replace('/');
     } catch (error) {
@@ -165,6 +174,9 @@ function SidebarContent({
             <>
               <img src="/logo1.png" alt="MozAssets" className="h-8 w-auto" />
             </>
+          )}
+          {companyBrandName && (
+            <span className="text-sm font-semibold truncate max-w-[140px]">{companyBrandName}</span>
           )}
         </Link>
         <NotificationBell />
@@ -248,7 +260,7 @@ function SidebarContent({
   );
 }
 
-export function Sidebar({ userRole, userPlan = 'FREE', companyLogoUrl }: SidebarProps) {
+export function Sidebar({ userRole, userPlan = 'FREE', companyLogoUrl, companyBrandName }: SidebarProps) {
   const pathname = usePathname();
   const [currentPath, setCurrentPath] = useState(pathname);
 
@@ -284,14 +296,14 @@ export function Sidebar({ userRole, userPlan = 'FREE', companyLogoUrl }: Sidebar
         </SheetTrigger>
         <SheetContent side="left" className="w-64 p-0">
           <div className="flex h-full flex-col">
-            <SidebarContent pathname={currentPath} navItems={filteredNavItems} onNavigate={handleNavigate} userPlan={userPlan} companyLogoUrl={companyLogoUrl} />
+            <SidebarContent pathname={currentPath} navItems={filteredNavItems} onNavigate={handleNavigate} userPlan={userPlan} companyLogoUrl={companyLogoUrl} companyBrandName={companyBrandName} />
           </div>
         </SheetContent>
       </Sheet>
 
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-card border-r">
-        <SidebarContent pathname={currentPath} navItems={filteredNavItems} onNavigate={handleNavigate} userPlan={userPlan} companyLogoUrl={companyLogoUrl} />
+        <SidebarContent pathname={currentPath} navItems={filteredNavItems} onNavigate={handleNavigate} userPlan={userPlan} companyLogoUrl={companyLogoUrl} companyBrandName={companyBrandName} />
       </aside>
     </>
   );
