@@ -163,16 +163,17 @@ export function createCheckoutPayload(
   });
   
   // For ad-hoc payments, use simple form fields only
+  const paymentId = `${userId}_${plan}_${Date.now()}`;
   const baseData = {
     merchant_id: config.merchantId,
     merchant_key: config.merchantKey,
-    return_url: `${config.returnUrl}?userId=${userId}&plan=${plan}`,
+    return_url: `${config.returnUrl}?userId=${userId}&plan=${plan}&paymentRef=${encodeURIComponent(paymentId)}`,
     cancel_url: `${config.cancelUrl}?userId=${userId}`,
     notify_url: `${config.itnUrl}?userId=${userId}`,
     name_first: userName.split(' ')[0] || 'Customer',
     name_last: userName.split(' ').slice(1).join(' ') || userName.split(' ')[0] || 'Customer',
     email_address: userEmail,
-    m_payment_id: `${userId}_${plan}_${Date.now()}`,
+    m_payment_id: paymentId,
     amount: planPriceFormatted,
     item_name: `MozAssets ${plan} Plan - Monthly Subscription`,
     item_description: `Monthly subscription to MozAssets ${plan} Plan`,

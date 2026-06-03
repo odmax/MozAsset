@@ -1,7 +1,7 @@
 import prisma from '@/lib/prisma';
 
-const GADS_ID = process.env.NEXT_PUBLIC_GADS_ID || '';
-const GADS_PURCHASE_LABEL = process.env.NEXT_PUBLIC_GADS_PURCHASE_LABEL || '';
+const GADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || '';
+const CONVERSION_LABEL = '0hQUCO61o7IcEJrJkN9D';
 
 declare global {
   interface Window {
@@ -16,7 +16,7 @@ export function trackPurchaseConversion(params: {
   plan: string;
 }): void {
   if (typeof window === 'undefined') return;
-  if (!GADS_ID || !GADS_PURCHASE_LABEL) return;
+  if (!GADS_ID) return;
 
   const gtag = window.gtag;
   if (!gtag) {
@@ -25,17 +25,17 @@ export function trackPurchaseConversion(params: {
   }
 
   gtag('event', 'conversion', {
-    send_to: `${GADS_ID}/${GADS_PURCHASE_LABEL}`,
+    send_to: `${GADS_ID}/${CONVERSION_LABEL}`,
     value: params.value,
     currency: params.currency,
     transaction_id: params.transactionId,
   });
 
   console.log('[GADS] Conversion tracked:', {
+    send_to: `${GADS_ID}/${CONVERSION_LABEL}`,
     transactionId: params.transactionId,
     plan: params.plan,
     value: params.value,
-    currency: params.currency,
   });
 }
 
@@ -64,6 +64,8 @@ export async function logPurchaseConversion(params: {
         status: 'sent',
       },
     });
+
+    console.log('[GADS] Conversion logged to DB:', params.transactionId);
 
     return { success: true };
   } catch (error) {

@@ -100,7 +100,7 @@ export async function POST(
     const config = getPayfastConfig();
     checkoutPayload.merchant_id = config.merchantId;
     checkoutPayload.merchant_key = config.merchantKey;
-    checkoutPayload.return_url = `${config.returnUrl}?userId=${params.userId}&plan=${targetPlan}`;
+    checkoutPayload.return_url = `${config.returnUrl}?userId=${params.userId}&plan=${targetPlan}&paymentRef=${encodeURIComponent(paymentReference)}`;
     checkoutPayload.cancel_url = `${config.cancelUrl}?userId=${params.userId}`;
     checkoutPayload.notify_url = `${config.itnUrl}?userId=${params.userId}`;
     checkoutPayload.signature = generateSignature(checkoutPayload as any);

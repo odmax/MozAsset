@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   },
 };
 
-const GADS_ID = process.env.NEXT_PUBLIC_GADS_ID || 'AW-18184676506';
+const GADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID;
 
 export default function RootLayout({
   children,
@@ -29,17 +29,21 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <script async src={`https://www.googletagmanager.com/gtag/js?id=${GADS_ID}`}></script>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', '${GADS_ID}');
-            `,
-          }}
-        />
+        {GADS_ID && process.env.NODE_ENV === 'production' && (
+          <>
+            <script async src={`https://www.googletagmanager.com/gtag/js?id=${GADS_ID}`}></script>
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){dataLayer.push(arguments);}
+                  gtag('js', new Date());
+                  gtag('config', '${GADS_ID}');
+                `,
+              }}
+            />
+          </>
+        )}
       </head>
       <body className={`antialiased ${inter.variable}`}>
         <Providers>

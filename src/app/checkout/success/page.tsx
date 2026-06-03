@@ -13,6 +13,7 @@ function CheckoutSuccessContent() {
   const router = useRouter();
   const plan = searchParams.get('plan');
   const userId = searchParams.get('userId');
+  const paymentRef = searchParams.get('paymentRef');
   const [status, setStatus] = useState<'processing' | 'pending' | 'confirmed'>('processing');
   const conversionFired = useRef(false);
 
@@ -53,11 +54,11 @@ function CheckoutSuccessContent() {
       trackPurchaseConversion({
         value: planPrice,
         currency: 'ZAR',
-        transactionId: `${userId || 'unknown'}_${plan}_${Date.now()}`,
+        transactionId: paymentRef || `${userId || 'unknown'}_${plan}_${Date.now()}`,
         plan,
       });
     }
-  }, [status, plan, userId]);
+  }, [status, plan, userId, paymentRef]);
 
   if (status === 'processing') {
     return (
