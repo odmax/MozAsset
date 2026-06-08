@@ -1,7 +1,7 @@
 import prisma from '@/lib/prisma';
 
 const GADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || '';
-const CONVERSION_LABEL = '0hQUCO61o7IcEJrJkN9D';
+const PURCHASE_LABEL = process.env.NEXT_PUBLIC_GOOGLE_ADS_PURCHASE_LABEL || '0hQUCO61o7IcEJrJkN9D';
 
 declare global {
   interface Window {
@@ -16,7 +16,7 @@ export function trackPurchaseConversion(params: {
   plan: string;
 }): void {
   if (typeof window === 'undefined') return;
-  if (!GADS_ID) return;
+  if (!GADS_ID || !PURCHASE_LABEL) return;
 
   const gtag = window.gtag;
   if (!gtag) {
@@ -25,14 +25,14 @@ export function trackPurchaseConversion(params: {
   }
 
   gtag('event', 'conversion', {
-    send_to: `${GADS_ID}/${CONVERSION_LABEL}`,
+    send_to: `${GADS_ID}/${PURCHASE_LABEL}`,
     value: params.value,
     currency: params.currency,
     transaction_id: params.transactionId,
   });
 
-  console.log('[GADS] Conversion tracked:', {
-    send_to: `${GADS_ID}/${CONVERSION_LABEL}`,
+  console.log('[GADS] Purchase conversion tracked:', {
+    send_to: `${GADS_ID}/${PURCHASE_LABEL}`,
     transactionId: params.transactionId,
     plan: params.plan,
     value: params.value,
@@ -44,6 +44,7 @@ export async function logPurchaseConversion(params: {
   plan: string;
   value: number;
   currency?: string;
+  userId?: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
     const existing = await prisma.googleConversionLog.findUnique({
@@ -65,7 +66,24 @@ export async function logPurchaseConversion(params: {
       },
     });
 
-    console.log('[GADS] Conversion logged to DB:', params.transactionId);
+    if (params.userId) {
+      await prisma.auditLog.create({
+        data: {
+          action: 'UPDATE' as any,
+          entityType: 'Payment',
+          entityId: params.transactionId,
+          userId: params.userId,
+          changes: {
+            message: 'Google Ads purchase conversion tracked',
+            plan: params.plan,
+            amount: params.value,
+            transactionId: params.transactionId,
+          },
+        },
+      }).catch(() => {});
+    }
+
+    console.log('[GADS] Purchase conversion logged:', params.transactionId);
 
     return { success: true };
   } catch (error) {

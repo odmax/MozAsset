@@ -322,6 +322,7 @@ export async function updatePlanFromConfirmedPayment(
       plan,
       value: planPrice,
       currency: 'ZAR',
+      userId,
     }).catch((err) => console.error('Failed to log Google Ads conversion:', err));
 
     const { createNotificationForAdmins } = await import('@/lib/notifications');
