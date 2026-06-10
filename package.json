@@ -13,7 +13,7 @@
     "db:studio": "prisma studio",
     "db:migrate": "prisma migrate dev",
     "postinstall": "prisma generate",
-    "vercel-build": "prisma generate && prisma db push && next build"
+    "vercel-build": "prisma generate && (prisma db push || true) && next build"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",
