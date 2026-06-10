@@ -254,8 +254,6 @@ model User {
   stockVerifications StockVerificationItem[]
   approvalRequests   ApprovalRequest[] @relation("ApprovalRequester")
   approvalsDecided   ApprovalRequest[] @relation("ApprovalDecider")
-  esimPurchases      ESIMPurchase[]
-  esims              ESIM[]
 
   @@index([email])
   @@index([departmentId])
@@ -1108,67 +1106,4 @@ model Backup {
   @@index([status])
   @@index([createdAt])
   @@index([completedAt])
-}
-
-model ESIMPackage {
-  id           String          @id @default(cuid())
-  name         String
-  description  String?
-  dataGB       Float?
-  validityDays Int?
-  price        Decimal?        @db.Decimal(10, 2)
-  isActive     Boolean         @default(true)
-  purchases    ESIMPurchase[]
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-}
-
-model ESIMPurchase {
-  id          String    @id @default(cuid())
-  packageId   String
-  package     ESIMPackage @relation(fields: [packageId], references: [id], onDelete: Restrict)
-  userId      String?
-  user        User?     @relation(fields: [userId], references: [id])
-  quantity    Int       @default(1)
-  totalPrice  Decimal?  @db.Decimal(10, 2)
-  status      String    @default("ACTIVE")
-  purchasedAt DateTime  @default(now())
-  notes       String?
-  esims       ESIM[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  @@index([packageId])
-  @@index([userId])
-}
-
-model ESIM {
-  id           String    @id @default(cuid())
-  iccid        String?   @unique
-  imsi         String?
-  phoneNumber  String?
-  status       String    @default("INACTIVE")
-  purchaseId   String
-  purchase     ESIMPurchase @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
-  assignedToId String?
-  assignedTo   User?     @relation(fields: [assignedToId], references: [id])
-  topUps       ESIMTopUp[]
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  @@index([purchaseId])
-  @@index([assignedToId])
-}
-
-model ESIMTopUp {
-  id         String   @id @default(cuid())
-  esimId     String
-  esim       ESIM     @relation(fields: [esimId], references: [id], onDelete: Restrict)
-  amount     Decimal? @db.Decimal(10, 2)
-  dataGB     Float?
-  status     String   @default("COMPLETED")
-  toppedUpAt DateTime @default(now())
-  createdAt  DateTime @default(now())
-
-  @@index([esimId])
 }
