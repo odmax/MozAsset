@@ -250,6 +250,7 @@ model User {
   notifications      Notification[]
   ApiKey             ApiKey[]
   upgradeRequests    UpgradeRequest[]
+  engagementEmails   UserEngagementEmail[]
   stockSessions      StockVerificationSession[]
   stockVerifications StockVerificationItem[]
   approvalRequests   ApprovalRequest[] @relation("ApprovalRequester")
@@ -1061,6 +1062,23 @@ model InternalNote {
 
   @@index([ticketId])
   @@index([authorId])
+}
+
+model UserEngagementEmail {
+  id        String   @id @default(cuid())
+  userId    String
+  email     String
+  emailType String
+  sentAt    DateTime @default(now())
+  openedAt  DateTime?
+  clickedAt DateTime?
+  metadata  Json?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([emailType])
+  @@index([sentAt])
 }
 
 model SlaRule {
