@@ -43,6 +43,8 @@ export default async function AuditLogsPage({
   const where: any = {};
   if (!context.isInternalAdmin && context.organizationId) {
     where.user = { organizationId: context.organizationId };
+  } else if (!context.isInternalAdmin && !context.organizationId) {
+    where.user = { organizationId: 'never-match' };
   }
   if (search) {
     where.OR = [

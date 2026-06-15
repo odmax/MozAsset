@@ -27,15 +27,15 @@ export async function GET() {
     slaStats,
     securityEvents,
   ] = await Promise.all([
-    prisma.auditLog.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
-    prisma.auditLog.findMany({ orderBy: { createdAt: 'desc' }, take: 10, select: { id: true, action: true, entityType: true, userId: true, createdAt: true } }),
+    prisma.auditLog.count({ where: { createdAt: { gte: thirtyDaysAgo }, user: { organizationId: orgId } } }),
+    prisma.auditLog.findMany({ where: { user: { organizationId: orgId } }, orderBy: { createdAt: 'desc' }, take: 10, select: { id: true, action: true, entityType: true, userId: true, createdAt: true } }),
     prisma.approvalRequest.count({ where: { organizationId: orgId, status: 'PENDING' } }),
     prisma.approvalRequest.groupBy({ by: ['status'], where: { organizationId: orgId, decidedAt: { gte: thirtyDaysAgo } }, _count: true }),
     prisma.stockVerificationSession.count({ where: { organizationId: orgId, status: { in: ['DRAFT', 'ACTIVE'] } } }),
     prisma.stockVerificationItem.groupBy({ by: ['status'], where: { session: { organizationId: orgId } }, _count: true }),
     prisma.supportTicket.count({ where: { organizationId: orgId, slaStatus: 'BREACHED' } }),
     prisma.supportTicket.findMany({ where: { organizationId: orgId, slaStatus: { not: null } }, orderBy: { createdAt: 'desc' }, take: 5, select: { id: true, subject: true, slaStatus: true, createdAt: true } }),
-    prisma.auditLog.count({ where: { createdAt: { gte: thirtyDaysAgo }, action: { in: ['LOGIN_FAILED', 'SECURITY_ALERT', 'CSRF_VIOLATION', 'RATE_LIMIT_HIT', 'UNAUTHORIZED_ACCESS'] } } }),
+    prisma.auditLog.count({ where: { createdAt: { gte: thirtyDaysAgo }, action: { in: ['LOGIN_FAILED', 'SECURITY_ALERT', 'CSRF_VIOLATION', 'RATE_LIMIT_HIT', 'UNAUTHORIZED_ACCESS'] }, user: { organizationId: orgId } } }),
   ]);
 
   const approvedToday = approvalStats.find(a => a.status === 'APPROVED')?._count || 0;
