@@ -5,7 +5,7 @@ import { AssetList } from '@/components/dashboard/asset-list';
 import { AssetFilters } from '@/components/dashboard/asset-filters';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Upload } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { AdContainer } from '@/components/ad-container';
@@ -48,12 +48,14 @@ export default async function AssetsPage({
           </p>
         </div>
         {canManage && (
-          <Link href="/dashboard/assets/new">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Asset
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/dashboard/assets/new">
+              <Button><Plus className="mr-2 h-4 w-4" />Add Asset</Button>
+            </Link>
+            <Link href="/dashboard/assets/import">
+              <Button variant="outline"><Upload className="mr-2 h-4 w-4" />Import CSV</Button>
+            </Link>
+          </div>
         )}
       </div>
 
