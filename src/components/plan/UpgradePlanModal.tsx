@@ -30,8 +30,8 @@ const PLAN_OPTIONS = [
       '5 departments & locations',
       'CSV & advanced reports',
       'Stock verification tools',
+      'Asset labels & QR codes',
       'Priority support',
-      'Export suite',
     ],
   },
   {
