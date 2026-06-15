@@ -25,6 +25,7 @@ import {
   DollarSign,
   Shield,
   User,
+  QrCode,
 } from 'lucide-react';
 import { checkInAsset } from '@/app/dashboard/assets/actions';
 import FileAttachmentSection from '@/components/files/file-attachment-section';
@@ -236,6 +237,12 @@ export function AssetDetail({
                     <Button variant="outline" className="w-full justify-start">
                       <ArrowRightLeft className="mr-2 h-4 w-4" />
                       Transfer Asset
+                    </Button>
+                  </Link>
+                  <Link href={`/dashboard/assets/label?ids=${asset.id}`} className="block">
+                    <Button variant="outline" className="w-full justify-start">
+                      <QrCode className="mr-2 h-4 w-4" />
+                      View Label
                     </Button>
                   </Link>
                   <Link href={`/dashboard/assets/${asset.id}/maintenance`} className="block">
