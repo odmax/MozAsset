@@ -31,6 +31,7 @@ import {
   Key,
   Shield,
   FileCheck,
+  ShieldCheck,
 } from 'lucide-react';
 import type { Role, LucideIcon } from '@/types';
 import { AdContainer } from '@/components/ad-container';
@@ -215,6 +216,7 @@ function SidebarContent({
                 { title: 'Depreciation', href: '/dashboard/depreciation', icon: TrendingDown },
                 { title: 'API Keys', href: '/dashboard/settings/api-keys', icon: Key },
                 { title: 'Approvals', href: '/dashboard/approvals', icon: FileCheck },
+                { title: 'Compliance', href: '/dashboard/compliance', icon: ShieldCheck },
                 { title: 'Branding', href: '/dashboard/settings/branding', icon: Shield },
               ].map((item) => {
                 const Icon = item.icon;
