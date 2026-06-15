@@ -13,8 +13,8 @@ export async function GET(
   const session = getSimpleUserSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const feature = canAccessFeature(session.plan as any, 'exports');
-  if (!feature.allowed) {
+  const hasExportAccess = canAccessFeature(session.plan as any, 'exports');
+  if (!hasExportAccess) {
     return NextResponse.json({ error: 'PRO or ENTERPRISE plan required', code: 'UPGRADE_REQUIRED' }, { status: 402 });
   }
 
