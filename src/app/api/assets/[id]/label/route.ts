@@ -43,7 +43,7 @@ export async function GET(
   const isPro = org?.plan === 'PRO';
 
   const qrData = JSON.stringify({ id: asset.id, tag: asset.assetTag, org: orgId });
-  const qrSvg = await QRCode.toString(qrData, { type: 'svg', width: 200, margin: 1, color: { dark: '#000', light: '#fff' } });
+  const qrPng = await QRCode.toDataURL(qrData, { width: 300, margin: 2, errorCorrectionLevel: 'M', color: { dark: '#000', light: '#fff' } });
 
   return NextResponse.json({
     asset: {
@@ -62,6 +62,6 @@ export async function GET(
       secondaryColor: isEnterprise ? (org?.secondaryColor || '#6366f1') : '#6366f1',
       isEnterprise,
     },
-    qrCode: qrSvg,
+    qrCode: qrPng,
   });
 }
