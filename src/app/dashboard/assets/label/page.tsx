@@ -63,59 +63,29 @@ export default function AssetLabelPage() {
     try {
       const { default: JsPDF } = await import('jspdf');
       const pdf = new JsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const pp = parseInt(perPage);
-      const cols = pp <= 2 ? 1 : 2;
-      const rows = Math.ceil(pp / cols);
-      const w = 190 / cols;
-      const h = 277 / rows;
-      const margin = 4;
-
+      const pp = parseInt(perPage); const c = pp <= 2 ? 1 : 2; const r = Math.ceil(pp / c);
+      const cw = 190 / c; const ch = 277 / r; const m = 4;
       for (let i = 0; i < labels.length; i++) {
         if (i > 0 && i % pp === 0) pdf.addPage();
-        const idx = i % pp; const col = idx % cols; const row = Math.floor(idx / cols);
-        const x = 10 + col * w + margin / 2;
-        const y = 10 + row * h + margin / 2;
-        const lw = w - margin;
-        const lh = h - margin;
-        const lab = labels[i];
-
-        pdf.setDrawColor(200, 200, 200);
-        pdf.rect(x, y, lw, lh);
-
-        pdf.setFillColor(lab.branding.primaryColor);
-        pdf.rect(x, y, lw, 4, 'F');
-
-        pdf.setFontSize(9);
-        pdf.setTextColor(0, 0, 0);
+        const idx = i % pp; const col = idx % c; const row = Math.floor(idx / c);
+        const x = 10 + col * cw + m / 2; const y = 10 + row * ch + m / 2;
+        const lw = cw - m; const lh = ch - m; const lab = labels[i];
+        pdf.setDrawColor(200, 200, 200); pdf.rect(x, y, lw, lh);
+        pdf.setFillColor(lab.branding.primaryColor); pdf.rect(x, y, lw, 4, 'F');
+        pdf.setFontSize(9); pdf.setTextColor(0, 0, 0);
         pdf.text(lab.asset.name.substring(0, 28), x + 2, y + 9);
-        pdf.setFontSize(11);
-        pdf.setTextColor(0, 0, 0);
-        pdf.text(lab.asset.assetTag, x + 2, y + 15);
-        pdf.setFontSize(7);
-        pdf.setTextColor(100, 100, 100);
+        pdf.setFontSize(11); pdf.text(lab.asset.assetTag, x + 2, y + 15);
+        pdf.setFontSize(7); pdf.setTextColor(100, 100, 100);
         let ty = y + 21;
         if (lab.asset.serialNumber) { pdf.text(`SN: ${lab.asset.serialNumber}`, x + 2, ty); ty += 4; }
         if (lab.asset.department) { pdf.text(`Dept: ${lab.asset.department}`, x + 2, ty); ty += 4; }
         if (lab.asset.location) { pdf.text(`Loc: ${lab.asset.location}`, x + 2, ty); ty += 4; }
-
         if (lab.branding.isEnterprise && lab.branding.logo) {
-          try {
-            const logoImg = new Image(); logoImg.src = lab.branding.logo;
-            await new Promise<void>(r => { logoImg.onload = () => r(); setTimeout(r, 1000); });
-            pdf.addImage(logoImg, 'PNG', x + lw - 18, y + 1, 16, 3);
-          } catch {}
+          try { const logoImg = new Image(); logoImg.src = lab.branding.logo; await new Promise<void>(r => { logoImg.onload = () => r(); setTimeout(r, 1000); }); pdf.addImage(logoImg, 'PNG', x + lw - 16, y + 1, 14, 3); } catch {}
         }
-
-        if (barcodes[lab.asset.id]) {
-          pdf.addImage(barcodes[lab.asset.id], 'PNG', x + 2, y + lh - 12, lw - 4, 8);
-        }
-
+        if (barcodes[lab.asset.id]) pdf.addImage(barcodes[lab.asset.id], 'PNG', x + 2, y + lh - 12, lw - 24, 8);
         if (lab.qrCode) {
-          try {
-            const qrImg = new Image(); qrImg.src = `data:image/svg+xml;base64,${btoa(lab.qrCode)}`;
-            await new Promise<void>(r => { qrImg.onload = () => r(); setTimeout(r, 1000); });
-            pdf.addImage(qrImg, 'PNG', x + lw - 20, y + lh - 26, 16, 16);
-          } catch {}
+          try { const qrImg = new Image(); qrImg.src = `data:image/svg+xml;base64,${btoa(lab.qrCode)}`; await new Promise<void>(r => { qrImg.onload = () => r(); setTimeout(r, 1000); }); pdf.addImage(qrImg, 'PNG', x + lw - 20, y + lh - 26, 16, 16); } catch {}
         }
       }
       pdf.save(`asset-labels-${Date.now()}.pdf`); toast({ title: 'Downloaded' });
@@ -123,10 +93,10 @@ export default function AssetLabelPage() {
   };
 
   if (loading) return <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin" /></div>;
-
   if (!isPro && !loading) return <FeatureLock featureName="Asset Labels" featureDescription="Generate QR codes, barcodes, and printable labels." requiredPlan="PRO" currentPlan="FREE" />;
 
-  const cols = perPage === '1' ? 1 : 2;
+  const layoutCols = perPage === '1' ? 1 : 2;
+  const qrColWidth = template === 'compact' ? 72 : template === 'large' ? 130 : 100;
 
   return (
     <div className="space-y-4">
@@ -146,14 +116,11 @@ export default function AssetLabelPage() {
       {labels.length === 0 ? (
         <Card><CardContent className="py-8 text-center text-muted-foreground">No assets selected.</CardContent></Card>
       ) : (
-        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${layoutCols}, 1fr)` }}>
           {labels.map(label => (
             <div key={label.asset.id} className="border border-slate-300 rounded bg-white overflow-hidden print:border-black print:shadow-none">
-              {/* Accent bar */}
               <div className="h-1.5" style={{ backgroundColor: label.branding.primaryColor }} />
-
               <div className="p-3">
-                {/* Header: logo + brand */}
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-1.5 min-w-0">
                     {label.branding.isEnterprise && label.branding.logo ? (
@@ -165,9 +132,8 @@ export default function AssetLabelPage() {
                   </div>
                 </div>
 
-                {/* Main content */}
-                <div className="flex items-start gap-3">
-                  <div className="flex-1 min-w-0">
+                <div className="flex gap-2" style={{ display: 'grid', gridTemplateColumns: `1fr ${qrColWidth}px`, alignItems: 'flex-start' }}>
+                  <div className="min-w-0">
                     <p className="text-xs font-semibold text-slate-800 leading-tight truncate">{label.asset.name}</p>
                     <p className="text-lg font-bold text-slate-900 tracking-wide mt-0.5">{label.asset.assetTag}</p>
                     <div className="text-[10px] text-slate-500 leading-relaxed mt-1 space-y-0">
@@ -176,16 +142,17 @@ export default function AssetLabelPage() {
                       {label.asset.location && <p>{label.asset.location}</p>}
                     </div>
                   </div>
-                  {/* QR code — fixed size, bottom-right */}
-                  <div className="shrink-0 ml-2">
-                    <div dangerouslySetInnerHTML={{ __html: label.qrCode }} style={{ width: qrSize, height: qrSize }} />
+                  <div className="flex shrink-0 items-center justify-end" style={{ width: qrColWidth }}>
+                    <div
+                      dangerouslySetInnerHTML={{ __html: label.qrCode }}
+                      style={{ width: qrSize, height: qrSize, maxWidth: '100%', overflow: 'hidden' }}
+                    />
                   </div>
                 </div>
 
-                {/* Barcode — full width below, separated */}
                 {barcodes[label.asset.id] && (
                   <div className="mt-2 pt-2 border-t border-slate-200">
-                    <img src={barcodes[label.asset.id]} alt="Barcode" className="w-full h-10 object-contain" />
+                    <img src={barcodes[label.asset.id]} alt="Barcode" className="w-full" style={{ height: template === 'compact' ? 36 : 40, objectFit: 'contain' }} />
                   </div>
                 )}
               </div>
@@ -199,6 +166,9 @@ export default function AssetLabelPage() {
           .no-print { display: none !important; }
           body { margin: 0; padding: 6mm; }
           @page { margin: 6mm; size: A4; }
+        }
+        @media (max-width: 640px) {
+          .label-row { display: flex; flex-direction: column; }
         }
       `}</style>
     </div>
