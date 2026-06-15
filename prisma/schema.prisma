@@ -718,9 +718,13 @@ model Maintenance {
   performedAt     DateTime  @default(now())
   cost            Decimal?  @db.Decimal(10, 2)
   vendorId        String?
+  scheduledDate   DateTime?
+  completedDate   DateTime?
   nextDueDate     DateTime?
-  status          String    @default("COMPLETED")
+  recurrence      String    @default("none")
+  status          String    @default("SCHEDULED")
   notes           String?   @db.Text
+  reminderSentAt  DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
