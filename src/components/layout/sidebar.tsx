@@ -32,6 +32,7 @@ import {
   Shield,
   FileCheck,
   ShieldCheck,
+  QrCode,
 } from 'lucide-react';
 import type { Role, LucideIcon } from '@/types';
 import { AdContainer } from '@/components/ad-container';
@@ -213,6 +214,7 @@ function SidebarContent({
               {[
                 { title: 'Advanced Analytics', href: '/dashboard/advanced-analytics', icon: BarChart3 },
                 { title: 'Stock Verification', href: '/dashboard/stock-verification', icon: ClipboardCheck },
+                { title: 'QR Scanner', href: '/dashboard/scan', icon: QrCode },
                 { title: 'Depreciation', href: '/dashboard/depreciation', icon: TrendingDown },
                 { title: 'API Keys', href: '/dashboard/settings/api-keys', icon: Key },
                 { title: 'Approvals', href: '/dashboard/approvals', icon: FileCheck },
