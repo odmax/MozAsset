@@ -1,17 +1,14 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FeatureLock } from '@/components/ui/feature-lock';
-import { Loader2, Printer, Download, ArrowLeft, QrCode, Barcode } from 'lucide-react';
+import { Loader2, Printer, Download, ArrowLeft } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import Link from 'next/link';
-
-declare const bwipjs: any;
-declare const jsPDF: any;
 
 interface LabelData {
   asset: { id: string; assetTag: string; name: string; serialNumber: string | null; model: string | null; department: string | null; location: string | null };
@@ -19,53 +16,46 @@ interface LabelData {
   qrCode: string;
 }
 
+const QR_SIZES: Record<string, number> = { compact: 64, standard: 90, large: 120 };
+
 export default function AssetLabelPage() {
   const searchParams = useSearchParams();
   const assetIds = searchParams.get('ids')?.split(',') || [];
   const [labels, setLabels] = useState<LabelData[]>([]);
   const [loading, setLoading] = useState(true);
   const [isPro, setIsPro] = useState(false);
-  const [perPage, setPerPage] = useState('1');
+  const [perPage, setPerPage] = useState('4');
+  const [template, setTemplate] = useState('standard');
   const [barcodes, setBarcodes] = useState<Record<string, string>>({});
-  const barcodeRefs = useRef<Record<string, HTMLCanvasElement | null>>({});
 
   useEffect(() => {
     if (assetIds.length === 0) { setLoading(false); return; }
     Promise.all(assetIds.map(id => fetch(`/api/assets/${id}/label`).then(r => r.json())))
-      .then(results => {
-        const valid = results.filter(r => r.qrCode && !r.error);
-        setLabels(valid);
-        if (valid.length > 0) setIsPro(true);
-      })
+      .then(results => { const valid = results.filter(r => r.qrCode && !r.error); setLabels(valid); if (valid.length > 0) setIsPro(true); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [searchParams]);
 
   useEffect(() => {
     if (labels.length === 0) return;
-    const loadBwip = async () => {
+    const load = async () => {
       try {
         const bwipjs = (await import('bwip-js')).default || (await import('bwip-js'));
         const newBarcodes: Record<string, string> = {};
-        labels.forEach(label => {
+        labels.forEach(l => {
           try {
-            const canvas = document.createElement('canvas');
-            (bwipjs as any).toCanvas(canvas, {
-              bcid: 'code128',
-              text: label.asset.assetTag,
-              scale: 3,
-              height: 10,
-              includetext: true,
-              textxalign: 'center',
-            });
-            newBarcodes[label.asset.id] = canvas.toDataURL('image/png');
+            const c = document.createElement('canvas');
+            (bwipjs as any).toCanvas(c, { bcid: 'code128', text: l.asset.assetTag, scale: 3, height: 10, includetext: true, textxalign: 'center' });
+            newBarcodes[l.asset.id] = c.toDataURL('image/png');
           } catch {}
         });
         setBarcodes(newBarcodes);
       } catch {}
     };
-    loadBwip();
+    load();
   }, [labels]);
+
+  const qrSize = QR_SIZES[template] || 90;
 
   const handlePrint = () => window.print();
 
@@ -73,114 +63,143 @@ export default function AssetLabelPage() {
     try {
       const { default: JsPDF } = await import('jspdf');
       const pdf = new JsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const perPageNum = parseInt(perPage);
-
-      const cols = perPageNum <= 2 ? 1 : 2;
-      const rows = Math.ceil(perPageNum / cols);
+      const pp = parseInt(perPage);
+      const cols = pp <= 2 ? 1 : 2;
+      const rows = Math.ceil(pp / cols);
       const w = 190 / cols;
       const h = 277 / rows;
+      const margin = 4;
 
       for (let i = 0; i < labels.length; i++) {
-        if (i > 0 && i % perPageNum === 0) pdf.addPage();
-        const idx = i % perPageNum;
-        const col = idx % cols;
-        const row = Math.floor(idx / cols);
-        const x = 10 + col * w;
-        const y = 10 + row * h;
+        if (i > 0 && i % pp === 0) pdf.addPage();
+        const idx = i % pp; const col = idx % cols; const row = Math.floor(idx / cols);
+        const x = 10 + col * w + margin / 2;
+        const y = 10 + row * h + margin / 2;
+        const lw = w - margin;
+        const lh = h - margin;
+        const lab = labels[i];
 
-        const label = labels[i];
-        pdf.setFillColor(label.branding.primaryColor);
-        pdf.rect(x, y, w, 6, 'F');
-        pdf.setFontSize(10);
+        pdf.setDrawColor(200, 200, 200);
+        pdf.rect(x, y, lw, lh);
+
+        pdf.setFillColor(lab.branding.primaryColor);
+        pdf.rect(x, y, lw, 4, 'F');
+
+        pdf.setFontSize(9);
         pdf.setTextColor(0, 0, 0);
-        pdf.text(label.asset.name.substring(0, 30), x + 2, y + 12);
-        pdf.setFontSize(8);
-        pdf.text(`Tag: ${label.asset.assetTag}`, x + 2, y + 18);
-        if (label.asset.serialNumber) pdf.text(`SN: ${label.asset.serialNumber}`, x + 2, y + 23);
+        pdf.text(lab.asset.name.substring(0, 28), x + 2, y + 9);
+        pdf.setFontSize(11);
+        pdf.setFont(undefined, 'bold');
+        pdf.text(lab.asset.assetTag, x + 2, y + 15);
+        pdf.setFont(undefined, 'normal');
+        pdf.setFontSize(7);
+        pdf.setTextColor(100, 100, 100);
+        let ty = y + 21;
+        if (lab.asset.serialNumber) { pdf.text(`SN: ${lab.asset.serialNumber}`, x + 2, ty); ty += 4; }
+        if (lab.asset.department) { pdf.text(`Dept: ${lab.asset.department}`, x + 2, ty); ty += 4; }
+        if (lab.asset.location) { pdf.text(`Loc: ${lab.asset.location}`, x + 2, ty); ty += 4; }
 
-        if (label.qrCode) {
-          const qrImg = new Image();
-          qrImg.src = `data:image/svg+xml;base64,${btoa(label.qrCode)}`;
-          await new Promise<void>(resolve => { qrImg.onload = () => resolve(); });
-          pdf.addImage(qrImg, 'PNG', x + w - 30, y + 8, 22, 22);
+        if (lab.branding.isEnterprise && lab.branding.logo) {
+          try {
+            const logoImg = new Image(); logoImg.src = lab.branding.logo;
+            await new Promise<void>(r => { logoImg.onload = () => r(); setTimeout(r, 1000); });
+            pdf.addImage(logoImg, 'PNG', x + lw - 18, y + 1, 16, 3);
+          } catch {}
         }
 
-        if (barcodes[label.asset.id]) {
-          pdf.addImage(barcodes[label.asset.id], 'PNG', x + 2, y + h - 14, w - 4, 10);
+        if (barcodes[lab.asset.id]) {
+          pdf.addImage(barcodes[lab.asset.id], 'PNG', x + 2, y + lh - 12, lw - 4, 8);
+        }
+
+        if (lab.qrCode) {
+          try {
+            const qrImg = new Image(); qrImg.src = `data:image/svg+xml;base64,${btoa(lab.qrCode)}`;
+            await new Promise<void>(r => { qrImg.onload = () => r(); setTimeout(r, 1000); });
+            pdf.addImage(qrImg, 'PNG', x + lw - 20, y + lh - 26, 16, 16);
+          } catch {}
         }
       }
-
-      pdf.save(`asset-labels-${Date.now()}.pdf`);
-      toast({ title: 'Downloaded', description: 'PDF generated' });
-    } catch {
-      toast({ title: 'Failed', description: 'Could not generate PDF', variant: 'destructive' });
-    }
+      pdf.save(`asset-labels-${Date.now()}.pdf`); toast({ title: 'Downloaded' });
+    } catch { toast({ title: 'Failed', variant: 'destructive' }); }
   };
 
   if (loading) return <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
-  if (!isPro && !loading) {
-    return <FeatureLock featureName="Asset Labels" featureDescription="Generate QR codes, barcodes, and printable labels for your physical assets." requiredPlan="PRO" currentPlan="FREE" />;
-  }
+  if (!isPro && !loading) return <FeatureLock featureName="Asset Labels" featureDescription="Generate QR codes, barcodes, and printable labels." requiredPlan="PRO" currentPlan="FREE" />;
+
+  const cols = perPage === '1' ? 1 : 2;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3 no-print">
+    <div className="space-y-4">
+      <div className="flex items-center gap-3 no-print flex-wrap">
         <Link href="/dashboard/assets"><Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button></Link>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold tracking-tight">Asset Labels</h1>
-          <p className="text-muted-foreground">{labels.length} asset{labels.length !== 1 ? 's' : ''} selected</p>
-        </div>
+        <div className="flex-1"><h1 className="text-2xl font-bold">Asset Labels</h1><p className="text-sm text-muted-foreground">{labels.length} asset{labels.length !== 1 ? 's' : ''}</p></div>
         {labels.length > 0 && (
-          <div className="flex items-center gap-2">
-            <Select value={perPage} onValueChange={setPerPage}>
-              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">1/page</SelectItem>
-                <SelectItem value="2">2/page</SelectItem>
-                <SelectItem value="4">4/page</SelectItem>
-                <SelectItem value="10">10/page</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" onClick={handlePrint}><Printer className="h-4 w-4 mr-1" />Print</Button>
-            <Button onClick={handleDownloadPdf}><Download className="h-4 w-4 mr-1" />PDF</Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select value={template} onValueChange={setTemplate}><SelectTrigger className="w-28"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="compact">Compact</SelectItem><SelectItem value="standard">Standard</SelectItem><SelectItem value="large">Large</SelectItem></SelectContent></Select>
+            <Select value={perPage} onValueChange={setPerPage}><SelectTrigger className="w-28"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="1">1/page</SelectItem><SelectItem value="2">2/page</SelectItem><SelectItem value="4">4/page</SelectItem><SelectItem value="10">10/page</SelectItem></SelectContent></Select>
+            <Button variant="outline" size="sm" onClick={handlePrint}><Printer className="h-4 w-4 mr-1" />Print</Button>
+            <Button size="sm" onClick={handleDownloadPdf}><Download className="h-4 w-4 mr-1" />PDF</Button>
           </div>
         )}
       </div>
 
       {labels.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">No assets selected. Go to the Assets page, select assets, and click "Generate Labels".</CardContent></Card>
+        <Card><CardContent className="py-8 text-center text-muted-foreground">No assets selected.</CardContent></Card>
       ) : (
-        <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${perPage === '1' ? 1 : 2}, 1fr)` }}>
+        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
           {labels.map(label => (
-            <Card key={label.asset.id} className="print:shadow-none print:border print:border-black">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    {label.branding.logo && <img src={label.branding.logo} alt="" className="h-6 w-auto mb-1" />}
-                    <p className="font-bold text-sm truncate" style={{ color: label.branding.primaryColor }}>{label.branding.brandName || 'MozAssets'}</p>
-                    <p className="font-medium text-sm mt-1">{label.asset.name}</p>
-                    <p className="text-xs text-muted-foreground">Tag: {label.asset.assetTag}</p>
-                    {label.asset.serialNumber && <p className="text-xs text-muted-foreground">SN: {label.asset.serialNumber}</p>}
-                    {label.asset.department && <p className="text-xs text-muted-foreground">Dept: {label.asset.department}</p>}
-                    {label.asset.location && <p className="text-xs text-muted-foreground">Loc: {label.asset.location}</p>}
-                  </div>
-                  <div className="flex flex-col items-center gap-1 ml-3 shrink-0">
-                    <div dangerouslySetInnerHTML={{ __html: label.qrCode }} className="w-20 h-20" />
-                    {barcodes[label.asset.id] && <img src={barcodes[label.asset.id]} alt={`Barcode ${label.asset.assetTag}`} className="h-8 w-full" />}
+            <div key={label.asset.id} className="border border-slate-300 rounded bg-white overflow-hidden print:border-black print:shadow-none">
+              {/* Accent bar */}
+              <div className="h-1.5" style={{ backgroundColor: label.branding.primaryColor }} />
+
+              <div className="p-3">
+                {/* Header: logo + brand */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    {label.branding.isEnterprise && label.branding.logo ? (
+                      <img src={label.branding.logo} alt="" className="h-4 w-auto object-contain" />
+                    ) : (
+                      <span className="text-xs font-bold text-slate-700">MOZASSETS</span>
+                    )}
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wide">Label</span>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+
+                {/* Main content */}
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-slate-800 leading-tight truncate">{label.asset.name}</p>
+                    <p className="text-lg font-bold text-slate-900 tracking-wide mt-0.5">{label.asset.assetTag}</p>
+                    <div className="text-[10px] text-slate-500 leading-relaxed mt-1 space-y-0">
+                      {label.asset.serialNumber && <p>SN: {label.asset.serialNumber}</p>}
+                      {label.asset.department && <p>{label.asset.department}</p>}
+                      {label.asset.location && <p>{label.asset.location}</p>}
+                    </div>
+                  </div>
+                  {/* QR code — fixed size, bottom-right */}
+                  <div className="shrink-0 ml-2">
+                    <div dangerouslySetInnerHTML={{ __html: label.qrCode }} style={{ width: qrSize, height: qrSize }} />
+                  </div>
+                </div>
+
+                {/* Barcode — full width below, separated */}
+                {barcodes[label.asset.id] && (
+                  <div className="mt-2 pt-2 border-t border-slate-200">
+                    <img src={barcodes[label.asset.id]} alt="Barcode" className="w-full h-10 object-contain" />
+                  </div>
+                )}
+              </div>
+            </div>
           ))}
         </div>
       )}
 
-      <style jsx global>{`
+      <style>{`
         @media print {
           .no-print { display: none !important; }
-          body { margin: 0; padding: 0; }
-          .print\\:shadow-none { box-shadow: none !important; }
+          body { margin: 0; padding: 6mm; }
+          @page { margin: 6mm; size: A4; }
         }
       `}</style>
     </div>
