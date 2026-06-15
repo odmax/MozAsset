@@ -89,9 +89,8 @@ export default function AssetLabelPage() {
         pdf.setTextColor(0, 0, 0);
         pdf.text(lab.asset.name.substring(0, 28), x + 2, y + 9);
         pdf.setFontSize(11);
-        pdf.setFont(undefined, 'bold');
+        pdf.setTextColor(0, 0, 0);
         pdf.text(lab.asset.assetTag, x + 2, y + 15);
-        pdf.setFont(undefined, 'normal');
         pdf.setFontSize(7);
         pdf.setTextColor(100, 100, 100);
         let ty = y + 21;
