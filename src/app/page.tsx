@@ -1,10 +1,55 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Package, Star, Check, ArrowRight, Settings2 } from 'lucide-react';
+import { Package, Star, Check, ArrowRight, Settings2, Upload, QrCode, Scan, ClipboardCheck, Wrench, ShieldCheck, BarChart3 } from 'lucide-react';
+
+function LifecycleCard({ item, index }: { item: typeof lifecycle[0]; index: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setVisible(true); },
+      { threshold: 0.3 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={`text-center transition-all duration-500 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+      style={{ transitionDelay: `${index * 120}ms` }}
+    >
+      <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3 hover:bg-primary/20 transition-colors">
+        <item.icon className="h-6 w-6 text-primary" />
+      </div>
+      <h3 className="text-sm font-semibold mb-1">{item.title}</h3>
+      <p className="text-xs text-muted-foreground leading-relaxed">{item.description}</p>
+      {index < lifecycle.length - 1 && (
+        <div className="hidden md:block absolute top-7 left-[calc(50%+28px)] w-[calc(100%-56px)]">
+          <div className="h-0.5 bg-primary/20" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+const lifecycle = [
+  { icon: Upload, title: 'Import Assets', description: 'Quickly import hundreds of assets using CSV uploads or create them individually.' },
+  { icon: QrCode, title: 'Generate Labels', description: 'Create professional QR code and barcode labels for every asset in seconds.' },
+  { icon: Scan, title: 'Track & Scan', description: 'Use your phone or tablet to scan asset labels and instantly access asset information.' },
+  { icon: ClipboardCheck, title: 'Verify Inventory', description: 'Run stock verification sessions and confirm asset locations with real-time tracking.' },
+  { icon: Wrench, title: 'Schedule Maintenance', description: 'Plan preventative maintenance and receive automated reminders before assets become overdue.' },
+  { icon: ShieldCheck, title: 'Monitor Compliance', description: 'Track approvals, audit logs, SLA performance, and compliance from one dashboard.' },
+  { icon: BarChart3, title: 'Analyze Performance', description: 'Monitor asset value, depreciation, utilization, and performance through advanced analytics.' },
+];
 
 const features = [
   { icon: Package, title: 'Asset Tracking', description: 'Track all your assets in one centralized location with detailed information and history.' },
@@ -212,6 +257,63 @@ export default function LandingPage() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Asset Lifecycle Management */}
+      <section className="py-20 bg-slate-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Asset Lifecycle Management
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Manage every stage of your assets from acquisition to retirement with a single platform.
+            </p>
+          </div>
+
+          {/* Desktop horizontal timeline */}
+          <div className="hidden md:grid md:grid-cols-7 gap-4 max-w-6xl mx-auto mb-12">
+            {lifecycle.map((item, i) => (
+              <LifecycleCard key={i} item={item} index={i} />
+            ))}
+          </div>
+
+          {/* Mobile vertical timeline */}
+          <div className="md:hidden space-y-4 max-w-md mx-auto">
+            {lifecycle.map((item, i) => (
+              <div key={i} className="flex gap-4 items-start opacity-0 animate-fade-in-up" style={{ animationDelay: `${i * 100}ms`, animationFillMode: 'forwards' }}>
+                <div className="flex flex-col items-center shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <item.icon className="h-5 w-5 text-primary" />
+                  </div>
+                  {i < lifecycle.length - 1 && <div className="w-0.5 h-8 bg-primary/20 mt-1" />}
+                </div>
+                <div className="pb-6">
+                  <h3 className="font-semibold text-sm">{item.title}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Bottom CTA */}
+          <div className="text-center mt-8">
+            <h3 className="text-xl font-bold mb-3">
+              Everything You Need to Manage Assets Efficiently
+            </h3>
+            <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
+              From asset onboarding to maintenance, compliance, and analytics, MozAssets helps your organization stay in control of every asset.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link href="/signup">
+                <Button size="lg"><ArrowRight className="mr-2 h-4 w-4" />Start Free</Button>
+              </Link>
+              <Link href="/pricing">
+                <Button size="lg" variant="outline">View Pricing</Button>
+              </Link>
+            </div>
           </div>
         </div>
       </section>
