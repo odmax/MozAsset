@@ -26,8 +26,8 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
         poNumber: po.poNumber,
         orderedDate: po.orderDate,
         receivedDate: po.receivedDate || new Date(),
-        status: 'AVAILABLE',
-        condition: 'NEW',
+        status: 'AVAILABLE' as any,
+        condition: 'NEW' as any,
       });
     }
   }
