@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Building2, Crown, CreditCard, Mail, TrendingUp, UserPlus, DollarSign, AlertCircle, CheckCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { getSimpleAdminSession } from '@/lib/admin-session';
+import { PlatformHealth } from '@/components/admin/platform-health';
 
 async function getAdminStats() {
   const now = new Date();
@@ -240,6 +241,8 @@ export default async function AdminPage() {
           </CardContent>
         </Card>
       </div>
+
+      <PlatformHealth />
     </div>
   );
 }
