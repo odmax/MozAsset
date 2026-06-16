@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils';
-import { Loader2, RefreshCw, Users, Building2, CreditCard, Mail, Clock, MessageSquare, AlertTriangle, TrendingUp, Wrench } from 'lucide-react';
+import { Loader2, RefreshCw, Users, Building2, CreditCard, Mail, Clock, MessageSquare, AlertTriangle, TrendingUp, Wrench, Shield } from 'lucide-react';
 
 export function PlatformHealth() {
   const [data, setData] = useState<any>(null);
@@ -64,6 +64,13 @@ export function PlatformHealth() {
         <MiniCard title="Inactive" icon={TrendingUp} rows={[`${data.users.inactive30d} users 30d+`, `${data.billing.pendingPaymentsOld} pending > 24h`]} />
         <MiniCard title="Upgrades" icon={Wrench} rows={[`${data.billing.pendingUpgradeRequests} pending`, `${data.billing.manualConfirmations} manual`]} />
       </div>
+
+      <Card>
+        <CardHeader className="pb-2"><CardDescription className="flex items-center gap-1"><Shield className="h-4 w-4" />Error Monitoring</CardDescription></CardHeader>
+        <CardContent className="text-sm text-muted-foreground">
+          {process.env.NEXT_PUBLIC_SENTRY_DSN ? 'Connected — Sentry is capturing errors' : 'Not configured — set NEXT_PUBLIC_SENTRY_DSN'}
+        </CardContent>
+      </Card>
     </div>
   );
 }
