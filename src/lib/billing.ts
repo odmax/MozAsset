@@ -41,6 +41,7 @@ export interface PlanDetails {
     customBranding: boolean;
     approvalWorkflows: boolean;
     depreciationTracking: boolean;
+    procurement: boolean;
   };
 }
 
@@ -77,6 +78,7 @@ export const PLAN_CONFIG: Record<Plan, PlanDetails> = {
       customBranding: false,
       approvalWorkflows: false,
       depreciationTracking: false,
+      procurement: false,
     },
   },
   PRO: {
@@ -111,6 +113,7 @@ export const PLAN_CONFIG: Record<Plan, PlanDetails> = {
       customBranding: false,
       approvalWorkflows: false,
       depreciationTracking: false,
+      procurement: false,
     },
   },
   ENTERPRISE: {
