@@ -351,7 +351,6 @@ export const ENTERPRISE_FEATURES_LIST = [
   { id: 'customIntegrations', label: 'Custom Integrations', description: 'Webhooks, Zapier-ready, accounting integrations' },
   { id: 'auditCompliance', label: 'Audit & Compliance', description: 'Immutable audit logs, compliance filters, exportable reports' },
   { id: 'advancedPermissions', label: 'Advanced Permissions', description: 'Custom roles, granular permissions, permission matrix' },
-  { id: 'maintenanceManagement', label: 'Maintenance Management', description: 'Full maintenance lifecycle with scheduling' },
   { id: 'assetLifecycleTracking', label: 'Asset Lifecycle Tracking', description: 'End-to-end lifecycle from procurement to disposal' },
   { id: 'exportSuite', label: 'Full Export Suite', description: 'Export assets, audit logs, maintenance, warranties as CSV/PDF' },
   { id: 'prioritySupport', label: 'Priority Support', description: 'Highest queue priority and faster SLA timers' },

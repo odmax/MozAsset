@@ -33,6 +33,7 @@ import {
   FileCheck,
   ShieldCheck,
   QrCode,
+  Wrench,
 } from 'lucide-react';
 import type { Role, LucideIcon } from '@/types';
 import { AdContainer } from '@/components/ad-container';
@@ -100,6 +101,12 @@ const navItems: NavItem[] = [
     href: '/dashboard/audit-logs',
     icon: Activity,
     roles: ['SUPER_ADMIN', 'ASSET_MANAGER'],
+  },
+  {
+    title: 'Maintenance',
+    href: '/dashboard/maintenance',
+    icon: Wrench,
+    roles: ['SUPER_ADMIN', 'ASSET_MANAGER', 'DEPARTMENT_MANAGER', 'EMPLOYEE'],
   },
   {
     title: 'Reports',

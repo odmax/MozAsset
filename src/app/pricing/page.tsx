@@ -456,8 +456,8 @@ export default function PricingPage() {
               <span>© 2026 MozAssets by Mozetech</span>
             </div>
             <div className="flex items-center gap-6">
-              <Link href="#" className="hover:text-foreground">Privacy</Link>
-              <Link href="#" className="hover:text-foreground">Terms</Link>
+              <Link href="/privacy" className="hover:text-foreground">Privacy</Link>
+              <Link href="/terms" className="hover:text-foreground">Terms</Link>
               <Link href="/" className="hover:text-foreground">Back to Home</Link>
             </div>
           </div>
