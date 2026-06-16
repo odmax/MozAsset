@@ -22,8 +22,12 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
-  // Health check - same as POST for simpler cron setup
+export async function GET(request: Request) {
+  const authHeader = request.headers.get('authorization');
+  const expected = process.env.QUEUE_SECRET;
+  if (expected && authHeader !== `Bearer ${expected}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   const results = await processAllQueues();
   const total = Object.values(results).reduce((a, b) => a + b, 0);
   return NextResponse.json({ processed: total, queues: results });
