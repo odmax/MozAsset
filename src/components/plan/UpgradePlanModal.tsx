@@ -52,6 +52,7 @@ const PLAN_OPTIONS = [
       'Advanced analytics & reports',
       'Stock verification & audits',
       'Depreciation & lifecycle tracking',
+      'Procurement & purchase orders',
       'Approval workflows',
       'Custom branding',
       'Dedicated account manager & SLA',

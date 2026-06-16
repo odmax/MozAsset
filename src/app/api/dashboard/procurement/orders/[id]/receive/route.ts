@@ -17,6 +17,11 @@ export async function POST(request: Request, { params }: { params: { id: string 
   const { items } = await request.json();
   let allReceived = true;
   for (const item of items) {
+    const existing = po.items.find((i: any) => i.id === item.id);
+    if (!existing) continue;
+    if (existing.receivedQuantity + (item.qty || 0) > existing.quantity) {
+      return NextResponse.json({ error: `Cannot receive more than ordered for item: ${existing.description}` }, { status: 400 });
+    }
     await prisma.purchaseOrderItem.update({ where: { id: item.id }, data: { receivedQuantity: { increment: item.qty || 0 } } });
     const updated = await prisma.purchaseOrderItem.findUnique({ where: { id: item.id }, select: { quantity: true, receivedQuantity: true } });
     if (updated && updated.receivedQuantity < updated.quantity) allReceived = false;

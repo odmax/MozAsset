@@ -13,6 +13,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
 
   const po = await prisma.purchaseOrder.findUnique({ where: { id: params.id }, include: { items: true } });
   if (!po || po.organizationId !== orgId) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (po.assetsCreated) return NextResponse.json({ error: 'Assets already created from this PO' }, { status: 409 });
 
   const toCreate = [];
   for (const item of po.items) {
@@ -34,6 +35,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
 
   if (toCreate.length === 0) return NextResponse.json({ error: 'No received items to create assets from' }, { status: 400 });
   await prisma.asset.createMany({ data: toCreate });
+  await prisma.purchaseOrder.update({ where: { id: params.id }, data: { assetsCreated: true } });
 
   await prisma.auditLog.create({ data: { action: 'CREATE' as any, entityType: 'Asset', entityId: po.id, userId: s.userId, changes: { action: 'created_from_po', poNumber: po.poNumber, count: toCreate.length } } }).catch(() => {});
 

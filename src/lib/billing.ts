@@ -145,6 +145,7 @@ export const PLAN_CONFIG: Record<Plan, PlanDetails> = {
       customBranding: true,
       approvalWorkflows: true,
       depreciationTracking: true,
+      procurement: true,
     },
   },
 };
@@ -356,6 +357,7 @@ export const ENTERPRISE_FEATURES_LIST = [
   { id: 'customBranding', label: 'Custom Branding', description: 'Organization logo, custom theme, branded reports' },
   { id: 'approvalWorkflows', label: 'Approval Workflows', description: 'Assignment, maintenance, and retirement approvals' },
   { id: 'depreciationTracking', label: 'Depreciation Tracking', description: 'Multiple methods, schedules, and finance reports' },
+  { id: 'procurement', label: 'Procurement & Purchase Orders', description: 'Purchase requests, purchase orders, receiving workflow, and asset creation from POs' },
 ];
 
 export function isAdVisible(plan: Plan): boolean {

@@ -1136,6 +1136,7 @@ model PurchaseOrder {
   approvedById   String?
   approvedBy     User?    @relation("POApprover", fields: [approvedById], references: [id])
   approvedAt     DateTime?
+  assetsCreated  Boolean   @default(false)
   items          PurchaseOrderItem[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt

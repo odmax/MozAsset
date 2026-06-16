@@ -214,6 +214,7 @@ function SidebarContent({
               {[
                 { title: 'Advanced Analytics', href: '/dashboard/advanced-analytics', icon: BarChart3 },
                 { title: 'Stock Verification', href: '/dashboard/stock-verification', icon: ClipboardCheck },
+                { title: 'Procurement', href: '/dashboard/procurement', icon: CreditCard },
                 { title: 'QR Scanner', href: '/dashboard/scan', icon: QrCode },
                 { title: 'Depreciation', href: '/dashboard/depreciation', icon: TrendingDown },
                 { title: 'API Keys', href: '/dashboard/settings/api-keys', icon: Key },
