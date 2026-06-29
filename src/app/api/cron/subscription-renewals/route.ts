@@ -23,7 +23,7 @@ export async function GET(request: Request) {
   }
 
   const now = new Date();
-  const results = { reminders: 0, renewalsApplied: 0, pastDue: 0, graceStarted: 0, suspended: 0 };
+  const results = { reminders: 0, renewalsApplied: 0, pastDue: 0, graceStarted: 0, suspended: 0, recoveryEmails: 0 };
 
   const paidUsers = await prisma.user.findMany({
     where: { plan: { in: ['PRO', 'ENTERPRISE'] }, subscriptionStatus: { in: ['ACTIVE', 'PAST_DUE', 'GRACE_PERIOD'] }, billingPeriodEnd: { not: null }, isActive: true },
@@ -95,6 +95,49 @@ export async function GET(request: Request) {
         await prisma.user.update({ where: { id: user.id }, data: { subscriptionStatus: 'SUSPENDED' } });
         results.suspended++;
       }
+    }
+  }
+
+  // Invoice recovery
+  const recoveryStages = [
+    { field: 'recoveryStage1At' as const, days: 0, stage: 'due_today', subject: 'Payment Due Today: Your MozAssets Subscription' },
+    { field: 'recoveryStage2At' as const, days: 1, stage: 'day1', subject: 'Payment Reminder: 1 Day Overdue' },
+    { field: 'recoveryStage3At' as const, days: 3, stage: 'day3', subject: 'Final Notice: Payment 3 Days Overdue' },
+    { field: 'recoverySuspendedAt' as const, days: 5, stage: 'suspended', subject: 'Your MozAssets Subscription Has Been Suspended' },
+  ];
+
+  const overdueInvoices = await prisma.subscriptionInvoice.findMany({
+    where: { status: { in: ['ISSUED', 'PENDING_PAYMENT', 'OVERDUE'] }, dueDate: { lte: now } },
+    include: { user: { select: { email: true, name: true, plan: true } } },
+  });
+
+  for (const inv of overdueInvoices) {
+    const daysOverdue = Math.floor((now.getTime() - new Date(inv.dueDate).getTime()) / (24 * 60 * 60 * 1000));
+
+    if (daysOverdue >= 5 && inv.status !== 'OVERDUE') {
+      await prisma.subscriptionInvoice.update({ where: { id: inv.id }, data: { status: 'OVERDUE' } });
+    }
+
+    for (const stage of recoveryStages) {
+      if ((inv as any)[stage.field]) continue;
+      if (daysOverdue < stage.days) continue;
+
+      await sendEmail({
+        to: inv.user.email,
+        subject: stage.subject,
+        html: `<p>Hi ${inv.user.name || 'there'},</p><p>Your invoice <strong>${inv.invoiceNumber}</strong> for R${Number(inv.total).toFixed(2)} is overdue.</p><p><a href="${process.env.APP_URL || ''}/billing">Pay Now</a> to keep your ${inv.user.plan} plan active.</p>`,
+        type: `recovery_${stage.stage}`,
+      }).catch(() => {});
+
+      await prisma.subscriptionInvoice.update({ where: { id: inv.id }, data: {
+        [stage.field]: new Date(),
+        recoveryStage: stage.stage,
+        recoveryEmailSentAt: new Date(),
+        ...(stage.stage === 'suspended' ? { status: 'OVERDUE' } : {}),
+      } });
+
+      results.recoveryEmails++;
+      break;
     }
   }
 

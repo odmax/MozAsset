@@ -22,6 +22,7 @@ export async function GET() {
     queuedRenewals, appliedRenewals,
     failedPayments, manualConfirms,
     recentInvoices,
+    recoveryInvoices,
   ] = await Promise.all([
     prisma.subscriptionInvoice.count(),
     prisma.subscriptionInvoice.count({ where: { status: 'PAID' } }),
@@ -36,6 +37,7 @@ export async function GET() {
     prisma.payment.count({ where: { status: 'FAILED' } }),
     prisma.upgradeRequest.count({ where: { status: 'MANUALLY_CONFIRMED' } }),
     prisma.subscriptionInvoice.findMany({ orderBy: { createdAt: 'desc' }, take: 20, include: { user: { select: { name: true, email: true } } } }),
+    prisma.subscriptionInvoice.findMany({ where: { status: 'OVERDUE' }, orderBy: { dueDate: 'asc' }, take: 10, include: { user: { select: { name: true, email: true } } } }),
   ]);
 
   return NextResponse.json({
@@ -44,5 +46,6 @@ export async function GET() {
     renewals: { dueToday: renewalsDueToday, dueThisWeek: renewalsDueWeek, queued: queuedRenewals, applied: appliedRenewals },
     payments: { failed: failedPayments, manualConfirmations: manualConfirms },
     recentInvoices,
+    recoveryInvoices,
   });
 }

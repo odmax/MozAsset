@@ -1196,6 +1196,12 @@ model SubscriptionInvoice {
   paymentTransactionId String?
   payNowUrl           String?
   notes               String?
+  recoveryStage       String?
+  recoveryEmailSentAt DateTime?
+  recoveryStage1At    DateTime?
+  recoveryStage2At    DateTime?
+  recoveryStage3At    DateTime?
+  recoverySuspendedAt DateTime?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
