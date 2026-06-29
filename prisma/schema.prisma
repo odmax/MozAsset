@@ -266,6 +266,7 @@ model User {
   createdOrders      PurchaseOrder[]     @relation("POCreator")
   approvedOrders     PurchaseOrder[]     @relation("POApprover")
   subscriptionRenewals SubscriptionRenewal[]
+  subscriptionInvoices SubscriptionInvoice[]
   stockSessions      StockVerificationSession[]
   stockVerifications StockVerificationItem[]
   approvalRequests   ApprovalRequest[] @relation("ApprovalRequester")
@@ -351,6 +352,7 @@ model Organization {
   approvalRequests    ApprovalRequest[]
   purchaseRequests    PurchaseRequest[]
   purchaseOrders      PurchaseOrder[]
+  subscriptionInvoices SubscriptionInvoice[]
 
   @@index([ownerId])
 }
@@ -1170,6 +1172,38 @@ model PurchaseOrderItem {
   notes           String?
 
   @@index([purchaseOrderId])
+}
+
+model SubscriptionInvoice {
+  id                  String   @id @default(cuid())
+  invoiceNumber       String   @unique
+  userId              String
+  user                User     @relation(fields: [userId], references: [id])
+  organizationId      String?
+  organization        Organization? @relation(fields: [organizationId], references: [id])
+  plan                String
+  billingPeriodStart  DateTime
+  billingPeriodEnd    DateTime
+  subtotal            Decimal  @db.Decimal(12, 2)
+  vatRate             Int      @default(15)
+  vatAmount           Decimal  @db.Decimal(12, 2)
+  total               Decimal  @db.Decimal(12, 2)
+  currency            String   @default("ZAR")
+  status              String   @default("DRAFT")
+  dueDate             DateTime
+  paidAt              DateTime?
+  paymentReference    String?
+  paymentTransactionId String?
+  payNowUrl           String?
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([userId, billingPeriodStart, plan])
+  @@index([userId])
+  @@index([status])
+  @@index([invoiceNumber])
+  @@index([organizationId])
 }
 
 model SubscriptionRenewal {

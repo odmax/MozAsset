@@ -379,6 +379,8 @@ export default function BillingPage() {
         </CardContent>
       </Card>
 
+      <InvoicesSection />
+
       {/* --- Need Help --- */}
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Headphones className="h-5 w-5 text-primary" />Need Help?</CardTitle></CardHeader>
@@ -410,5 +412,37 @@ export default function BillingPage() {
       <UpgradePlanModal isOpen={upgradeModalOpen} onClose={() => setUpgradeModalOpen(false)} currentPlan={plan} />
       <CancelSubscriptionModal isOpen={cancelModalOpen} onClose={() => { setCancelModalOpen(false); router.refresh(); }} currentPlan={plan} billingPeriodEnd={billingData?.billingPeriodEnd || null} />
     </div>
+  );
+}
+
+function InvoicesSection() {
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [invLoading, setInvLoading] = useState(true);
+  useEffect(() => { fetch('/api/billing/invoices').then(r => r.json()).then(d => setInvoices(d.invoices || [])).catch(() => {}).finally(() => setInvLoading(false)); }, []);
+  if (invLoading || !invoices.length) return null;
+
+  const STATUSES: Record<string, string> = { DRAFT: 'bg-slate-100 text-slate-700', ISSUED: 'bg-blue-100 text-blue-700', PENDING_PAYMENT: 'bg-amber-100 text-amber-700', PAID: 'bg-green-100 text-green-700', OVERDUE: 'bg-red-100 text-red-700' };
+
+  return (
+    <Card>
+      <CardHeader><CardTitle>Invoices</CardTitle><CardDescription>Your billing invoices</CardDescription></CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          {invoices.slice(0, 5).map((inv: any) => (
+            <div key={inv.id} className="flex items-center justify-between p-2 border rounded text-sm">
+              <div>
+                <span className="font-medium">{inv.invoiceNumber}</span>
+                <span className="text-muted-foreground ml-2">{inv.plan}</span>
+                <Badge className={`ml-2 ${STATUSES[inv.status] || ''}`}>{inv.status}</Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-medium">R{Number(inv.total).toFixed(2)}</span>
+                <span className="text-xs text-muted-foreground">{new Date(inv.createdAt).toLocaleDateString()}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
