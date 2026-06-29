@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Package, CheckCircle, Mail, Building2 } from 'lucide-react';
+import { Logo } from '@/components/shared/logo';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
