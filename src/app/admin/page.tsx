@@ -5,6 +5,7 @@ import { Users, Building2, Crown, CreditCard, Mail, TrendingUp, UserPlus, Dollar
 import { Badge } from '@/components/ui/badge';
 import { getSimpleAdminSession } from '@/lib/admin-session';
 import { PlatformHealth } from '@/components/admin/platform-health';
+import { AdminBillingHealth } from '@/components/admin/admin-billing-health';
 
 async function getAdminStats() {
   const now = new Date();
@@ -243,6 +244,10 @@ export default async function AdminPage() {
       </div>
 
       <PlatformHealth />
+
+      <div className="mt-8">
+        <AdminBillingHealth />
+      </div>
     </div>
   );
 }
