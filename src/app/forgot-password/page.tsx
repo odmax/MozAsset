@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { Logo } from '@/components/shared/logo';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -49,7 +50,7 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
-            <img src="/logo1.png" alt="MozAssets" className="h-11 w-auto" />
+            <Logo size="lg" />
           </Link>
         </div>
 

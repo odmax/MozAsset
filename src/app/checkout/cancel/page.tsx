@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { XCircle } from 'lucide-react';
+import { Logo } from '@/components/shared/logo';
 
 export default function CheckoutCancelPage() {
   return (
@@ -11,7 +12,7 @@ export default function CheckoutCancelPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
-            <img src="/logo1.png" alt="MozAssets" className="h-11 w-auto" />
+            <Logo size="lg" />
           </Link>
         </div>
 

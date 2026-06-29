@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle, Clock } from 'lucide-react';
 import { trackPurchaseConversion } from '@/lib/google-ads';
+import { Logo } from '@/components/shared/logo';
 
 function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
@@ -80,7 +81,7 @@ function CheckoutSuccessContent() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
-            <img src="/logo1.png" alt="MozAssets" className="h-11 w-auto" />
+            <Logo size="lg" />
           </Link>
           </div>
           <Card>
@@ -111,7 +112,7 @@ function CheckoutSuccessContent() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
-            <img src="/logo1.png" alt="MozAssets" className="h-11 w-auto" />
+            <Logo size="lg" />
           </Link>
         </div>
 
