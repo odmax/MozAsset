@@ -63,7 +63,7 @@ export default async function DashboardLayout({
           />
           <main className="lg:pl-64 pt-14 lg:pt-0">
             <div className="container mx-auto p-4 sm:p-6 space-y-6">
-              {userInfo?.isDeactivated && <DeactivatedBanner reason={userInfo.deactivationReason} />}
+              {userInfo?.isDeactivated && <DeactivatedBanner reason={userInfo.deactivationReason ?? null} />}
               {userInfo?.subscriptionStatus && ['GRACE_PERIOD','PAST_DUE','SUSPENDED'].includes(userInfo.subscriptionStatus as string) && (
                 <SubscriptionBanner status={userInfo.subscriptionStatus as string} />
               )}
