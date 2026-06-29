@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Logo } from '@/components/shared/logo';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -170,7 +171,7 @@ export function AdminSidebar({ email, role }: { email: string; role: string }) {
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center border-b border-slate-800/60 px-6 shrink-0 bg-slate-900/80 backdrop-blur-sm">
         <Link href="/admin" className="flex items-center gap-2 font-bold text-lg group" onClick={() => setOpen(false)}>
-          <img src="/logo1.png" alt="MozAssets" className="h-11 w-auto" />
+          <Logo size="lg" />
           <span className="text-[10px] font-medium text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded uppercase tracking-wider">Admin</span>
         </Link>
       </div>

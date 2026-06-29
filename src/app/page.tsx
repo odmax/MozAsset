@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { Logo } from '@/components/shared/logo';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -166,7 +167,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center gap-2 font-bold text-xl">
-              <img src="/logo1.png" alt="MozAssets" className="h-8 w-auto" />
+              <Logo size="md" />
             </Link>
             
             <nav className="hidden md:flex items-center gap-8">

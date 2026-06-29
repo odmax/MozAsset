@@ -36,6 +36,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import type { Role, LucideIcon } from '@/types';
+import { Logo } from '@/components/shared/logo';
 import { AdContainer } from '@/components/ad-container';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 
@@ -181,7 +182,7 @@ function SidebarContent({
             />
           ) : (
             <>
-              <img src="/logo1.png" alt="MozAssets" className="h-8 w-auto" />
+              <Logo size="md" />
             </>
           )}
           {companyBrandName && (

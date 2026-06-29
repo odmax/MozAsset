@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
+import { Logo } from '@/components/shared/logo';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -66,7 +67,7 @@ export default function LoginPage() {
         </div>
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
-            <img src="/logo1.png" alt="MozAssets" className="h-11 w-auto" />
+            <Logo size="lg" />
           </Link>
           <p className="text-sm text-muted-foreground mt-1">by Mozetech</p>
         </div>
