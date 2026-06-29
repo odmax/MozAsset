@@ -86,6 +86,8 @@ enum FileType {
 enum SubscriptionStatus {
   ACTIVE
   PAST_DUE
+  GRACE_PERIOD
+  SUSPENDED
   CANCELED
   PAUSED
   TRIALING
@@ -196,6 +198,8 @@ model User {
   billingPeriodEnd      DateTime?
   canceledAt            DateTime?
   lastPaymentAt         DateTime?
+  gracePeriodEnd        DateTime?
+  renewalReminderSentAt DateTime?
 
   departmentId    String?
   department      Department? @relation(fields: [departmentId], references: [id])

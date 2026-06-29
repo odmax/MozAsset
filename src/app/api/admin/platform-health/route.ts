@@ -30,6 +30,7 @@ export async function GET() {
     onlineAgents, busyAgents,
     lastMaintenanceCron, lastReengagementCron,
     usersInactive30d, pendingPaymentsOld,
+    pastDueSubs, graceSubs, suspendedSubs,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { isActive: true } }),
@@ -55,6 +56,9 @@ export async function GET() {
     prisma.userEngagementEmail.findFirst({ where: { emailType: 'INACTIVE_90_DAYS' }, orderBy: { sentAt: 'desc' }, select: { sentAt: true } }),
     prisma.user.count({ where: { isActive: true, lastActiveAt: { lte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) } } }),
     prisma.payment.count({ where: { status: 'PENDING', createdAt: { lte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } } }),
+    prisma.user.count({ where: { subscriptionStatus: 'PAST_DUE' } }),
+    prisma.user.count({ where: { subscriptionStatus: 'GRACE_PERIOD' } }),
+    prisma.user.count({ where: { subscriptionStatus: 'SUSPENDED' } }),
   ]);
 
   const warnings = [];
@@ -66,6 +70,8 @@ export async function GET() {
   if (!lastMaintenanceCron || new Date(lastMaintenanceCron.sentAt).getTime() < yesterday.getTime()) {
     warnings.push({ type: 'cron', message: 'Maintenance cron may not have run in 24h', severity: 'low' });
   }
+  if (pastDueSubs > 0) warnings.push({ type: 'billing', message: `${pastDueSubs} subscriptions past due`, severity: 'high' });
+  if (suspendedSubs > 0) warnings.push({ type: 'billing', message: `${suspendedSubs} subscriptions suspended`, severity: 'high' });
 
   return NextResponse.json({
     updatedAt: now.toISOString(),
@@ -78,6 +84,9 @@ export async function GET() {
       pendingUpgradeRequests: pendingUpgradeReqs,
       manualConfirmations,
       pendingPaymentsOld,
+      pastDueSubscriptions: pastDueSubs,
+      graceSubscriptions: graceSubs,
+      suspendedSubscriptions: suspendedSubs,
     },
     emails: { sentToday: emailsToday, failed: failedEmails, verificationSent, resetSent, reengagementSent },
     cron: { lastMaintenanceCron: lastMaintenanceCron?.sentAt || null, lastReengagementCron: lastReengagementCron?.sentAt || null },
