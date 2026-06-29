@@ -300,6 +300,17 @@ export async function updatePlanFromConfirmedPayment(
       }
     }).catch((err) => console.error('Failed to match UpgradeRequest:', err));
 
+    await prisma.subscriptionInvoice.findFirst({
+      where: { invoiceNumber: paymentId },
+    }).then(async (inv) => {
+      if (inv && inv.status !== 'PAID') {
+        await prisma.subscriptionInvoice.update({
+          where: { id: inv.id },
+          data: { status: 'PAID', paidAt: new Date() },
+        });
+      }
+    }).catch(() => {});
+
     const { createNotification } = await import('@/lib/notifications');
     createNotification({
       userId,
