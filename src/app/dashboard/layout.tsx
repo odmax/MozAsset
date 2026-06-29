@@ -6,6 +6,7 @@ import { UpgradeBanner } from '@/components/dashboard/ads';
 import SupportWidget from '@/components/support-widget';
 import { DashboardClient } from '@/components/dashboard/DashboardClient';
 import { BrandingProvider } from '@/components/branding-provider';
+import { SubscriptionBanner } from '@/components/dashboard/subscription-banner';
 import { getSimpleUserSession } from '@/lib/customer-session';
 
 import { DeactivatedBanner } from '@/components/dashboard/deactivated-banner';
@@ -14,7 +15,7 @@ async function getUserInfo(userId: string, organizationId: string | null) {
   const [user, org] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
-      select: { companyLogoUrl: true, isDeactivated: true, deactivationReason: true },
+      select: { companyLogoUrl: true, isDeactivated: true, deactivationReason: true, subscriptionStatus: true, plan: true },
     }),
     organizationId
       ? prisma.organization.findUnique({
@@ -62,7 +63,10 @@ export default async function DashboardLayout({
           />
           <main className="lg:pl-64 pt-14 lg:pt-0">
             <div className="container mx-auto p-4 sm:p-6 space-y-6">
-              {userInfo?.isDeactivated && <DeactivatedBanner reason={userInfo.deactivationReason ?? null} />}
+              {userInfo?.isDeactivated && <DeactivatedBanner reason={userInfo.deactivationReason} />}
+              {userInfo?.subscriptionStatus && ['GRACE_PERIOD','PAST_DUE','SUSPENDED'].includes(userInfo.subscriptionStatus as string) && (
+                <SubscriptionBanner status={userInfo.subscriptionStatus as string} />
+              )}
               {!userInfo?.isDeactivated && userPlan === 'FREE' && <UpgradeBanner userPlan={userPlan} />}
               {children}
             </div>
