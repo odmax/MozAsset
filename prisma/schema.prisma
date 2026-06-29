@@ -200,6 +200,12 @@ model User {
   lastPaymentAt         DateTime?
   gracePeriodEnd        DateTime?
   renewalReminderSentAt DateTime?
+  renewalReminder7dAt   DateTime?
+  renewalReminder3dAt   DateTime?
+  renewalReminder1dAt   DateTime?
+  renewalReminderDueAt  DateTime?
+  pastDueReminderAt     DateTime?
+  suspensionReminderAt  DateTime?
 
   departmentId    String?
   department      Department? @relation(fields: [departmentId], references: [id])
@@ -259,6 +265,7 @@ model User {
   approvedRequests   PurchaseRequest[]   @relation("PurchaseApprover")
   createdOrders      PurchaseOrder[]     @relation("POCreator")
   approvedOrders     PurchaseOrder[]     @relation("POApprover")
+  subscriptionRenewals SubscriptionRenewal[]
   stockSessions      StockVerificationSession[]
   stockVerifications StockVerificationItem[]
   approvalRequests   ApprovalRequest[] @relation("ApprovalRequester")
@@ -1163,6 +1170,23 @@ model PurchaseOrderItem {
   notes           String?
 
   @@index([purchaseOrderId])
+}
+
+model SubscriptionRenewal {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentId          String?
+  billingCycleStart  DateTime
+  billingCycleEnd    DateTime
+  applied            Boolean  @default(false)
+  appliedAt          DateTime?
+  amount             Decimal? @db.Decimal(12, 2)
+  createdAt          DateTime @default(now())
+
+  @@index([userId])
+  @@index([applied])
+  @@index([billingCycleEnd])
 }
 
 model SlaRule {

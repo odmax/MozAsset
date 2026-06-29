@@ -31,6 +31,7 @@ export async function GET() {
     lastMaintenanceCron, lastReengagementCron,
     usersInactive30d, pendingPaymentsOld,
     pastDueSubs, graceSubs, suspendedSubs,
+    queuedRenewals, appliedRenewals,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { isActive: true } }),
@@ -59,6 +60,8 @@ export async function GET() {
     prisma.user.count({ where: { subscriptionStatus: 'PAST_DUE' } }),
     prisma.user.count({ where: { subscriptionStatus: 'GRACE_PERIOD' } }),
     prisma.user.count({ where: { subscriptionStatus: 'SUSPENDED' } }),
+    prisma.subscriptionRenewal.count({ where: { applied: false } }),
+    prisma.subscriptionRenewal.count({ where: { applied: true, appliedAt: { gte: monthStart } } }),
   ]);
 
   const warnings = [];
@@ -87,6 +90,8 @@ export async function GET() {
       pastDueSubscriptions: pastDueSubs,
       graceSubscriptions: graceSubs,
       suspendedSubscriptions: suspendedSubs,
+      queuedRenewals,
+      appliedRenewalsThisMonth: appliedRenewals,
     },
     emails: { sentToday: emailsToday, failed: failedEmails, verificationSent, resetSent, reengagementSent },
     cron: { lastMaintenanceCron: lastMaintenanceCron?.sentAt || null, lastReengagementCron: lastReengagementCron?.sentAt || null },
