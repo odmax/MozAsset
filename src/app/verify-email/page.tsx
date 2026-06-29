@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { Logo } from '@/components/shared/logo';
 
 function VerifyEmailContent() {
   const router = useRouter();
