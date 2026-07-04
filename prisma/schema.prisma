@@ -219,6 +219,9 @@ model User {
   emailVerificationToken  String?
   verificationTokenExpiry DateTime?
   emailVerifiedAt         DateTime?
+  verificationEmailCount   Int       @default(0)
+  lastVerificationEmailAt  DateTime?
+  authProvider             String    @default("EMAIL")
 
   appearanceMode AppearanceMode @default(SYSTEM)
   themeColor     String?        @default("#222222")
